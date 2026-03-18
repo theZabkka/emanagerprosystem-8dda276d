@@ -17,6 +17,12 @@ import OperationalBoard from "./pages/OperationalBoard";
 import TeamBoard from "./pages/TeamBoard";
 import TeamCalendar from "./pages/TeamCalendar";
 import TimeReports from "./pages/TimeReports";
+import MyDay from "./pages/MyDay";
+import Settings from "./pages/Settings";
+import Automations from "./pages/Automations";
+import AutomationCenter from "./pages/AutomationCenter";
+import Team from "./pages/Team";
+import WhatsNew from "./pages/WhatsNew";
 import StubPage from "./pages/StubPage";
 import NotFound from "./pages/NotFound";
 import { ReactNode } from "react";
@@ -38,7 +44,6 @@ function PublicRoute({ children }: { children: ReactNode }) {
 }
 
 const stubRoutes = [
-  { path: "/my-day", title: "Mój dzień" },
   { path: "/routines", title: "Rutyny" },
   { path: "/contracts", title: "Umowy" },
   { path: "/orders", title: "Zlecenia" },
@@ -47,7 +52,6 @@ const stubRoutes = [
   { path: "/micro-interventions", title: "Mikro-interwencje" },
   { path: "/client-inbox", title: "Skrzynka klientów" },
   { path: "/tickets", title: "Zgłoszenia" },
-  { path: "/team", title: "Zespół" },
   { path: "/meetings", title: "Spotkania" },
   { path: "/absences", title: "Nieobecności" },
   { path: "/equipment", title: "Sprzęt" },
@@ -56,15 +60,9 @@ const stubRoutes = [
   { path: "/reports", title: "Raporty" },
   { path: "/team-results", title: "Wyniki zespołu" },
   { path: "/team-notes", title: "Notatki zespołu" },
-  { path: "/team-results", title: "Wyniki zespołu" },
-  { path: "/team-notes", title: "Notatki zespołu" },
-  { path: "/automations", title: "Automatyzacje" },
-  { path: "/automation-center", title: "Centrum automatyzacji" },
   { path: "/team-analytics", title: "Analityka zespołu" },
   { path: "/recurring-tasks", title: "Zadania cykliczne" },
   { path: "/suggestions", title: "Sugestie" },
-  { path: "/whats-new", title: "Co nowego" },
-  { path: "/settings", title: "Ustawienia" },
   { path: "/docs", title: "Dokumentacja" },
   { path: "/project-guide", title: "Instrukcja projektu" },
 ];
@@ -80,6 +78,7 @@ const App = () => (
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/my-day" element={<ProtectedRoute><MyDay /></ProtectedRoute>} />
             <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
             <Route path="/tasks/:id" element={<ProtectedRoute><TaskDetail /></ProtectedRoute>} />
             <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
@@ -91,6 +90,11 @@ const App = () => (
             <Route path="/team-board" element={<ProtectedRoute><TeamBoard /></ProtectedRoute>} />
             <Route path="/team/calendar" element={<ProtectedRoute><TeamCalendar /></ProtectedRoute>} />
             <Route path="/reports/time" element={<ProtectedRoute><TimeReports /></ProtectedRoute>} />
+            <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/automations" element={<ProtectedRoute><Automations /></ProtectedRoute>} />
+            <Route path="/automation-center" element={<ProtectedRoute><AutomationCenter /></ProtectedRoute>} />
+            <Route path="/whats-new" element={<ProtectedRoute><WhatsNew /></ProtectedRoute>} />
             {stubRoutes.map((r) => (
               <Route key={r.path} path={r.path} element={<ProtectedRoute><StubPage title={r.title} /></ProtectedRoute>} />
             ))}
