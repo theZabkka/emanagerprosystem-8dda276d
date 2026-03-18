@@ -14,6 +14,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ children, title }: AppLayoutProps) {
   const { isClient } = useRole();
+  useRoutePrefetch();
 
   return (
     <SidebarProvider>
