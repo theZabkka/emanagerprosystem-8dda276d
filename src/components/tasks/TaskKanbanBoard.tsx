@@ -56,8 +56,11 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
   const getAssignee = useCallback((taskId: string) => {
     const a = assignments.find((a: any) => a.task_id === taskId && a.role === "primary");
     if (!a) return null;
-    return profiles.find((p: any) => p.id === a.user_id) || null;
-  }, [assignments, profiles]);
+    // Try profiles prop first, then allProfiles (from own query), then embedded profile data
+    return profiles.find((p: any) => p.id === a.user_id)
+      || (allProfiles || []).find((p: any) => p.id === a.user_id)
+      || (a.profiles ? { id: a.user_id, full_name: a.profiles.full_name } : null);
+  }, [assignments, profiles, allProfiles]);
 
   const getClient = useCallback((clientId: string | null) => {
     if (!clientId) return null;
