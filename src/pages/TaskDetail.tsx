@@ -910,8 +910,8 @@ export default function TaskDetail() {
             </CardContent>
           </Card>
 
-          {/* Time tracking */}
-          <Card>
+          {/* Time tracking - hidden in preview */}
+          {!isPreviewMode && (<Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold">Czas pracy</CardTitle>
             </CardHeader>
