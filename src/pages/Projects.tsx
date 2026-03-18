@@ -28,7 +28,6 @@ export default function Projects() {
   const { isDemo } = useDataSource();
   const navigate = useNavigate();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", client_id: "", status: "active" });
 
   const { data: projects, isLoading, refetch } = useQuery({
     queryKey: ["projects", isDemo],
@@ -42,29 +41,6 @@ export default function Projects() {
     },
   });
 
-  const { data: clients } = useQuery({
-    queryKey: ["clients-list", isDemo],
-    queryFn: async () => {
-      if (isDemo) return mockClients.map(c => ({ id: c.id, name: c.name }));
-      const { data } = await supabase.from("clients").select("id, name").order("name");
-      return data || [];
-    },
-  });
-
-  async function handleCreate() {
-    if (!form.name.trim()) { toast.error("Podaj nazwę projektu"); return; }
-    if (isDemo) { toast.info("W trybie demo nie można tworzyć projektów"); return; }
-    const { error } = await supabase.from("projects").insert({
-      name: form.name, description: form.description,
-      client_id: form.client_id || null, status: form.status,
-    });
-    if (error) { toast.error(error.message); return; }
-    toast.success("Projekt utworzony");
-    setForm({ name: "", description: "", client_id: "", status: "active" });
-    setIsCreateOpen(false);
-    refetch();
-  }
-
   return (
     <AppLayout title="Projekty">
       <div className="space-y-4 max-w-7xl mx-auto">
@@ -76,28 +52,8 @@ export default function Projects() {
         )}
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold">Wszystkie projekty</h2>
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 mr-1" /> Nowy projekt</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Nowy projekt</DialogTitle></DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2"><Label>Nazwa *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-                <div className="space-y-2"><Label>Opis</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
-                <div className="space-y-2">
-                  <Label>Klient</Label>
-                  <Select value={form.client_id} onValueChange={(v) => setForm({ ...form, client_id: v })}>
-                    <SelectTrigger><SelectValue placeholder="Wybierz klienta" /></SelectTrigger>
-                    <SelectContent>
-                      {clients?.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button onClick={handleCreate} className="w-full">Utwórz projekt</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button onClick={() => setIsCreateOpen(true)}><Plus className="h-4 w-4 mr-1" /> Nowy projekt</Button>
+          <CreateProjectDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} onCreated={() => refetch()} />
         </div>
 
         <div className="bg-card rounded-lg border">
