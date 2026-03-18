@@ -1,10 +1,13 @@
-import { Search, Phone, Focus, Sun, Moon, Bell } from "lucide-react";
+import { Search, Phone, Focus, Sun, Moon, Bell, Database, FlaskConical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataSource } from "@/hooks/useDataSource";
+import { seedSupabaseDatabase } from "@/lib/seedDatabase";
+import { toast } from "sonner";
 import { useState } from "react";
 
 interface TopbarProps {
@@ -13,11 +16,30 @@ interface TopbarProps {
 
 export function Topbar({ title = "Pulpit" }: TopbarProps) {
   const { profile } = useAuth();
+  const { dataSource, setDataSource, isDemo } = useDataSource();
   const [isDark, setIsDark] = useState(false);
+  const [seeding, setSeeding] = useState(false);
 
   const toggleTheme = () => {
     setIsDark(!isDark);
     document.documentElement.classList.toggle("dark");
+  };
+
+  const toggleDataSource = () => {
+    setDataSource(isDemo ? "database" : "demo");
+  };
+
+  const handleSeed = async () => {
+    setSeeding(true);
+    toast.info("Zasilanie bazy w toku...");
+    try {
+      const result = await seedSupabaseDatabase();
+      toast.success(`Dodano testowe dane do Supabase! (${result.clientsCount} klientów, ${result.tasksCount} zadań)`);
+    } catch (e: any) {
+      toast.error("Błąd zasilania: " + (e?.message ?? "Nieznany błąd"));
+    } finally {
+      setSeeding(false);
+    }
   };
 
   const initials = profile?.full_name
@@ -42,6 +64,32 @@ export function Topbar({ title = "Pulpit" }: TopbarProps) {
       </div>
 
       <div className="flex items-center gap-1">
+        {/* Data source toggle */}
+        <button
+          onClick={toggleDataSource}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors mr-1 ${
+            isDemo
+              ? "bg-orange-500/15 text-orange-600 border border-orange-400/50 hover:bg-orange-500/25"
+              : "bg-emerald-500/15 text-emerald-600 border border-emerald-400/50 hover:bg-emerald-500/25"
+          }`}
+        >
+          <Database className="h-3.5 w-3.5" />
+          {isDemo ? "DEMO" : "BAZA"}
+        </button>
+
+        {/* Seed button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+          onClick={handleSeed}
+          disabled={seeding}
+          title="Zasil bazę danymi testowymi"
+        >
+          <FlaskConical className="h-3.5 w-3.5" />
+          <span className="hidden lg:inline">Zasil</span>
+        </Button>
+
         <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
           <Phone className="h-4 w-4" />
         </Button>
