@@ -980,7 +980,7 @@ export default function TaskDetail() {
                 </>
               )}
             </CardContent>
-          </Card>
+          </Card>)}
 
           {/* Comments */}
           <Card>
