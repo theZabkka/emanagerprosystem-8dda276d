@@ -97,7 +97,7 @@ export default function Messenger() {
         .from("message_reactions" as any)
         .select("*")
         .in("message_id", messageIds);
-      return (data || []) as Reaction[];
+      return (data || []) as unknown as Reaction[];
     },
     enabled: messageIds.length > 0,
   });
