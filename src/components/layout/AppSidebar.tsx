@@ -126,7 +126,10 @@ export function AppSidebar() {
 
       <SidebarContent>
         <ScrollArea className="flex-1">
-          {sections.map((section) => (
+          {sections.map((section) => {
+            const visibleItems = section.items.filter(item => canViewModule(item.title));
+            if (visibleItems.length === 0) return null;
+            return (
             <SidebarGroup key={section.label}>
               {!collapsed && (
                 <SidebarGroupLabel className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
@@ -135,7 +138,7 @@ export function AppSidebar() {
               )}
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {section.items.map((item) => (
+                  {visibleItems.map((item) => (
                     <SidebarMenuItem key={item.url}>
                       <SidebarMenuButton
                         asChild
@@ -157,7 +160,8 @@ export function AppSidebar() {
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
-          ))}
+            );
+          })}
         </ScrollArea>
       </SidebarContent>
 
