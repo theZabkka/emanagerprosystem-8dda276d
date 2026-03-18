@@ -48,7 +48,7 @@ const sections = [
       { title: "Umowy", url: "/contracts", icon: FileText },
       { title: "Zlecenia", url: "/orders", icon: Briefcase },
       { title: "Lejek sprzedaży", url: "/pipeline", icon: TrendingUp },
-      { title: "Pomysły klientów", url: "/client-ideas", icon: Lightbulb },
+      { title: "Pomysły klientów", url: "/staff-ideas", icon: Lightbulb },
       { title: "Rozmowy", url: "/conversations", icon: MessageCircle },
       { title: "Mikro-interwencje", url: "/micro-interventions", icon: Zap },
     ],

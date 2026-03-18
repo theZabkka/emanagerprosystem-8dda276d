@@ -27,7 +27,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted">
-      <div className="w-full max-w-sm">
+        <div className="w-full max-w-sm">
         <div className="bg-card rounded-xl shadow-lg p-8 space-y-6">
           <div className="text-center space-y-2">
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
@@ -63,6 +63,30 @@ export default function Login() {
               {isLoading ? "Logowanie..." : "Zaloguj się"}
             </Button>
           </form>
+
+          {/* Test accounts info */}
+          <div className="border-t border-border pt-4">
+            <p className="text-xs text-muted-foreground mb-2 font-medium">Konta testowe (hasło: haslo1234):</p>
+            <div className="space-y-1">
+              {[
+                { email: "boss@test.pl", role: "Boss" },
+                { email: "koordynator@test.pl", role: "Koordynator" },
+                { email: "specjalista@test.pl", role: "Specjalista" },
+                { email: "praktykant@test.pl", role: "Praktykant" },
+                { email: "klient@test.pl", role: "Klient" },
+              ].map(acc => (
+                <button
+                  key={acc.email}
+                  type="button"
+                  className="w-full text-left text-xs px-2 py-1 rounded hover:bg-muted transition-colors flex justify-between"
+                  onClick={() => { setEmail(acc.email); setPassword("haslo1234"); }}
+                >
+                  <span className="text-muted-foreground">{acc.email}</span>
+                  <span className="font-medium text-foreground">{acc.role}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
