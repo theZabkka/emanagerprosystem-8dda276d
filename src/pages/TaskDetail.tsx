@@ -611,23 +611,28 @@ export default function TaskDetail() {
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="text-xs font-mono">#{task.id.slice(0, 8)}</Badge>
           {!isPreviewMode ? (
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="cursor-pointer">
-                <Badge className={`text-[10px] font-bold ${statusColors[task.status] || "bg-muted"} hover:opacity-80 transition-opacity`}>
-                  {statusLabels[task.status] || task.status}
-                </Badge>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-48 p-1" align="start">
-              {Object.entries(statusLabels).map(([k, v]) => (
-                <button key={k} onClick={() => handleStatusChange(k)}
-                  className={`w-full text-left px-3 py-1.5 text-sm rounded-sm hover:bg-accent transition-colors ${k === task.status ? "font-bold bg-accent/50" : ""}`}>
-                  <Badge className={`text-[9px] ${statusColors[k]}`}>{v}</Badge>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="cursor-pointer">
+                  <Badge className={`text-[10px] font-bold ${statusColors[task.status] || "bg-muted"} hover:opacity-80 transition-opacity`}>
+                    {statusLabels[task.status] || task.status}
+                  </Badge>
                 </button>
-              ))}
-            </PopoverContent>
-          </Popover>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-1" align="start">
+                {Object.entries(statusLabels).map(([k, v]) => (
+                  <button key={k} onClick={() => handleStatusChange(k)}
+                    className={`w-full text-left px-3 py-1.5 text-sm rounded-sm hover:bg-accent transition-colors ${k === task.status ? "font-bold bg-accent/50" : ""}`}>
+                    <Badge className={`text-[9px] ${statusColors[k]}`}>{v}</Badge>
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <Badge className={`text-[10px] font-bold ${statusColors[task.status] || "bg-muted"}`}>
+              {statusLabels[task.status] || task.status}
+            </Badge>
+          )}
           <Badge className={`text-[10px] font-bold border ${priorityColors[task.priority] || ""}`}>{priorityLabels[task.priority] || task.priority}</Badge>
           {hasNoAssignment && <Badge className="bg-destructive text-destructive-foreground text-[10px] font-bold">NIEPRZYPISANE!</Badge>}
           {isOverdue && <Badge className="bg-destructive text-destructive-foreground text-[10px] font-bold">PO TERMINIE</Badge>}
