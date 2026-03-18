@@ -211,7 +211,7 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }: C
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={form.start_date} onSelect={d => update("start_date", d)} initialFocus className={cn("p-3 pointer-events-auto")} />
+                  <Calendar mode="single" selected={form.start_date} onSelect={d => update("start_date", d)} disabled={{ before: new Date() }} initialFocus className={cn("p-3 pointer-events-auto")} />
                 </PopoverContent>
               </Popover>
             </div>
@@ -225,7 +225,7 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }: C
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={form.end_date} onSelect={d => update("end_date", d)} initialFocus className={cn("p-3 pointer-events-auto")} />
+                  <Calendar mode="single" selected={form.end_date} onSelect={d => update("end_date", d)} disabled={{ before: form.start_date || new Date() }} initialFocus className={cn("p-3 pointer-events-auto")} />
                 </PopoverContent>
               </Popover>
             </div>

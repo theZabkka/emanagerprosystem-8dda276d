@@ -206,6 +206,7 @@ export default function Tasks() {
             assignments={isDemo ? mockTaskAssignments : filteredTasks.flatMap((t: any) => (t.task_assignments || []).map((a: any) => ({ ...a, task_id: t.id })))}
             clients={isDemo ? mockClients : filteredTasks.map((t: any) => t.clients ? { id: t.client_id, name: t.clients.name } : null).filter(Boolean)}
             onStatusChange={handleStatusChange}
+            onRefresh={() => refetch()}
           />
         ) : (
           <TaskListView tasks={filteredTasks} isLoading={isLoading} />
