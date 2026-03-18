@@ -364,14 +364,13 @@ export default function ClientDetail() {
     conversations: (conversations || []).length,
     offers: (offers || []).length,
     ideas: (ideas || []).length,
-    contracts: 0,
-    orders: 0,
+    contracts: (contracts || []).length,
+    orders: (orders || []).length,
     files: (files || []).length,
-    social: 0,
+    social: (socialAccounts || []).length,
     billing: invoiceData ? 1 : 0,
-    history: 0,
-    scope: 0,
-  }), [activeTasks, conversations, offers, ideas, files, invoiceData]);
+    history: (activityHistory || []).length,
+  }), [activeTasks, conversations, offers, ideas, contracts, orders, files, socialAccounts, invoiceData, activityHistory]);
 
   // ─── Filtered tasks ───────────────────────────────────────────
   const filteredTasks = useMemo(() => {
