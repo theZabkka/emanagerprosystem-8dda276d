@@ -23,11 +23,17 @@ const PRIORITY_COLORS: Record<string, string> = {
 };
 
 export default function TeamCalendar() {
+  const { isDemo } = useDataSource();
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const { data: tasks = [] } = useQuery({
-    queryKey: ["calendar-tasks", format(currentMonth, "yyyy-MM")],
+    queryKey: ["calendar-tasks", format(currentMonth, "yyyy-MM"), isDemo],
     queryFn: async () => {
+      if (isDemo) {
+        const start = format(startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 }), "yyyy-MM-dd");
+        const end = format(endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 1 }), "yyyy-MM-dd");
+        return mockTasks.filter(t => t.due_date && t.due_date >= start && t.due_date <= end && (t.status as string) !== "cancelled");
+      }
       const start = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 });
       const end = endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 1 });
       const { data } = await supabase

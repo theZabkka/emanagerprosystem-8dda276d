@@ -25,9 +25,16 @@ const PRIORITY_COLORS: Record<string, string> = {
 };
 
 export default function OperationalBoard() {
+  const { isDemo } = useDataSource();
   const { data: tasks = [] } = useQuery({
-    queryKey: ["board-tasks"],
+    queryKey: ["board-tasks", isDemo],
     queryFn: async () => {
+      if (isDemo) {
+        return mockTasks.filter(t => (t.status as string) !== "cancelled").map(t => ({
+          ...t,
+          clients: mockClients.find(c => c.id === t.client_id) ? { name: mockClients.find(c => c.id === t.client_id)!.name } : null,
+        }));
+      }
       const { data } = await supabase
         .from("tasks")
         .select("id, title, status, priority, due_date, type, client_id, clients:client_id(name)")

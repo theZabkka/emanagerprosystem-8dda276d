@@ -11,9 +11,11 @@ import { Progress } from "@/components/ui/progress";
 import { Users, CheckSquare, Clock, AlertTriangle } from "lucide-react";
 
 export default function TeamBoard() {
+  const { isDemo } = useDataSource();
   const { data: profiles = [] } = useQuery({
-    queryKey: ["team-profiles"],
+    queryKey: ["team-profiles", isDemo],
     queryFn: async () => {
+      if (isDemo) return mockProfiles.map(p => ({ id: p.id, full_name: p.full_name, role: p.role, department: p.department, avatar_url: p.avatar_url }));
       const { data } = await supabase
         .from("profiles")
         .select("id, full_name, role, department, avatar_url")
@@ -23,8 +25,9 @@ export default function TeamBoard() {
   });
 
   const { data: tasks = [] } = useQuery({
-    queryKey: ["team-tasks"],
+    queryKey: ["team-tasks", isDemo],
     queryFn: async () => {
+      if (isDemo) return mockTasks.filter(t => t.status !== "done" && (t.status as string) !== "cancelled");
       const { data } = await supabase
         .from("tasks")
         .select("id, title, status, priority, due_date, created_by")
@@ -35,8 +38,9 @@ export default function TeamBoard() {
   });
 
   const { data: assignments = [] } = useQuery({
-    queryKey: ["team-assignments"],
+    queryKey: ["team-assignments", isDemo],
     queryFn: async () => {
+      if (isDemo) return mockTaskAssignments;
       const { data } = await supabase
         .from("task_assignments")
         .select("task_id, user_id, role");
