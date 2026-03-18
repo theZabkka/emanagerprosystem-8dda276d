@@ -2,15 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useDataSource } from "@/hooks/useDataSource";
-import { mockProfiles } from "@/lib/mockData";
+import { mockProfiles, mockTasks, mockTaskAssignments } from "@/lib/mockData";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import { Search, Users } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Search, Users, CheckSquare, Clock, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 
 export default function Team() {
@@ -21,10 +19,25 @@ export default function Team() {
     queryKey: ["team-members", isDemo],
     queryFn: async () => {
       if (isDemo) return mockProfiles.map(p => ({ ...p, created_at: "2025-06-01T10:00:00Z" }));
-      const { data } = await supabase
-        .from("profiles")
-        .select("id, full_name, email, role, department, status, avatar_url, created_at")
-        .order("full_name");
+      const { data } = await supabase.from("profiles").select("id, full_name, email, role, department, status, avatar_url, created_at").order("full_name");
+      return data || [];
+    },
+  });
+
+  const { data: tasks = [] } = useQuery({
+    queryKey: ["team-tasks-stats", isDemo],
+    queryFn: async () => {
+      if (isDemo) return mockTasks.filter(t => t.status !== "done" && (t.status as string) !== "cancelled");
+      const { data } = await supabase.from("tasks").select("id, status, priority, due_date, created_by").not("status", "in", "(done,cancelled)");
+      return data || [];
+    },
+  });
+
+  const { data: assignments = [] } = useQuery({
+    queryKey: ["team-assignments-stats", isDemo],
+    queryFn: async () => {
+      if (isDemo) return mockTaskAssignments;
+      const { data } = await supabase.from("task_assignments").select("task_id, user_id, role");
       return data || [];
     },
   });
@@ -36,27 +49,84 @@ export default function Team() {
   );
 
   const getInitials = (name: string | null) =>
-    name ? name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) : "?";
+    name ? name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "?";
+
+  const getUserTaskCount = (userId: string) => {
+    const taskIds = assignments.filter(a => a.user_id === userId).map(a => a.task_id);
+    return tasks.filter(t => taskIds.includes(t.id) || t.created_by === userId).length;
+  };
+
+  const getUserInProgress = (userId: string) => {
+    const taskIds = assignments.filter(a => a.user_id === userId).map(a => a.task_id);
+    return tasks.filter(t => (taskIds.includes(t.id) || t.created_by === userId) && t.status === "in_progress").length;
+  };
+
+  const getUserOverdue = (userId: string) => {
+    const taskIds = assignments.filter(a => a.user_id === userId).map(a => a.task_id);
+    return tasks.filter(t => (taskIds.includes(t.id) || t.created_by === userId) && t.due_date && new Date(t.due_date) < new Date()).length;
+  };
 
   return (
     <AppLayout title="Zespół">
       <div className="space-y-6">
+        {/* Summary cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <Users className="h-8 w-8 text-primary" />
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{profiles.length}</p>
+                  <p className="text-sm text-muted-foreground">Członków zespołu</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <CheckSquare className="h-8 w-8 text-primary" />
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{tasks.length}</p>
+                  <p className="text-sm text-muted-foreground">Otwartych zadań</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <Clock className="h-8 w-8 text-warning" />
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{tasks.filter(t => t.status === "in_progress").length}</p>
+                  <p className="text-sm text-muted-foreground">W trakcie</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="h-8 w-8 text-destructive" />
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{tasks.filter(t => t.due_date && new Date(t.due_date) < new Date()).length}</p>
+                  <p className="text-sm text-muted-foreground">Zaległe</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Search */}
         <div className="flex items-center gap-4">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Szukaj członka zespołu..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
+            <Input placeholder="Szukaj członka zespołu..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
-          <Badge variant="secondary">
-            <Users className="h-3 w-3 mr-1" />
-            {filtered.length} osób
-          </Badge>
+          <Badge variant="secondary"><Users className="h-3 w-3 mr-1" />{filtered.length} osób</Badge>
         </div>
 
+        {/* Table */}
         <Card>
           <CardContent className="p-0">
             <Table>
@@ -67,6 +137,9 @@ export default function Team() {
                   <TableHead>Rola</TableHead>
                   <TableHead>Dział</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="text-center">Zadania</TableHead>
+                  <TableHead className="text-center">W trakcie</TableHead>
+                  <TableHead className="text-center">Zaległe</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -75,30 +148,33 @@ export default function Team() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Avatar className="h-8 w-8">
-                          <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                            {getInitials(p.full_name)}
-                          </AvatarFallback>
+                          <AvatarFallback className="bg-primary text-primary-foreground text-xs">{getInitials(p.full_name)}</AvatarFallback>
                         </Avatar>
                         <span className="font-medium text-foreground">{p.full_name || "—"}</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{p.email || "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{p.role || "user"}</Badge>
-                    </TableCell>
+                    <TableCell><Badge variant="outline">{p.role || "user"}</Badge></TableCell>
                     <TableCell className="text-muted-foreground">{p.department || "—"}</TableCell>
                     <TableCell>
                       <Badge variant={p.status === "active" ? "default" : "secondary"}>
                         {p.status === "active" ? "Aktywny" : p.status || "—"}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-center font-medium">{getUserTaskCount(p.id)}</TableCell>
+                    <TableCell className="text-center font-medium">{getUserInProgress(p.id)}</TableCell>
+                    <TableCell className="text-center">
+                      {getUserOverdue(p.id) > 0 ? (
+                        <span className="text-destructive font-bold">{getUserOverdue(p.id)}</span>
+                      ) : (
+                        <span className="text-muted-foreground">0</span>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      Brak wyników
-                    </TableCell>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">Brak wyników</TableCell>
                   </TableRow>
                 )}
               </TableBody>
