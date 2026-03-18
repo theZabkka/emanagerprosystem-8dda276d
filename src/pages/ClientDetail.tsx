@@ -248,7 +248,55 @@ export default function ClientDetail() {
     enabled: !!id,
   });
 
-  // ─── Invoice edit state ───────────────────────────────────────
+  // ─── Fetch contracts ──────────────────────────────────────────
+  const { data: contracts } = useQuery({
+    queryKey: ["client-contracts", id, isDemo, _demoTick],
+    queryFn: async () => {
+      if (isDemo) return demoContractsState.filter(c => c.client_id === id);
+      const { data } = await supabase.from("client_contracts").select("*").eq("client_id", id!).order("created_at", { ascending: false });
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
+  // ─── Fetch orders ─────────────────────────────────────────────
+  const { data: orders } = useQuery({
+    queryKey: ["client-orders", id, isDemo, _demoTick],
+    queryFn: async () => {
+      if (isDemo) return demoOrdersState.filter(o => o.client_id === id);
+      const { data } = await supabase.from("client_orders").select("*").eq("client_id", id!).order("created_at", { ascending: false });
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
+  // ─── Fetch social accounts ────────────────────────────────────
+  const { data: socialAccounts } = useQuery({
+    queryKey: ["client-social", id, isDemo, _demoTick],
+    queryFn: async () => {
+      if (isDemo) return demoSocialState.filter(s => s.client_id === id);
+      const { data } = await supabase.from("client_social_accounts").select("*").eq("client_id", id!);
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
+  // ─── Fetch activity history ───────────────────────────────────
+  const { data: activityHistory } = useQuery({
+    queryKey: ["client-history", id, isDemo],
+    queryFn: async () => {
+      if (isDemo) {
+        const clientTaskIds = mockTasks.filter(t => t.client_id === id).map(t => t.id);
+        return mockActivityLog.filter(a =>
+          (a.entity_type === "client" && a.entity_id === id) || clientTaskIds.includes(a.entity_id || "")
+        );
+      }
+      const { data } = await supabase.from("activity_log").select("*").or(`entity_id.eq.${id}`).order("created_at", { ascending: false }).limit(50);
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
   const [invoiceForm, setInvoiceForm] = useState({ company_name: "", nip: "", street: "", postal_code: "", city: "" });
 
   const openInvoiceEdit = () => {
