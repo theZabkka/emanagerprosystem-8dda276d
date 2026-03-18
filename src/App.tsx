@@ -80,6 +80,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <DataSourceProvider>
+          <RoleProvider>
           <Routes>
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
