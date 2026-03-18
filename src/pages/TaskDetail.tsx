@@ -1089,7 +1089,7 @@ export default function TaskDetail() {
                 <p className="text-sm text-muted-foreground">Brak historii statusów.</p>
               )}
             </CardContent>
-          </Card>
+          </Card>)}
         </div>
       </div>
 
