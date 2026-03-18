@@ -13,7 +13,6 @@ import { Separator } from "@/components/ui/separator";
 
 const clientItems = [
   { title: "Mój Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Moje Projekty", url: "/projects", icon: FolderKanban },
   { title: "Zgłoś pomysł", url: "/client-ideas", icon: Lightbulb },
 ];
 
