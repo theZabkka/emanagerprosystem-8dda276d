@@ -29,6 +29,7 @@ import Team from "./pages/Team";
 import WhatsNew from "./pages/WhatsNew";
 import StubPage from "./pages/StubPage";
 import NotFound from "./pages/NotFound";
+import Permissions from "./pages/Permissions";
 import { ReactNode } from "react";
 
 const queryClient = new QueryClient();
