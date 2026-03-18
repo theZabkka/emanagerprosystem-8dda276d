@@ -2,6 +2,8 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
+import { useDataSource } from "@/hooks/useDataSource";
+import { mockTimeLogs, mockProfiles, mockTasks, mockClients } from "@/lib/mockData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +19,7 @@ import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { pl } from "date-fns/locale";
 
 export default function TimeReports() {
+  const { isDemo } = useDataSource();
   const [period, setPeriod] = useState("this-month");
 
   const dateRange = useMemo(() => {
@@ -31,8 +34,20 @@ export default function TimeReports() {
   }, [period]);
 
   const { data: timeLogs = [] } = useQuery({
-    queryKey: ["time-logs-report", period],
+    queryKey: ["time-logs-report", period, isDemo],
     queryFn: async () => {
+      if (isDemo) {
+        return mockTimeLogs.map(l => {
+          const task = mockTasks.find(t => t.id === l.task_id);
+          const client = task ? mockClients.find(c => c.id === task.client_id) : null;
+          const profile = mockProfiles.find(p => p.id === l.user_id);
+          return {
+            ...l,
+            profiles: profile ? { full_name: profile.full_name } : null,
+            tasks: task ? { title: task.title, client_id: task.client_id, clients: client ? { name: client.name } : null } : null,
+          };
+        });
+      }
       const { data } = await supabase
         .from("time_logs")
         .select("*, profiles:user_id(full_name), tasks:task_id(title, client_id, clients:client_id(name))")
@@ -44,8 +59,9 @@ export default function TimeReports() {
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ["report-profiles"],
+    queryKey: ["report-profiles", isDemo],
     queryFn: async () => {
+      if (isDemo) return mockProfiles.map(p => ({ id: p.id, full_name: p.full_name, role: p.role }));
       const { data } = await supabase.from("profiles").select("id, full_name, role");
       return data || [];
     },

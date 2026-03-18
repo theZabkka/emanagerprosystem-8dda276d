@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
+import { useDataSource } from "@/hooks/useDataSource";
+import { mockProjects, mockClients, mockProfiles } from "@/lib/mockData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,13 +21,23 @@ const statusColors: Record<string, string> = {
   paused: "bg-warning/15 text-warning-foreground", planning: "bg-info/15 text-info-foreground",
 };
 
+function getDemoProjects() {
+  return mockProjects.map(p => ({
+    ...p,
+    clients: mockClients.find(c => c.id === p.client_id) ? { name: mockClients.find(c => c.id === p.client_id)!.name } : null,
+    profiles: mockProfiles.find(u => u.id === p.manager_id) ? { full_name: mockProfiles.find(u => u.id === p.manager_id)!.full_name } : null,
+  }));
+}
+
 export default function Projects() {
+  const { isDemo } = useDataSource();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", client_id: "", status: "active" });
 
   const { data: projects, isLoading, refetch } = useQuery({
-    queryKey: ["projects"],
+    queryKey: ["projects", isDemo],
     queryFn: async () => {
+      if (isDemo) return getDemoProjects();
       const { data } = await supabase
         .from("projects")
         .select("*, clients(name), profiles:manager_id(full_name)")
@@ -35,8 +47,9 @@ export default function Projects() {
   });
 
   const { data: clients } = useQuery({
-    queryKey: ["clients-list"],
+    queryKey: ["clients-list", isDemo],
     queryFn: async () => {
+      if (isDemo) return mockClients.map(c => ({ id: c.id, name: c.name }));
       const { data } = await supabase.from("clients").select("id, name").order("name");
       return data || [];
     },
@@ -44,6 +57,7 @@ export default function Projects() {
 
   async function handleCreate() {
     if (!form.name.trim()) { toast.error("Podaj nazwę projektu"); return; }
+    if (isDemo) { toast.info("W trybie demo nie można tworzyć projektów"); return; }
     const { error } = await supabase.from("projects").insert({
       name: form.name, description: form.description,
       client_id: form.client_id || null, status: form.status,
@@ -58,6 +72,12 @@ export default function Projects() {
   return (
     <AppLayout title="Projekty">
       <div className="space-y-4 max-w-7xl mx-auto">
+        {isDemo && (
+          <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20 text-sm text-primary">
+            🎭 Tryb demo — wyświetlane są przykładowe dane.
+            <a href="/settings" className="underline font-medium ml-1">Zmień w Ustawieniach</a>
+          </div>
+        )}
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold">Wszystkie projekty</h2>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
+import { useDataSource } from "@/hooks/useDataSource";
+import { mockProfiles } from "@/lib/mockData";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -12,11 +14,13 @@ import { Search, Users } from "lucide-react";
 import { useState } from "react";
 
 export default function Team() {
+  const { isDemo } = useDataSource();
   const [search, setSearch] = useState("");
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ["team-members"],
+    queryKey: ["team-members", isDemo],
     queryFn: async () => {
+      if (isDemo) return mockProfiles.map(p => ({ ...p, created_at: "2025-06-01T10:00:00Z" }));
       const { data } = await supabase
         .from("profiles")
         .select("id, full_name, email, role, department, status, avatar_url, created_at")

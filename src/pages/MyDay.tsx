@@ -2,21 +2,32 @@ import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataSource } from "@/hooks/useDataSource";
+import { mockTasks, mockTimeLogs, mockTaskAssignments, mockClients } from "@/lib/mockData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
 import { Sun, CheckSquare, Clock, AlertTriangle, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 
 export default function MyDay() {
   const { user } = useAuth();
+  const { isDemo } = useDataSource();
   const today = format(new Date(), "yyyy-MM-dd");
 
   const { data: myTasks = [] } = useQuery({
-    queryKey: ["my-day-tasks", user?.id],
+    queryKey: ["my-day-tasks", user?.id, isDemo],
     queryFn: async () => {
+      if (isDemo) {
+        // In demo, show tasks assigned to demo-user-3 (designer with most tasks)
+        const assignedIds = mockTaskAssignments.filter(a => a.user_id === "demo-user-3").map(a => a.task_id);
+        return mockTasks
+          .filter(t => assignedIds.includes(t.id) && t.status !== "done" && (t.status as string) !== "cancelled")
+          .map(t => ({
+            ...t,
+            clients: mockClients.find(c => c.id === t.client_id) ? { name: mockClients.find(c => c.id === t.client_id)!.name } : null,
+          }));
+      }
       if (!user) return [];
       const { data: assignments } = await supabase
         .from("task_assignments")
@@ -33,12 +44,22 @@ export default function MyDay() {
         .limit(50);
       return data || [];
     },
-    enabled: !!user,
+    enabled: isDemo || !!user,
   });
 
   const { data: todayLogs = [] } = useQuery({
-    queryKey: ["my-day-logs", user?.id, today],
+    queryKey: ["my-day-logs", user?.id, today, isDemo],
     queryFn: async () => {
+      if (isDemo) {
+        return mockTimeLogs
+          .filter(l => l.user_id === "demo-user-3")
+          .slice(0, 4)
+          .map(l => ({
+            duration: l.duration,
+            description: l.description,
+            tasks: { title: mockTasks.find(t => t.id === l.task_id)?.title || "" },
+          }));
+      }
       if (!user) return [];
       const { data } = await supabase
         .from("time_logs")
@@ -48,7 +69,7 @@ export default function MyDay() {
         .lte("created_at", `${today}T23:59:59`);
       return data || [];
     },
-    enabled: !!user,
+    enabled: isDemo || !!user,
   });
 
   const overdue = myTasks.filter((t: any) => t.due_date && t.due_date < today);
@@ -69,6 +90,12 @@ export default function MyDay() {
   return (
     <AppLayout title="Mój dzień">
       <div className="space-y-6">
+        {isDemo && (
+          <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20 text-sm text-primary">
+            🎭 Tryb demo — dane dla przykładowego użytkownika (Piotr Wiśniewski).
+            <a href="/settings" className="underline font-medium ml-1">Zmień w Ustawieniach</a>
+          </div>
+        )}
         <div className="flex items-center gap-3">
           <Sun className="h-6 w-6 text-primary" />
           <div>

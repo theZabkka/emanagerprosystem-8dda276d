@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
+import { useDataSource } from "@/hooks/useDataSource";
+import { mockClients } from "@/lib/mockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,14 +24,20 @@ const statusColors: Record<string, string> = {
 };
 
 export default function Clients() {
+  const { isDemo } = useDataSource();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [form, setForm] = useState({ name: "", contact_person: "", email: "", phone: "", status: "potential" as string, monthly_value: "" });
 
   const { data: clients, isLoading, refetch } = useQuery({
-    queryKey: ["clients", statusFilter],
+    queryKey: ["clients", statusFilter, isDemo],
     queryFn: async () => {
+      if (isDemo) {
+        let data = [...mockClients];
+        if (statusFilter !== "all") data = data.filter(c => c.status === statusFilter);
+        return data;
+      }
       let q = supabase.from("clients").select("*").order("created_at", { ascending: false });
       if (statusFilter !== "all") q = q.eq("status", statusFilter as any);
       const { data, error } = await q;
@@ -45,6 +53,7 @@ export default function Clients() {
 
   async function handleCreate() {
     if (!form.name.trim()) { toast.error("Podaj nazwę firmy"); return; }
+    if (isDemo) { toast.info("W trybie demo nie można dodawać klientów"); return; }
     const { error } = await supabase.from("clients").insert({
       name: form.name, contact_person: form.contact_person, email: form.email,
       phone: form.phone, status: form.status as any,
@@ -60,6 +69,12 @@ export default function Clients() {
   return (
     <AppLayout title="Klienci">
       <div className="space-y-4 max-w-7xl mx-auto">
+        {isDemo && (
+          <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20 text-sm text-primary">
+            🎭 Tryb demo — wyświetlane są przykładowe dane.
+            <a href="/settings" className="underline font-medium ml-1">Zmień w Ustawieniach</a>
+          </div>
+        )}
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
           <div className="flex gap-2 flex-1">
             <div className="relative flex-1 max-w-sm">
