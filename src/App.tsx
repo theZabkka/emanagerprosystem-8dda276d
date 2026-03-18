@@ -1,3 +1,4 @@
+import { lazy, Suspense, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -6,46 +7,49 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { DataSourceProvider } from "@/hooks/useDataSource";
 import { RoleProvider } from "@/hooks/useRole";
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import Tasks from "./pages/Tasks";
-import TaskDetail from "./pages/TaskDetail";
-import Clients from "./pages/Clients";
-import ClientDetail from "./pages/ClientDetail";
-import Projects from "./pages/Projects";
-import ProjectDetail from "./pages/ProjectDetail";
-import Pipeline from "./pages/Pipeline";
-import Messenger from "./pages/Messenger";
-import OKR from "./pages/OKR";
-import OperationalBoard from "./pages/OperationalBoard";
-import TeamBoard from "./pages/TeamBoard";
-import TeamCalendar from "./pages/TeamCalendar";
-import TimeReports from "./pages/TimeReports";
-import MyDay from "./pages/MyDay";
-import Settings from "./pages/Settings";
-import Automations from "./pages/Automations";
-import AutomationCenter from "./pages/AutomationCenter";
-import Team from "./pages/Team";
-import WhatsNew from "./pages/WhatsNew";
-import StubPage from "./pages/StubPage";
-import NotFound from "./pages/NotFound";
-import Permissions from "./pages/Permissions";
-import ClientIdeas from "./pages/ClientIdeas";
-import StaffIdeas from "./pages/StaffIdeas";
-import { ReactNode } from "react";
+import { ErrorBoundary } from "@/components/layout/ErrorBoundary";
+import { PageLoader } from "@/components/layout/PageLoader";
+
+// Lazy-loaded pages
+const Login = lazy(() => import("./pages/Login"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Tasks = lazy(() => import("./pages/Tasks"));
+const TaskDetail = lazy(() => import("./pages/TaskDetail"));
+const Clients = lazy(() => import("./pages/Clients"));
+const ClientDetail = lazy(() => import("./pages/ClientDetail"));
+const Projects = lazy(() => import("./pages/Projects"));
+const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
+const Pipeline = lazy(() => import("./pages/Pipeline"));
+const Messenger = lazy(() => import("./pages/Messenger"));
+const OKR = lazy(() => import("./pages/OKR"));
+const OperationalBoard = lazy(() => import("./pages/OperationalBoard"));
+const TeamBoard = lazy(() => import("./pages/TeamBoard"));
+const TeamCalendar = lazy(() => import("./pages/TeamCalendar"));
+const TimeReports = lazy(() => import("./pages/TimeReports"));
+const MyDay = lazy(() => import("./pages/MyDay"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Automations = lazy(() => import("./pages/Automations"));
+const AutomationCenter = lazy(() => import("./pages/AutomationCenter"));
+const Team = lazy(() => import("./pages/Team"));
+const WhatsNew = lazy(() => import("./pages/WhatsNew"));
+const StubPage = lazy(() => import("./pages/StubPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Permissions = lazy(() => import("./pages/Permissions"));
+const ClientIdeas = lazy(() => import("./pages/ClientIdeas"));
+const StaffIdeas = lazy(() => import("./pages/StaffIdeas"));
 
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth();
-  if (loading) return <div className="flex items-center justify-center h-screen text-muted-foreground">Ładowanie...</div>;
+  if (loading) return <PageLoader />;
   if (!session) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 
 function PublicRoute({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth();
-  if (loading) return <div className="flex items-center justify-center h-screen text-muted-foreground">Ładowanie...</div>;
+  if (loading) return <PageLoader />;
   if (session) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
@@ -82,6 +86,8 @@ const App = () => (
         <AuthProvider>
           <DataSourceProvider>
           <RoleProvider>
+          <ErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -113,6 +119,8 @@ const App = () => (
             ))}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
+          </ErrorBoundary>
           </RoleProvider>
           </DataSourceProvider>
         </AuthProvider>
