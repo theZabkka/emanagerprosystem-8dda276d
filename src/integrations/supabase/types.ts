@@ -180,7 +180,9 @@ export type Database = {
           id: string
           monthly_value: number | null
           name: string
+          onboarding_steps: Json | null
           phone: string | null
+          public_status_token: string | null
           score: number | null
           status: Database["public"]["Enums"]["client_status"] | null
           tags: string[] | null
@@ -192,7 +194,9 @@ export type Database = {
           id?: string
           monthly_value?: number | null
           name: string
+          onboarding_steps?: Json | null
           phone?: string | null
+          public_status_token?: string | null
           score?: number | null
           status?: Database["public"]["Enums"]["client_status"] | null
           tags?: string[] | null
@@ -204,7 +208,9 @@ export type Database = {
           id?: string
           monthly_value?: number | null
           name?: string
+          onboarding_steps?: Json | null
           phone?: string | null
+          public_status_token?: string | null
           score?: number | null
           status?: Database["public"]["Enums"]["client_status"] | null
           tags?: string[] | null

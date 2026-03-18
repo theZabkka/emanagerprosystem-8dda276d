@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -137,8 +138,10 @@ export default function Clients() {
                 <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Brak klientów</TableCell></TableRow>
               ) : (
                 filtered.map((c: any) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-medium">{c.name}</TableCell>
+                  <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50">
+                    <TableCell className="font-medium">
+                      <Link to={`/clients/${c.id}`} className="hover:text-primary hover:underline">{c.name}</Link>
+                    </TableCell>
                     <TableCell>
                       <div>
                         <p className="text-sm">{c.contact_person || "—"}</p>
