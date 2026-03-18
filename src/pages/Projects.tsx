@@ -32,6 +32,7 @@ function getDemoProjects() {
 
 export default function Projects() {
   const { isDemo } = useDataSource();
+  const navigate = useNavigate();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", client_id: "", status: "active" });
 
