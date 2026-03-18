@@ -5,6 +5,7 @@ import { useDataSource } from "@/hooks/useDataSource";
 import { mockProjects, mockClients, mockProfiles } from "@/lib/mockData";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus } from "lucide-react";
 import { useState } from "react";
@@ -69,7 +70,7 @@ export default function Projects() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Ładowanie...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="p-0 border-0"><TableSkeleton columns={5} rows={5} /></TableCell></TableRow>
               ) : (projects || []).length === 0 ? (
                 <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Brak projektów</TableCell></TableRow>
               ) : (

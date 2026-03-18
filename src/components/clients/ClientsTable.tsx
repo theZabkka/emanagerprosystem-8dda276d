@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 
 const statusLabels: Record<string, string> = {
   active: "Aktywny", potential: "Potencjalny", negotiations: "Negocjacje", project: "Projekt", inactive: "Nieaktywny",
@@ -32,7 +33,7 @@ export function ClientsTable({ clients, isLoading }: ClientsTableProps) {
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Ładowanie...</TableCell></TableRow>
+            <TableRow><TableCell colSpan={6} className="p-0 border-0"><TableSkeleton columns={6} rows={5} /></TableCell></TableRow>
           ) : clients.length === 0 ? (
             <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Brak klientów</TableCell></TableRow>
           ) : (

@@ -11,6 +11,8 @@ import TaskListView from "@/components/tasks/TaskListView";
 import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";
 import { TaskAlertBanners } from "@/components/tasks/TaskAlertBanners";
 import { TaskFilters } from "@/components/tasks/TaskFilters";
+import { KanbanSkeleton } from "@/components/skeletons/KanbanSkeleton";
+import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 
 function enrichDemoTasks(statusFilter: string, priorityFilter: string) {
   let tasks = mockTasks.map(t => {
@@ -107,7 +109,9 @@ export default function Tasks() {
 
         <CreateTaskDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} onCreated={() => refetch()} />
 
-        {viewMode === "kanban" ? (
+        {isLoading ? (
+          viewMode === "kanban" ? <KanbanSkeleton /> : <TableSkeleton columns={5} rows={8} />
+        ) : viewMode === "kanban" ? (
           <TaskKanbanBoard
             tasks={filteredTasks}
             profiles={isDemo ? mockProfiles : []}

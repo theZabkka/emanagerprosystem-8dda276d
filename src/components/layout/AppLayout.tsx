@@ -5,6 +5,7 @@ import { ClientSidebar } from "./ClientSidebar";
 import { Topbar } from "./Topbar";
 import { AIAssistantButton } from "./AIAssistantButton";
 import { useRole } from "@/hooks/useRole";
+import { useRoutePrefetch } from "@/hooks/useRoutePrefetch";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -13,6 +14,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ children, title }: AppLayoutProps) {
   const { isClient } = useRole();
+  useRoutePrefetch();
 
   return (
     <SidebarProvider>
