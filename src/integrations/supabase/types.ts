@@ -631,6 +631,9 @@ export type Database = {
           brief_goal: string | null
           brief_input_materials: string | null
           brief_inspiration: string | null
+          bug_description: string | null
+          bug_reason: string | null
+          bug_severity: string | null
           client_id: string | null
           created_at: string | null
           created_by: string | null
@@ -638,6 +641,7 @@ export type Database = {
           due_date: string | null
           estimated_time: number | null
           id: string
+          is_client_visible: boolean | null
           logged_time: number | null
           parent_task_id: string | null
           priority: Database["public"]["Enums"]["task_priority"] | null
@@ -654,6 +658,9 @@ export type Database = {
           brief_goal?: string | null
           brief_input_materials?: string | null
           brief_inspiration?: string | null
+          bug_description?: string | null
+          bug_reason?: string | null
+          bug_severity?: string | null
           client_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -661,6 +668,7 @@ export type Database = {
           due_date?: string | null
           estimated_time?: number | null
           id?: string
+          is_client_visible?: boolean | null
           logged_time?: number | null
           parent_task_id?: string | null
           priority?: Database["public"]["Enums"]["task_priority"] | null
@@ -677,6 +685,9 @@ export type Database = {
           brief_goal?: string | null
           brief_input_materials?: string | null
           brief_inspiration?: string | null
+          bug_description?: string | null
+          bug_reason?: string | null
+          bug_severity?: string | null
           client_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -684,6 +695,7 @@ export type Database = {
           due_date?: string | null
           estimated_time?: number | null
           id?: string
+          is_client_visible?: boolean | null
           logged_time?: number | null
           parent_task_id?: string | null
           priority?: Database["public"]["Enums"]["task_priority"] | null
