@@ -273,6 +273,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
                     mode="single"
                     selected={form.due_date}
                     onSelect={d => update("due_date", d)}
+                    disabled={{ before: new Date() }}
                     initialFocus
                     className={cn("p-3 pointer-events-auto")}
                   />
