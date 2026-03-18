@@ -6,6 +6,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Tasks from "./pages/Tasks";
+import TaskDetail from "./pages/TaskDetail";
+import Clients from "./pages/Clients";
+import Projects from "./pages/Projects";
+import Pipeline from "./pages/Pipeline";
 import StubPage from "./pages/StubPage";
 import NotFound from "./pages/NotFound";
 import { ReactNode } from "react";
@@ -29,15 +34,11 @@ function PublicRoute({ children }: { children: ReactNode }) {
 const stubRoutes = [
   { path: "/my-day", title: "Mój dzień" },
   { path: "/okr", title: "Cele i OKR" },
-  { path: "/tasks", title: "Zadania" },
-  { path: "/projects", title: "Projekty" },
   { path: "/operational", title: "Tablica operacyjna" },
   { path: "/team-board", title: "Tablica zespołu" },
   { path: "/routines", title: "Rutyny" },
-  { path: "/clients", title: "Klienci" },
   { path: "/contracts", title: "Umowy" },
   { path: "/orders", title: "Zlecenia" },
-  { path: "/pipeline", title: "Lejek sprzedaży" },
   { path: "/client-ideas", title: "Pomysły klientów" },
   { path: "/conversations", title: "Rozmowy" },
   { path: "/micro-interventions", title: "Mikro-interwencje" },
@@ -77,6 +78,11 @@ const App = () => (
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+            <Route path="/tasks/:id" element={<ProtectedRoute><TaskDetail /></ProtectedRoute>} />
+            <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
+            <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
+            <Route path="/pipeline" element={<ProtectedRoute><Pipeline /></ProtectedRoute>} />
             {stubRoutes.map((r) => (
               <Route key={r.path} path={r.path} element={<ProtectedRoute><StubPage title={r.title} /></ProtectedRoute>} />
             ))}
