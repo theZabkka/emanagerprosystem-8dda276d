@@ -8,13 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, LayoutGrid, List, AlertCircle, Clock, Eye, Layers } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import TaskKanbanBoard from "@/components/tasks/TaskKanbanBoard";
 import TaskListView from "@/components/tasks/TaskListView";
+import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";
 
 const priorityLabels: Record<string, string> = { critical: "Pilny", high: "Wysoki", medium: "Średni", low: "Niski" };
 
