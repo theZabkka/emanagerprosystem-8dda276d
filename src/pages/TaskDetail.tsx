@@ -815,8 +815,8 @@ export default function TaskDetail() {
                       <p className="text-sm font-medium">{cl.title}</p>
                       {(cl.items || []).map((item: any) => (
                         <div key={item.id} className="flex items-center gap-2 pl-2">
-                          <Checkbox checked={item.is_completed} disabled={item.is_na}
-                            onCheckedChange={() => toggleChecklistItem(item.id, item.is_completed)} />
+                          <Checkbox checked={item.is_completed} disabled={item.is_na || isPreviewMode}
+                            onCheckedChange={() => !isPreviewMode && toggleChecklistItem(item.id, item.is_completed)} />
                           <span className={`text-sm ${item.is_completed ? "line-through text-muted-foreground" : ""} ${item.is_na ? "text-muted-foreground italic" : ""}`}>
                             {item.title}
                           </span>
