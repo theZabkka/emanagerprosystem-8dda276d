@@ -4,17 +4,13 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useDataSource } from "@/hooks/useDataSource";
 import { mockTasks, mockClients, mockProjects, mockTaskAssignments, mockProfiles } from "@/lib/mockData";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, LayoutGrid, List, AlertCircle, Clock, Eye, Layers } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import TaskKanbanBoard from "@/components/tasks/TaskKanbanBoard";
 import TaskListView from "@/components/tasks/TaskListView";
 import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";
-
-const priorityLabels: Record<string, string> = { critical: "Pilny", high: "Wysoki", medium: "Średni", low: "Niski" };
+import { TaskAlertBanners } from "@/components/tasks/TaskAlertBanners";
+import { TaskFilters } from "@/components/tasks/TaskFilters";
 
 function enrichDemoTasks(statusFilter: string, priorityFilter: string) {
   let tasks = mockTasks.map(t => {
@@ -40,7 +36,6 @@ export default function Tasks() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  
 
   const { data: tasks, isLoading, refetch } = useQuery({
     queryKey: ["tasks", statusFilter, priorityFilter, isDemo],
@@ -58,7 +53,6 @@ export default function Tasks() {
     },
   });
 
-  // Apply search and type filter
   const filteredTasks = (tasks || []).filter((t: any) => {
     const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) || t.id.toLowerCase().includes(search.toLowerCase());
     if (!matchesSearch) return false;
@@ -68,7 +62,6 @@ export default function Tasks() {
     return true;
   });
 
-  // Alert counts
   const allTasks = tasks || [];
   const unassignedCount = allTasks.filter((t: any) => {
     const hasAssignment = isDemo
@@ -78,9 +71,6 @@ export default function Tasks() {
   }).length;
   const reviewCount = allTasks.filter((t: any) => t.status === "review").length;
   const clientReviewCount = allTasks.filter((t: any) => t.status === "client_review").length;
-
-
-
 
   async function handleStatusChange(taskId: string, newStatus: string) {
     if (isDemo) {
@@ -99,106 +89,24 @@ export default function Tasks() {
   return (
     <AppLayout title="Zadania">
       <div className="space-y-4 mx-auto">
-        {/* Alert Banners */}
-        {unassignedCount > 0 && (
-          <div className="flex items-center justify-between px-5 py-3 rounded-xl bg-destructive text-destructive-foreground">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5" />
-              <span className="font-semibold text-sm">{unassignedCount} zadań nieprzypisanych.</span>
-            </div>
-            <Button variant="secondary" size="sm" className="text-xs font-medium" onClick={() => setStatusFilter("all")}>Przypisz</Button>
-          </div>
-        )}
-        {reviewCount > 0 && (
-          <div className="flex items-center justify-between px-5 py-3 rounded-xl" style={{ background: "hsl(38, 92%, 50%)", color: "white" }}>
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              <span className="font-semibold text-sm">{reviewCount} oczekuje na weryfikację.</span>
-            </div>
-            <Button variant="secondary" size="sm" className="text-xs font-medium" onClick={() => setStatusFilter("review")}>Zweryfikuj</Button>
-          </div>
-        )}
-        {clientReviewCount > 0 && (
-          <div className="flex items-center justify-between px-5 py-3 rounded-xl" style={{ background: "hsl(45, 93%, 47%)", color: "white" }}>
-            <div className="flex items-center gap-2">
-              <Eye className="h-5 w-5" />
-              <span className="font-semibold text-sm">{clientReviewCount} czeka na akceptację klienta.</span>
-            </div>
-            <Button variant="secondary" size="sm" className="text-xs font-medium" onClick={() => setStatusFilter("client_review")}>Zobacz</Button>
-          </div>
-        )}
+        <TaskAlertBanners
+          unassignedCount={unassignedCount}
+          reviewCount={reviewCount}
+          clientReviewCount={clientReviewCount}
+          onFilterStatus={setStatusFilter}
+        />
 
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Szukaj zadań..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-11 text-sm" />
-        </div>
+        <TaskFilters
+          search={search} onSearchChange={setSearch}
+          statusFilter={statusFilter} onStatusChange={setStatusFilter}
+          priorityFilter={priorityFilter} onPriorityChange={setPriorityFilter}
+          typeFilter={typeFilter} onTypeChange={setTypeFilter}
+          viewMode={viewMode} onViewModeChange={setViewMode}
+          onCreateClick={() => setIsCreateOpen(true)}
+        />
 
-        {/* Filters Row */}
-        <div className="flex flex-wrap gap-2 items-center justify-between">
-          <div className="flex flex-wrap gap-2 items-center">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Wszystkie statusy" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Wszystkie statusy</SelectItem>
-                <SelectItem value="new">Nowe</SelectItem>
-                <SelectItem value="todo">Do zrobienia</SelectItem>
-                <SelectItem value="in_progress">W realizacji</SelectItem>
-                <SelectItem value="review">Weryfikacja</SelectItem>
-                <SelectItem value="corrections">Poprawki</SelectItem>
-                <SelectItem value="client_review">Akceptacja klienta</SelectItem>
-                <SelectItem value="done">Gotowe</SelectItem>
-                <SelectItem value="cancelled">Anulowane</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Wszystkie priorytety" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Wszystkie priorytety</SelectItem>
-                {Object.entries(priorityLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-[160px] h-9 text-sm"><SelectValue placeholder="Wszystkie typy" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Wszystkie typy</SelectItem>
-                <SelectItem value="parent">Tylko nadrzędne</SelectItem>
-                <SelectItem value="subtask">Tylko podzadania</SelectItem>
-                <SelectItem value="standalone">Tylko samodzielne</SelectItem>
-              </SelectContent>
-            </Select>
+        <CreateTaskDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} onCreated={() => refetch()} />
 
-            <button className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground px-3 h-9 border rounded-md bg-card">
-              <Layers className="h-3.5 w-3.5" />
-              Pokaż podzadania
-            </button>
-
-            {/* View toggle */}
-            <div className="flex items-center rounded-lg overflow-hidden border">
-              <button
-                onClick={() => setViewMode("list")}
-                className={`p-2 transition-colors ${viewMode === "list" ? "bg-destructive text-destructive-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}
-                title="Widok listy"
-              >
-                <List className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setViewMode("kanban")}
-                className={`p-2 transition-colors ${viewMode === "kanban" ? "bg-destructive text-destructive-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}
-                title="Widok Kanban"
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-
-          <Button className="bg-destructive hover:bg-destructive/90 text-destructive-foreground h-9" onClick={() => setIsCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Nowe zadanie
-          </Button>
-          <CreateTaskDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} onCreated={() => refetch()} />
-        </div>
-
-        {/* View content */}
         {viewMode === "kanban" ? (
           <TaskKanbanBoard
             tasks={filteredTasks}

@@ -1,0 +1,43 @@
+import { Button } from "@/components/ui/button";
+import { AlertCircle, Clock, Eye } from "lucide-react";
+
+interface TaskAlertBannersProps {
+  unassignedCount: number;
+  reviewCount: number;
+  clientReviewCount: number;
+  onFilterStatus: (status: string) => void;
+}
+
+export function TaskAlertBanners({ unassignedCount, reviewCount, clientReviewCount, onFilterStatus }: TaskAlertBannersProps) {
+  return (
+    <>
+      {unassignedCount > 0 && (
+        <div className="flex items-center justify-between px-5 py-3 rounded-xl bg-destructive text-destructive-foreground">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5" />
+            <span className="font-semibold text-sm">{unassignedCount} zadań nieprzypisanych.</span>
+          </div>
+          <Button variant="secondary" size="sm" className="text-xs font-medium" onClick={() => onFilterStatus("all")}>Przypisz</Button>
+        </div>
+      )}
+      {reviewCount > 0 && (
+        <div className="flex items-center justify-between px-5 py-3 rounded-xl bg-warning text-warning-foreground">
+          <div className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            <span className="font-semibold text-sm">{reviewCount} oczekuje na weryfikację.</span>
+          </div>
+          <Button variant="secondary" size="sm" className="text-xs font-medium" onClick={() => onFilterStatus("review")}>Zweryfikuj</Button>
+        </div>
+      )}
+      {clientReviewCount > 0 && (
+        <div className="flex items-center justify-between px-5 py-3 rounded-xl bg-warning text-warning-foreground">
+          <div className="flex items-center gap-2">
+            <Eye className="h-5 w-5" />
+            <span className="font-semibold text-sm">{clientReviewCount} czeka na akceptację klienta.</span>
+          </div>
+          <Button variant="secondary" size="sm" className="text-xs font-medium" onClick={() => onFilterStatus("client_review")}>Zobacz</Button>
+        </div>
+      )}
+    </>
+  );
+}
