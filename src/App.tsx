@@ -11,6 +11,7 @@ import TaskDetail from "./pages/TaskDetail";
 import Clients from "./pages/Clients";
 import Projects from "./pages/Projects";
 import Pipeline from "./pages/Pipeline";
+import Messenger from "./pages/Messenger";
 import StubPage from "./pages/StubPage";
 import NotFound from "./pages/NotFound";
 import { ReactNode } from "react";
