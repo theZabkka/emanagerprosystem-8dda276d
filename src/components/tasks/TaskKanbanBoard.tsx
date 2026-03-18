@@ -1,10 +1,16 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Clock, AlertTriangle, HelpCircle } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Clock, HelpCircle, UserPlus } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useDataSource } from "@/hooks/useDataSource";
+import { mockProfiles } from "@/lib/mockData";
+import { toast } from "sonner";
 
 const KANBAN_COLUMNS = [
   { key: "todo", label: "DO ZROBIENIA" },
@@ -31,9 +37,22 @@ interface TaskKanbanBoardProps {
   assignments: any[];
   clients: any[];
   onStatusChange: (taskId: string, newStatus: string) => void;
+  onRefresh?: () => void;
 }
 
-export default function TaskKanbanBoard({ tasks, profiles, assignments, clients, onStatusChange }: TaskKanbanBoardProps) {
+export default function TaskKanbanBoard({ tasks, profiles, assignments, clients, onStatusChange, onRefresh }: TaskKanbanBoardProps) {
+  const { isDemo } = useDataSource();
+
+  // Fetch all profiles for assignment popover
+  const { data: allProfiles } = useQuery({
+    queryKey: ["kanban-profiles", isDemo],
+    queryFn: async () => {
+      if (isDemo) return mockProfiles;
+      const { data } = await supabase.from("profiles").select("id, full_name, avatar_url").order("full_name");
+      return data || [];
+    },
+  });
+
   const getAssignee = useCallback((taskId: string) => {
     const a = assignments.find((a: any) => a.task_id === taskId && a.role === "primary");
     if (!a) return null;
@@ -73,6 +92,30 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
     onStatusChange(result.draggableId, result.destination.droppableId);
   };
 
+  const handleAssign = async (taskId: string, userId: string) => {
+    if (isDemo) {
+      toast.success("Przypisano (demo)");
+      return;
+    }
+
+    // Remove existing primary assignment
+    await supabase.from("task_assignments").delete().eq("task_id", taskId).eq("role", "primary" as any);
+
+    // Insert new primary assignment
+    const { error } = await supabase.from("task_assignments").insert({
+      task_id: taskId,
+      user_id: userId,
+      role: "primary" as any,
+    });
+
+    if (error) {
+      toast.error("Błąd przypisania");
+      return;
+    }
+    toast.success("Przypisano osobę");
+    onRefresh?.();
+  };
+
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="flex gap-3 h-[calc(100vh-16rem)] overflow-x-auto pb-4">
@@ -81,9 +124,7 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
           const isEmpty = columnTasks.length === 0;
           return (
             <div key={col.key} className="flex-shrink-0 w-72 flex flex-col">
-              {/* Column container with dashed border */}
               <div className={`flex flex-col flex-1 rounded-xl border border-dashed ${isEmpty ? "border-muted-foreground/20" : "border-destructive/30"} bg-card/50`}>
-                {/* Header */}
                 <div className="px-4 pt-3 pb-2">
                   <h3 className="text-xs font-extrabold tracking-wider text-foreground">{col.label}</h3>
                   <span className="text-[11px] text-muted-foreground">
@@ -116,7 +157,7 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
                                   className={`rounded-lg border bg-card shadow-sm transition-shadow ${snapshot.isDragging ? "shadow-lg ring-2 ring-destructive/20" : "hover:shadow-md"}`}
                                 >
                                   <Link to={`/tasks/${task.id}`} className="block p-3">
-                                    {/* Top: ID + ? + Priority */}
+                                    {/* Top: ID + Priority */}
                                     <div className="flex items-center justify-between mb-2">
                                       <div className="flex items-center gap-1.5">
                                         <span className="text-[11px] font-mono text-muted-foreground font-medium">{getTaskIndex(task.id)}</span>
@@ -130,15 +171,12 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
                                       </Badge>
                                     </div>
 
-                                    {/* Title */}
                                     <p className="text-sm font-bold text-foreground leading-snug mb-0.5 line-clamp-2">{task.title}</p>
 
-                                    {/* Client */}
                                     {client && (
                                       <p className="text-xs text-muted-foreground mb-3 truncate">{client.name}</p>
                                     )}
 
-                                    {/* Waiting time alert */}
                                     {waitingTime && (
                                       <div className="flex items-center gap-1 text-[10px] text-destructive-foreground font-semibold mb-2 bg-destructive rounded px-2 py-1 w-fit">
                                         <Clock className="h-3 w-3" />
@@ -148,18 +186,7 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
 
                                     {/* Bottom: Assignee + Date */}
                                     <div className="flex items-center justify-between mt-1">
-                                      {assignee ? (
-                                        <Avatar className="h-7 w-7">
-                                          <AvatarFallback className={`text-[10px] text-white font-bold ${getAvatarColor(assignee.id)}`}>
-                                            {getInitials(assignee.full_name || "?")}
-                                          </AvatarFallback>
-                                        </Avatar>
-                                      ) : (
-                                        <Badge variant="destructive" className="text-[9px] h-5 px-2 font-bold">
-                                          NIEPRZYPISANE!
-                                        </Badge>
-                                      )}
-
+                                      <div>{/* placeholder for popover below */}</div>
                                       <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                                         {task.estimated_time > 0 && task.logged_time > 0 && (
                                           <span className="flex items-center gap-0.5">
@@ -175,6 +202,18 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
                                       </div>
                                     </div>
                                   </Link>
+
+                                  {/* Assign popover - outside the Link to prevent navigation */}
+                                  <div className="px-3 pb-2 -mt-2">
+                                    <AssignPopover
+                                      taskId={task.id}
+                                      assignee={assignee}
+                                      allProfiles={allProfiles || []}
+                                      getInitials={getInitials}
+                                      getAvatarColor={getAvatarColor}
+                                      onAssign={handleAssign}
+                                    />
+                                  </div>
                                 </div>
                               )}
                             </Draggable>
@@ -194,5 +233,71 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
         })}
       </div>
     </DragDropContext>
+  );
+}
+
+function AssignPopover({
+  taskId,
+  assignee,
+  allProfiles,
+  getInitials,
+  getAvatarColor,
+  onAssign,
+}: {
+  taskId: string;
+  assignee: any;
+  allProfiles: any[];
+  getInitials: (name: string) => string;
+  getAvatarColor: (id: string) => string;
+  onAssign: (taskId: string, userId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          className="flex items-center gap-1.5 hover:bg-accent rounded-md px-1.5 py-1 transition-colors"
+        >
+          {assignee ? (
+            <Avatar className="h-7 w-7">
+              <AvatarFallback className={`text-[10px] text-white font-bold ${getAvatarColor(assignee.id)}`}>
+                {getInitials(assignee.full_name || "?")}
+              </AvatarFallback>
+            </Avatar>
+          ) : (
+            <Badge variant="destructive" className="text-[9px] h-5 px-2 font-bold gap-1">
+              <UserPlus className="h-3 w-3" />
+              PRZYPISZ
+            </Badge>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-52 p-1" align="start" onClick={(e) => e.stopPropagation()}>
+        <p className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Przypisz osobę</p>
+        <div className="max-h-48 overflow-y-auto space-y-0.5">
+          {allProfiles.map((p: any) => (
+            <button
+              key={p.id}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onAssign(taskId, p.id);
+                setOpen(false);
+              }}
+              className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded hover:bg-accent transition-colors ${assignee?.id === p.id ? "bg-accent font-medium" : ""}`}
+            >
+              <Avatar className="h-5 w-5">
+                <AvatarFallback className={`text-[8px] text-white font-bold ${getAvatarColor(p.id)}`}>
+                  {getInitials(p.full_name || "?")}
+                </AvatarFallback>
+              </Avatar>
+              {p.full_name}
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
