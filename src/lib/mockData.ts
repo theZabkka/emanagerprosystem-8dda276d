@@ -1,12 +1,37 @@
 // Demo / Mock data for unverified users or demo mode
 
 export const mockProfiles = [
-  { id: "demo-user-1", email: "jan.kowalski@demo.pl", full_name: "Jan Kowalski", role: "admin", avatar_url: null, department: "Zarząd", status: "active" },
-  { id: "demo-user-2", email: "anna.nowak@demo.pl", full_name: "Anna Nowak", role: "user", avatar_url: null, department: "Marketing", status: "active" },
-  { id: "demo-user-3", email: "piotr.wisniewski@demo.pl", full_name: "Piotr Wiśniewski", role: "user", avatar_url: null, department: "Design", status: "active" },
-  { id: "demo-user-4", email: "katarzyna.zielinska@demo.pl", full_name: "Katarzyna Zielińska", role: "moderator", avatar_url: null, department: "Development", status: "active" },
-  { id: "demo-user-5", email: "tomasz.lewandowski@demo.pl", full_name: "Tomasz Lewandowski", role: "user", avatar_url: null, department: "Sprzedaż", status: "active" },
+  { id: "demo-user-1", email: "jan.kowalski@demo.pl", full_name: "Jan Kowalski", role: "boss", avatar_url: null, department: "Zarząd", status: "active" },
+  { id: "demo-user-2", email: "anna.nowak@demo.pl", full_name: "Anna Nowak", role: "koordynator", avatar_url: null, department: "Marketing", status: "active" },
+  { id: "demo-user-3", email: "piotr.wisniewski@demo.pl", full_name: "Piotr Wiśniewski", role: "specjalista", avatar_url: null, department: "Design", status: "active" },
+  { id: "demo-user-4", email: "katarzyna.zielinska@demo.pl", full_name: "Katarzyna Zielińska", role: "koordynator", avatar_url: null, department: "Development", status: "active" },
+  { id: "demo-user-5", email: "tomasz.lewandowski@demo.pl", full_name: "Tomasz Lewandowski", role: "praktykant", avatar_url: null, department: "Sprzedaż", status: "active" },
+  { id: "demo-user-client", email: "klient@techcorp.pl", full_name: "Marek Jankowski (Klient)", role: "klient", avatar_url: null, department: null, status: "active" },
 ];
+
+// Module names matching sidebar items
+const ALL_MODULES = [
+  "Mój dzień", "Pulpit", "Cele i OKR",
+  "Zadania", "Projekty", "Tablica operacyjna", "Tablica zespołu", "Rutyny",
+  "Klienci", "Umowy", "Zlecenia", "Lejek sprzedaży", "Pomysły klientów", "Rozmowy", "Mikro-interwencje",
+  "Komunikator", "Skrzynka klientów", "Zgłoszenia",
+  "Zespół", "Spotkania", "Kalendarz", "Nieobecności", "Sprzęt",
+  "Analityki", "Retencja", "Raporty", "Raporty czasu", "Wyniki zespołu", "Notatki zespołu",
+  "Automatyzacje", "Centrum automatyzacji", "Analityka zespołu",
+  "Zadania cykliczne", "Sugestie", "Co nowego", "Ustawienia",
+  "Dokumentacja", "Instrukcja projektu",
+];
+
+const specjalistaBlocked = new Set(["Cele i OKR","Umowy","Zlecenia","Lejek sprzedaży","Mikro-interwencje","Skrzynka klientów","Sprzęt","Analityki","Retencja","Raporty","Wyniki zespołu","Automatyzacje","Centrum automatyzacji","Analityka zespołu","Ustawienia"]);
+const praktykantBlocked = new Set(["Cele i OKR","Tablica operacyjna","Tablica zespołu","Rutyny","Klienci","Umowy","Zlecenia","Lejek sprzedaży","Pomysły klientów","Rozmowy","Mikro-interwencje","Skrzynka klientów","Zgłoszenia","Sprzęt","Analityki","Retencja","Raporty","Wyniki zespołu","Notatki zespołu","Automatyzacje","Centrum automatyzacji","Analityka zespołu","Zadania cykliczne","Sugestie","Ustawienia"]);
+
+export const mockPermissions: { role_name: string; module_name: string; can_view: boolean }[] = [];
+for (const mod of ALL_MODULES) {
+  mockPermissions.push({ role_name: "boss", module_name: mod, can_view: true });
+  mockPermissions.push({ role_name: "koordynator", module_name: mod, can_view: mod !== "Analityka zespołu" && mod !== "Ustawienia" });
+  mockPermissions.push({ role_name: "specjalista", module_name: mod, can_view: !specjalistaBlocked.has(mod) });
+  mockPermissions.push({ role_name: "praktykant", module_name: mod, can_view: !praktykantBlocked.has(mod) });
+}
 
 export const mockClients = [
   { id: "demo-client-1", name: "TechCorp Sp. z o.o.", contact_person: "Marek Jankowski", email: "marek@techcorp.pl", phone: "+48 500 100 200", status: "active" as const, monthly_value: 15000, score: 85, tags: ["IT", "premium"], created_at: "2025-09-15T10:00:00Z", public_status_token: "tc-abc123xyz", onboarding_steps: [{ name: "Brief zebrany", completed: true }, { name: "Dostępy skonfigurowane", completed: true }, { name: "Kanały komunikacji ustalone", completed: true }, { name: "Kick-off meeting", completed: false }] },
