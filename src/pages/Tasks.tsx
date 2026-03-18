@@ -1,38 +1,22 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useDataSource } from "@/hooks/useDataSource";
 import { mockTasks, mockClients, mockProjects, mockTaskAssignments, mockProfiles } from "@/lib/mockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Plus, Search, Filter, LayoutGrid, List } from "lucide-react";
+import { Plus, Search, LayoutGrid, List, AlertCircle, Clock, Eye, Layers } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import TaskKanbanBoard from "@/components/tasks/TaskKanbanBoard";
+import TaskListView from "@/components/tasks/TaskListView";
 
-const statusLabels: Record<string, string> = {
-  new: "Nowe", todo: "Do zrobienia", in_progress: "W trakcie", review: "Weryfikacja",
-  corrections: "Poprawki", client_review: "Akceptacja klienta", done: "Gotowe", cancelled: "Anulowane",
-};
-const statusColors: Record<string, string> = {
-  new: "bg-muted text-muted-foreground", todo: "bg-info/15 text-info-foreground", in_progress: "bg-warning/15 text-warning-foreground",
-  review: "bg-primary/15 text-primary", corrections: "bg-destructive/15 text-destructive",
-  client_review: "bg-warning/15 text-warning-foreground", done: "bg-success/15 text-foreground", cancelled: "bg-muted text-muted-foreground",
-};
 const priorityLabels: Record<string, string> = { critical: "Pilny", high: "Wysoki", medium: "Średni", low: "Niski" };
-const priorityColors: Record<string, string> = {
-  critical: "bg-destructive text-destructive-foreground", high: "bg-warning text-warning-foreground",
-  medium: "bg-info/15 text-info-foreground", low: "bg-muted text-muted-foreground",
-};
 
 function enrichDemoTasks(statusFilter: string, priorityFilter: string) {
   let tasks = mockTasks.map(t => {
@@ -55,6 +39,7 @@ export default function Tasks() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newTask, setNewTask] = useState({ title: "", description: "", priority: "medium", type: "" });
@@ -75,10 +60,26 @@ export default function Tasks() {
     },
   });
 
-  const filteredTasks = tasks?.filter((t: any) =>
-    t.title.toLowerCase().includes(search.toLowerCase()) ||
-    t.id.toLowerCase().includes(search.toLowerCase())
-  ) || [];
+  // Apply search and type filter
+  const filteredTasks = (tasks || []).filter((t: any) => {
+    const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) || t.id.toLowerCase().includes(search.toLowerCase());
+    if (!matchesSearch) return false;
+    if (typeFilter === "parent") return t.parent_task_id === null && mockTasks.some(mt => mt.parent_task_id === t.id);
+    if (typeFilter === "subtask") return t.parent_task_id !== null;
+    if (typeFilter === "standalone") return t.parent_task_id === null && !mockTasks.some(mt => mt.parent_task_id === t.id);
+    return true;
+  });
+
+  // Alert counts
+  const allTasks = tasks || [];
+  const unassignedCount = allTasks.filter((t: any) => {
+    const hasAssignment = isDemo
+      ? mockTaskAssignments.some(a => a.task_id === t.id && a.role === "primary")
+      : t.task_assignments?.some((a: any) => a.role === "primary");
+    return !hasAssignment && t.status !== "done" && t.status !== "cancelled";
+  }).length;
+  const reviewCount = allTasks.filter((t: any) => t.status === "review").length;
+  const clientReviewCount = allTasks.filter((t: any) => t.status === "client_review").length;
 
   async function handleCreate() {
     if (!newTask.title.trim()) { toast.error("Podaj nazwę zadania"); return; }
@@ -97,7 +98,6 @@ export default function Tasks() {
 
   async function handleStatusChange(taskId: string, newStatus: string) {
     if (isDemo) {
-      // Optimistic update for demo mode
       queryClient.setQueryData(["tasks", statusFilter, priorityFilter, isDemo], (old: any[]) =>
         old?.map(t => t.id === taskId ? { ...t, status: newStatus, updated_at: new Date().toISOString() } : t)
       );
@@ -110,57 +110,95 @@ export default function Tasks() {
     refetch();
   }
 
-  function timeSince(dateStr: string) {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const days = Math.floor(diff / 86400000);
-    if (days > 0) return `${days}d`;
-    return `${Math.floor(diff / 3600000)}h`;
-  }
-
   return (
     <AppLayout title="Zadania">
-      <div className="space-y-4 max-w-7xl mx-auto">
-        {isDemo && (
-          <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20 text-sm text-primary">
-            🎭 Tryb demo — wyświetlane są przykładowe dane.
-            <a href="/settings" className="underline font-medium ml-1">Zmień w Ustawieniach</a>
+      <div className="space-y-4 mx-auto">
+        {/* Alert Banners */}
+        {unassignedCount > 0 && (
+          <div className="flex items-center justify-between px-5 py-3 rounded-xl bg-destructive text-destructive-foreground">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5" />
+              <span className="font-semibold text-sm">{unassignedCount} zadań nieprzypisanych.</span>
+            </div>
+            <Button variant="secondary" size="sm" className="text-xs font-medium" onClick={() => setStatusFilter("all")}>Przypisz</Button>
+          </div>
+        )}
+        {reviewCount > 0 && (
+          <div className="flex items-center justify-between px-5 py-3 rounded-xl" style={{ background: "hsl(38, 92%, 50%)", color: "white" }}>
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              <span className="font-semibold text-sm">{reviewCount} oczekuje na weryfikację.</span>
+            </div>
+            <Button variant="secondary" size="sm" className="text-xs font-medium" onClick={() => setStatusFilter("review")}>Zweryfikuj</Button>
+          </div>
+        )}
+        {clientReviewCount > 0 && (
+          <div className="flex items-center justify-between px-5 py-3 rounded-xl" style={{ background: "hsl(45, 93%, 47%)", color: "white" }}>
+            <div className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              <span className="font-semibold text-sm">{clientReviewCount} czeka na akceptację klienta.</span>
+            </div>
+            <Button variant="secondary" size="sm" className="text-xs font-medium" onClick={() => setStatusFilter("client_review")}>Zobacz</Button>
           </div>
         )}
 
-        {/* Toolbar */}
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-          <div className="flex gap-2 flex-1 w-full sm:w-auto items-center">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Szukaj zadania..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-            </div>
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Szukaj zadań..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-11 text-sm" />
+        </div>
+
+        {/* Filters Row */}
+        <div className="flex flex-wrap gap-2 items-center justify-between">
+          <div className="flex flex-wrap gap-2 items-center">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[160px]"><Filter className="h-3 w-3 mr-1" /><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Wszystkie statusy" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Wszystkie</SelectItem>
-                {Object.entries(statusLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                <SelectItem value="all">Wszystkie statusy</SelectItem>
+                <SelectItem value="new">Nowe</SelectItem>
+                <SelectItem value="todo">Do zrobienia</SelectItem>
+                <SelectItem value="in_progress">W realizacji</SelectItem>
+                <SelectItem value="review">Weryfikacja</SelectItem>
+                <SelectItem value="corrections">Poprawki</SelectItem>
+                <SelectItem value="client_review">Akceptacja klienta</SelectItem>
+                <SelectItem value="done">Gotowe</SelectItem>
+                <SelectItem value="cancelled">Anulowane</SelectItem>
               </SelectContent>
             </Select>
             <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-[140px]"><SelectValue placeholder="Priorytet" /></SelectTrigger>
+              <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Wszystkie priorytety" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Wszystkie</SelectItem>
+                <SelectItem value="all">Wszystkie priorytety</SelectItem>
                 {Object.entries(priorityLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
               </SelectContent>
             </Select>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-[160px] h-9 text-sm"><SelectValue placeholder="Wszystkie typy" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Wszystkie typy</SelectItem>
+                <SelectItem value="parent">Tylko nadrzędne</SelectItem>
+                <SelectItem value="subtask">Tylko podzadania</SelectItem>
+                <SelectItem value="standalone">Tylko samodzielne</SelectItem>
+              </SelectContent>
+            </Select>
 
-            {/* View mode toggle */}
-            <div className="flex items-center border rounded-md overflow-hidden ml-2">
+            <button className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground px-3 h-9 border rounded-md bg-card">
+              <Layers className="h-3.5 w-3.5" />
+              Pokaż podzadania
+            </button>
+
+            {/* View toggle */}
+            <div className="flex items-center rounded-lg overflow-hidden border">
               <button
                 onClick={() => setViewMode("list")}
-                className={`p-2 transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}
+                className={`p-2 transition-colors ${viewMode === "list" ? "bg-destructive text-destructive-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}
                 title="Widok listy"
               >
                 <List className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setViewMode("kanban")}
-                className={`p-2 transition-colors ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}
+                className={`p-2 transition-colors ${viewMode === "kanban" ? "bg-destructive text-destructive-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}
                 title="Widok Kanban"
               >
                 <LayoutGrid className="h-4 w-4" />
@@ -170,7 +208,9 @@ export default function Tasks() {
 
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 mr-1" /> Nowe zadanie</Button>
+              <Button className="bg-destructive hover:bg-destructive/90 text-destructive-foreground h-9">
+                <Plus className="h-4 w-4 mr-1" /> Nowe zadanie
+              </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Nowe zadanie</DialogTitle></DialogHeader>
@@ -214,65 +254,7 @@ export default function Tasks() {
             onStatusChange={handleStatusChange}
           />
         ) : (
-          <div className="bg-card rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[300px]">Zadanie</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Czas w statusie</TableHead>
-                  <TableHead>Priorytet</TableHead>
-                  <TableHead>Przypisano</TableHead>
-                  <TableHead>Termin</TableHead>
-                  <TableHead>Klient</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Ładowanie...</TableCell></TableRow>
-                ) : filteredTasks.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Brak zadań</TableCell></TableRow>
-                ) : (
-                  filteredTasks.map((task: any) => {
-                    const assignee = task.task_assignments?.find((a: any) => a.role === "primary");
-                    return (
-                      <TableRow key={task.id} className="cursor-pointer hover:bg-muted/50">
-                        <TableCell>
-                          <Link to={`/tasks/${task.id}`} className="block">
-                            <p className="text-xs text-muted-foreground">{task.id.slice(0, 8)}</p>
-                            <p className="font-medium text-sm">{task.title}</p>
-                          </Link>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className={`text-xs ${statusColors[task.status] || ""}`}>
-                            {statusLabels[task.status] || task.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{timeSince(task.updated_at || task.created_at)}</TableCell>
-                        <TableCell>
-                          <Badge className={`text-xs ${priorityColors[task.priority] || ""}`}>
-                            {priorityLabels[task.priority] || task.priority}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {assignee ? (
-                            <div className="flex items-center gap-1.5">
-                              <Avatar className="h-6 w-6">
-                                <AvatarFallback className="text-[10px] bg-muted">{assignee.profiles?.full_name?.[0] || "?"}</AvatarFallback>
-                              </Avatar>
-                              <span className="text-sm">{assignee.profiles?.full_name}</span>
-                            </div>
-                          ) : <span className="text-sm text-muted-foreground">—</span>}
-                        </TableCell>
-                        <TableCell className="text-sm">{task.due_date ? new Date(task.due_date).toLocaleDateString("pl-PL") : "—"}</TableCell>
-                        <TableCell className="text-sm">{task.clients?.name || "—"}</TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <TaskListView tasks={filteredTasks} isLoading={isLoading} />
         )}
       </div>
     </AppLayout>
