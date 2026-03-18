@@ -115,6 +115,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
       title: form.title,
       description: form.description || null,
       priority: form.priority as any,
+      status: "todo" as any,
       type: form.type || null,
       client_id: form.client_id || null,
       project_id: form.project_id || null,
