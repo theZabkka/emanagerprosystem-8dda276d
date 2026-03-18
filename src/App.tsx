@@ -11,6 +11,7 @@ import TaskDetail from "./pages/TaskDetail";
 import Clients from "./pages/Clients";
 import Projects from "./pages/Projects";
 import Pipeline from "./pages/Pipeline";
+import Messenger from "./pages/Messenger";
 import StubPage from "./pages/StubPage";
 import NotFound from "./pages/NotFound";
 import { ReactNode } from "react";
@@ -42,7 +43,7 @@ const stubRoutes = [
   { path: "/client-ideas", title: "Pomysły klientów" },
   { path: "/conversations", title: "Rozmowy" },
   { path: "/micro-interventions", title: "Mikro-interwencje" },
-  { path: "/messenger", title: "Komunikator" },
+  
   { path: "/client-inbox", title: "Skrzynka klientów" },
   { path: "/tickets", title: "Zgłoszenia" },
   { path: "/team", title: "Zespół" },
@@ -83,6 +84,7 @@ const App = () => (
             <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
             <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
             <Route path="/pipeline" element={<ProtectedRoute><Pipeline /></ProtectedRoute>} />
+            <Route path="/messenger" element={<ProtectedRoute><Messenger /></ProtectedRoute>} />
             {stubRoutes.map((r) => (
               <Route key={r.path} path={r.path} element={<ProtectedRoute><StubPage title={r.title} /></ProtectedRoute>} />
             ))}
