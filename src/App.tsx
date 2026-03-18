@@ -43,7 +43,7 @@ const stubRoutes = [
   { path: "/client-ideas", title: "Pomysły klientów" },
   { path: "/conversations", title: "Rozmowy" },
   { path: "/micro-interventions", title: "Mikro-interwencje" },
-  { path: "/messenger", title: "Komunikator" },
+  
   { path: "/client-inbox", title: "Skrzynka klientów" },
   { path: "/tickets", title: "Zgłoszenia" },
   { path: "/team", title: "Zespół" },
