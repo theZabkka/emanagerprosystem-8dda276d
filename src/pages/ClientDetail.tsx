@@ -94,6 +94,9 @@ let demoIdeasState = [...mockClientIdeas];
 let demoConversationsState = [...mockClientConversations];
 let demoFilesState = [...mockClientFiles];
 let demoInvoiceDataState = [...mockClientInvoiceData];
+let demoContractsState = [...mockClientContracts];
+let demoOrdersState = [...mockClientOrders];
+let demoSocialState = [...mockClientSocialAccounts];
 
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
