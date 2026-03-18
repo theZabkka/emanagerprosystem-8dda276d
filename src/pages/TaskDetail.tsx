@@ -1025,8 +1025,11 @@ export default function TaskDetail() {
                   </div>
                 )) : (
                   <p className="text-sm text-muted-foreground">Brak komentarzy.</p>
-                )}
+                );
+                })()}
               </div>
+              {!isPreviewMode && (
+              <>
               <Separator />
               <div className="flex gap-2 items-end">
                 <div className="flex-1 space-y-1.5">
@@ -1042,10 +1045,13 @@ export default function TaskDetail() {
                 </div>
                 <Button size="icon" onClick={addComment} className="h-9 w-9"><Send className="h-4 w-4" /></Button>
               </div>
+              </>
+              )}
             </CardContent>
           </Card>
 
-          {/* Status history */}
+          {/* Status history - hidden in preview */}
+          {!isPreviewMode && (
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold flex items-center gap-1.5"><History className="h-4 w-4" />Historia statusów</CardTitle>
