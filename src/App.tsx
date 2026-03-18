@@ -30,6 +30,8 @@ import WhatsNew from "./pages/WhatsNew";
 import StubPage from "./pages/StubPage";
 import NotFound from "./pages/NotFound";
 import Permissions from "./pages/Permissions";
+import ClientIdeas from "./pages/ClientIdeas";
+import StaffIdeas from "./pages/StaffIdeas";
 import { ReactNode } from "react";
 
 const queryClient = new QueryClient();
@@ -52,7 +54,6 @@ const stubRoutes = [
   { path: "/routines", title: "Rutyny" },
   { path: "/contracts", title: "Umowy" },
   { path: "/orders", title: "Zlecenia" },
-  { path: "/client-ideas", title: "Pomysły klientów" },
   { path: "/conversations", title: "Rozmowy" },
   { path: "/micro-interventions", title: "Mikro-interwencje" },
   { path: "/client-inbox", title: "Skrzynka klientów" },
@@ -105,6 +106,8 @@ const App = () => (
             <Route path="/automation-center" element={<ProtectedRoute><AutomationCenter /></ProtectedRoute>} />
             <Route path="/whats-new" element={<ProtectedRoute><WhatsNew /></ProtectedRoute>} />
             <Route path="/settings/permissions" element={<ProtectedRoute><Permissions /></ProtectedRoute>} />
+            <Route path="/client-ideas" element={<ProtectedRoute><ClientIdeas /></ProtectedRoute>} />
+            <Route path="/staff-ideas" element={<ProtectedRoute><StaffIdeas /></ProtectedRoute>} />
             {stubRoutes.map((r) => (
               <Route key={r.path} path={r.path} element={<ProtectedRoute><StubPage title={r.title} /></ProtectedRoute>} />
             ))}

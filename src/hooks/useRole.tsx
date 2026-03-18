@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { useAuth } from "./useAuth";
 import { useDataSource } from "./useDataSource";
 import { supabase } from "@/integrations/supabase/client";
 import { mockPermissions } from "@/lib/mockData";
@@ -22,9 +23,9 @@ interface Permission {
 }
 
 interface RoleContextType {
-  simulatedRole: AppRoleName;
-  setSimulatedRole: (role: AppRoleName) => void;
+  currentRole: AppRoleName;
   isClient: boolean;
+  clientId: string | null;
   permissions: Permission[];
   setPermissions: React.Dispatch<React.SetStateAction<Permission[]>>;
   canViewModule: (moduleName: string) => boolean;
@@ -33,23 +34,15 @@ interface RoleContextType {
 
 const RoleContext = createContext<RoleContextType | null>(null);
 
-const STORAGE_KEY = "emanager-simulated-role";
-
 export function RoleProvider({ children }: { children: ReactNode }) {
+  const { profile } = useAuth();
   const { isDemo } = useDataSource();
-  const [simulatedRole, setSimulatedRoleState] = useState<AppRoleName>(() => {
-    try {
-      return (localStorage.getItem(STORAGE_KEY) as AppRoleName) || "boss";
-    } catch {
-      return "boss";
-    }
-  });
   const [permissions, setPermissions] = useState<Permission[]>([]);
 
-  const setSimulatedRole = (role: AppRoleName) => {
-    setSimulatedRoleState(role);
-    try { localStorage.setItem(STORAGE_KEY, role); } catch {}
-  };
+  // Derive role from profile
+  const currentRole: AppRoleName = (profile?.role as AppRoleName) || "specjalista";
+  const isClient = currentRole === "klient";
+  const clientId = (profile as any)?.client_id || null;
 
   const fetchPermissions = useCallback(async () => {
     if (isDemo) {
@@ -63,17 +56,17 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   useEffect(() => { fetchPermissions(); }, [fetchPermissions]);
 
   const canViewModule = useCallback((moduleName: string) => {
-    if (simulatedRole === "boss") return true;
-    if (simulatedRole === "klient") return false; // client uses separate sidebar
-    const perm = permissions.find(p => p.role_name === simulatedRole && p.module_name === moduleName);
+    if (currentRole === "boss") return true;
+    if (currentRole === "klient") return false;
+    const perm = permissions.find(p => p.role_name === currentRole && p.module_name === moduleName);
     return perm?.can_view ?? true;
-  }, [simulatedRole, permissions]);
+  }, [currentRole, permissions]);
 
   return (
     <RoleContext.Provider value={{
-      simulatedRole,
-      setSimulatedRole,
-      isClient: simulatedRole === "klient",
+      currentRole,
+      isClient,
+      clientId,
       permissions,
       setPermissions,
       canViewModule,
