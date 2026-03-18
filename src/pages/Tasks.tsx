@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,12 +11,13 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Plus, Search, Filter } from "lucide-react";
+import { Plus, Search, Filter, LayoutGrid, List } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import TaskKanbanBoard from "@/components/tasks/TaskKanbanBoard";
 
 const statusLabels: Record<string, string> = {
   new: "Nowe", todo: "Do zrobienia", in_progress: "W trakcie", review: "Weryfikacja",
@@ -33,22 +34,14 @@ const priorityColors: Record<string, string> = {
   medium: "bg-info/15 text-info-foreground", low: "bg-muted text-muted-foreground",
 };
 
-function getDemoTasks(statusFilter: string, priorityFilter: string) {
+function enrichDemoTasks(statusFilter: string, priorityFilter: string) {
   let tasks = mockTasks.map(t => {
     const assignments = mockTaskAssignments
       .filter(a => a.task_id === t.id)
-      .map(a => ({
-        ...a,
-        profiles: mockProfiles.find(p => p.id === a.user_id) || null,
-      }));
+      .map(a => ({ ...a, profiles: mockProfiles.find(p => p.id === a.user_id) || null }));
     const client = mockClients.find(c => c.id === t.client_id);
     const project = mockProjects.find(p => p.id === t.project_id);
-    return {
-      ...t,
-      task_assignments: assignments,
-      clients: client ? { name: client.name } : null,
-      projects: project ? { name: project.name } : null,
-    };
+    return { ...t, task_assignments: assignments, clients: client ? { name: client.name } : null, projects: project ? { name: project.name } : null };
   });
   if (statusFilter !== "all") tasks = tasks.filter(t => t.status === statusFilter);
   if (priorityFilter !== "all") tasks = tasks.filter(t => t.priority === priorityFilter);
@@ -58,16 +51,18 @@ function getDemoTasks(statusFilter: string, priorityFilter: string) {
 export default function Tasks() {
   const { user } = useAuth();
   const { isDemo } = useDataSource();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newTask, setNewTask] = useState({ title: "", description: "", priority: "medium", type: "" });
 
   const { data: tasks, isLoading, refetch } = useQuery({
     queryKey: ["tasks", statusFilter, priorityFilter, isDemo],
     queryFn: async () => {
-      if (isDemo) return getDemoTasks(statusFilter, priorityFilter);
+      if (isDemo) return enrichDemoTasks(statusFilter, priorityFilter);
       let query = supabase
         .from("tasks")
         .select("*, clients(name), projects(name), task_assignments(user_id, role, profiles:user_id(full_name))")
@@ -100,12 +95,26 @@ export default function Tasks() {
     refetch();
   }
 
+  async function handleStatusChange(taskId: string, newStatus: string) {
+    if (isDemo) {
+      // Optimistic update for demo mode
+      queryClient.setQueryData(["tasks", statusFilter, priorityFilter, isDemo], (old: any[]) =>
+        old?.map(t => t.id === taskId ? { ...t, status: newStatus, updated_at: new Date().toISOString() } : t)
+      );
+      toast.success("Status zaktualizowany (demo)");
+      return;
+    }
+    const { error } = await supabase.from("tasks").update({ status: newStatus as any, updated_at: new Date().toISOString() }).eq("id", taskId);
+    if (error) { toast.error("Błąd aktualizacji statusu"); return; }
+    toast.success("Status zaktualizowany");
+    refetch();
+  }
+
   function timeSince(dateStr: string) {
     const diff = Date.now() - new Date(dateStr).getTime();
     const days = Math.floor(diff / 86400000);
     if (days > 0) return `${days}d`;
-    const hours = Math.floor(diff / 3600000);
-    return `${hours}h`;
+    return `${Math.floor(diff / 3600000)}h`;
   }
 
   return (
@@ -117,9 +126,10 @@ export default function Tasks() {
             <a href="/settings" className="underline font-medium ml-1">Zmień w Ustawieniach</a>
           </div>
         )}
+
         {/* Toolbar */}
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-          <div className="flex gap-2 flex-1 w-full sm:w-auto">
+          <div className="flex gap-2 flex-1 w-full sm:w-auto items-center">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Szukaj zadania..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
@@ -138,7 +148,26 @@ export default function Tasks() {
                 {Object.entries(priorityLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
               </SelectContent>
             </Select>
+
+            {/* View mode toggle */}
+            <div className="flex items-center border rounded-md overflow-hidden ml-2">
+              <button
+                onClick={() => setViewMode("list")}
+                className={`p-2 transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}
+                title="Widok listy"
+              >
+                <List className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setViewMode("kanban")}
+                className={`p-2 transition-colors ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}
+                title="Widok Kanban"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+            </div>
           </div>
+
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4 mr-1" /> Nowe zadanie</Button>
@@ -175,70 +204,76 @@ export default function Tasks() {
           </Dialog>
         </div>
 
-        {/* Tasks table */}
-        <div className="bg-card rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[300px]">Zadanie</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Czas w statusie</TableHead>
-                <TableHead>Priorytet</TableHead>
-                <TableHead>Przypisano</TableHead>
-                <TableHead>Termin</TableHead>
-                <TableHead>Klient</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Ładowanie...</TableCell></TableRow>
-              ) : filteredTasks.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Brak zadań</TableCell></TableRow>
-              ) : (
-                filteredTasks.map((task: any) => {
-                  const assignee = task.task_assignments?.find((a: any) => a.role === "primary");
-                  return (
-                    <TableRow key={task.id} className="cursor-pointer hover:bg-muted/50">
-                      <TableCell>
-                        <Link to={`/tasks/${task.id}`} className="block">
-                          <div className="flex items-center gap-2">
-                            <div>
-                              <p className="text-xs text-muted-foreground">{task.id.slice(0, 8)}</p>
-                              <p className="font-medium text-sm">{task.title}</p>
+        {/* View content */}
+        {viewMode === "kanban" ? (
+          <TaskKanbanBoard
+            tasks={filteredTasks}
+            profiles={isDemo ? mockProfiles : []}
+            assignments={isDemo ? mockTaskAssignments : filteredTasks.flatMap((t: any) => (t.task_assignments || []).map((a: any) => ({ ...a, task_id: t.id })))}
+            clients={isDemo ? mockClients : filteredTasks.map((t: any) => t.clients ? { id: t.client_id, name: t.clients.name } : null).filter(Boolean)}
+            onStatusChange={handleStatusChange}
+          />
+        ) : (
+          <div className="bg-card rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[300px]">Zadanie</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Czas w statusie</TableHead>
+                  <TableHead>Priorytet</TableHead>
+                  <TableHead>Przypisano</TableHead>
+                  <TableHead>Termin</TableHead>
+                  <TableHead>Klient</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Ładowanie...</TableCell></TableRow>
+                ) : filteredTasks.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Brak zadań</TableCell></TableRow>
+                ) : (
+                  filteredTasks.map((task: any) => {
+                    const assignee = task.task_assignments?.find((a: any) => a.role === "primary");
+                    return (
+                      <TableRow key={task.id} className="cursor-pointer hover:bg-muted/50">
+                        <TableCell>
+                          <Link to={`/tasks/${task.id}`} className="block">
+                            <p className="text-xs text-muted-foreground">{task.id.slice(0, 8)}</p>
+                            <p className="font-medium text-sm">{task.title}</p>
+                          </Link>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className={`text-xs ${statusColors[task.status] || ""}`}>
+                            {statusLabels[task.status] || task.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{timeSince(task.updated_at || task.created_at)}</TableCell>
+                        <TableCell>
+                          <Badge className={`text-xs ${priorityColors[task.priority] || ""}`}>
+                            {priorityLabels[task.priority] || task.priority}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {assignee ? (
+                            <div className="flex items-center gap-1.5">
+                              <Avatar className="h-6 w-6">
+                                <AvatarFallback className="text-[10px] bg-muted">{assignee.profiles?.full_name?.[0] || "?"}</AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm">{assignee.profiles?.full_name}</span>
                             </div>
-                          </div>
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className={`text-xs ${statusColors[task.status] || ""}`}>
-                          {statusLabels[task.status] || task.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{timeSince(task.updated_at || task.created_at)}</TableCell>
-                      <TableCell>
-                        <Badge className={`text-xs ${priorityColors[task.priority] || ""}`}>
-                          {priorityLabels[task.priority] || task.priority}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {assignee ? (
-                          <div className="flex items-center gap-1.5">
-                            <Avatar className="h-6 w-6">
-                              <AvatarFallback className="text-[10px] bg-muted">{assignee.profiles?.full_name?.[0] || "?"}</AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm">{assignee.profiles?.full_name}</span>
-                          </div>
-                        ) : <span className="text-sm text-muted-foreground">—</span>}
-                      </TableCell>
-                      <TableCell className="text-sm">{task.due_date ? new Date(task.due_date).toLocaleDateString("pl-PL") : "—"}</TableCell>
-                      <TableCell className="text-sm">{task.clients?.name || "—"}</TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                          ) : <span className="text-sm text-muted-foreground">—</span>}
+                        </TableCell>
+                        <TableCell className="text-sm">{task.due_date ? new Date(task.due_date).toLocaleDateString("pl-PL") : "—"}</TableCell>
+                        <TableCell className="text-sm">{task.clients?.name || "—"}</TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
     </AppLayout>
   );
