@@ -748,7 +748,7 @@ export default function TaskDetail() {
                 <p className="text-sm text-destructive font-medium">Brak przypisanych osób!</p>
               )}
             </CardContent>
-          </Card>
+          </Card>}
 
           {/* Bug / Workflow status */}
           {(task as any).bug_severity && (
