@@ -5,6 +5,7 @@ import { useDataSource } from "@/hooks/useDataSource";
 import { mockProjects, mockClients, mockProfiles } from "@/lib/mockData";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus } from "lucide-react";
 import { useState } from "react";
