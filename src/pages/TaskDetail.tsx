@@ -790,11 +790,13 @@ export default function TaskDetail() {
                   <span className={`text-sm flex-1 ${s.is_completed ? "line-through text-muted-foreground" : ""}`}>{s.title}</span>
                 </div>
               ))}
+              {!isPreviewMode && (
               <div className="flex gap-2 pt-1">
                 <Input placeholder="Dodaj podzadanie..." value={newSubtask} onChange={e => setNewSubtask(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && addSubtask()} className="text-sm h-8" />
                 <Button size="sm" variant="outline" onClick={addSubtask} className="h-8 w-8 p-0"><Plus className="h-3 w-3" /></Button>
               </div>
+              )}
             </CardContent>
           </Card>
 
