@@ -785,6 +785,8 @@ export type Database = {
       }
       projects: {
         Row: {
+          ai_summary: string | null
+          brief_data: Json | null
           client_id: string | null
           created_at: string | null
           description: string | null
@@ -796,6 +798,8 @@ export type Database = {
           status: string | null
         }
         Insert: {
+          ai_summary?: string | null
+          brief_data?: Json | null
           client_id?: string | null
           created_at?: string | null
           description?: string | null
@@ -807,6 +811,8 @@ export type Database = {
           status?: string | null
         }
         Update: {
+          ai_summary?: string | null
+          brief_data?: Json | null
           client_id?: string | null
           created_at?: string | null
           description?: string | null
