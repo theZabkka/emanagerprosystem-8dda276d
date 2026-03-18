@@ -60,7 +60,7 @@ export default function Messenger() {
         .from("channels" as any)
         .select("*")
         .order("created_at");
-      return (data || []) as Channel[];
+      return (data || []) as unknown as Channel[];
     },
   });
 
