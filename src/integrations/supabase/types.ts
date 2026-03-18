@@ -85,18 +85,21 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          is_direct: boolean
           name: string
           type: string
         }
         Insert: {
           created_at?: string | null
           id?: string
+          is_direct?: boolean
           name: string
           type?: string
         }
         Update: {
           created_at?: string | null
           id?: string
+          is_direct?: boolean
           name?: string
           type?: string
         }
@@ -284,6 +287,9 @@ export type Database = {
       }
       messages: {
         Row: {
+          attachment_name: string | null
+          attachment_type: string | null
+          attachment_url: string | null
           channel_id: string
           content: string
           created_at: string | null
@@ -291,6 +297,9 @@ export type Database = {
           sender_id: string
         }
         Insert: {
+          attachment_name?: string | null
+          attachment_type?: string | null
+          attachment_url?: string | null
           channel_id: string
           content: string
           created_at?: string | null
@@ -298,6 +307,9 @@ export type Database = {
           sender_id: string
         }
         Update: {
+          attachment_name?: string | null
+          attachment_type?: string | null
+          attachment_url?: string | null
           channel_id?: string
           content?: string
           created_at?: string | null

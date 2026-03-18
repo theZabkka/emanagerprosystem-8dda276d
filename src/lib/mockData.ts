@@ -95,3 +95,75 @@ export const mockTaskAssignments = [
   { task_id: "demo-task-11", user_id: "demo-user-5", role: "primary" as const },
   { task_id: "demo-task-12", user_id: "demo-user-4", role: "primary" as const },
 ];
+
+// ─── Messenger Mock Data ────────────────────────────────────────────────
+
+export const mockChannels = [
+  { id: "demo-ch-1", name: "Ogólny", type: "public", is_direct: false, created_at: "2026-01-01T10:00:00Z" },
+  { id: "demo-ch-2", name: "Marketing", type: "public", is_direct: false, created_at: "2026-01-05T10:00:00Z" },
+  { id: "demo-ch-3", name: "Development", type: "public", is_direct: false, created_at: "2026-01-10T10:00:00Z" },
+  { id: "demo-dm-1", name: "DM", type: "direct", is_direct: true, created_at: "2026-02-01T10:00:00Z" },
+  { id: "demo-dm-2", name: "DM", type: "direct", is_direct: true, created_at: "2026-02-10T10:00:00Z" },
+  { id: "demo-dm-3", name: "DM", type: "direct", is_direct: true, created_at: "2026-03-01T10:00:00Z" },
+];
+
+export const mockChannelMembers = [
+  // Group channels - all employees
+  { channel_id: "demo-ch-1", user_id: "demo-user-1" },
+  { channel_id: "demo-ch-1", user_id: "demo-user-2" },
+  { channel_id: "demo-ch-1", user_id: "demo-user-3" },
+  { channel_id: "demo-ch-1", user_id: "demo-user-4" },
+  { channel_id: "demo-ch-1", user_id: "demo-user-5" },
+  { channel_id: "demo-ch-2", user_id: "demo-user-1" },
+  { channel_id: "demo-ch-2", user_id: "demo-user-2" },
+  { channel_id: "demo-ch-3", user_id: "demo-user-1" },
+  { channel_id: "demo-ch-3", user_id: "demo-user-4" },
+  // DM: Jan Kowalski (admin) <-> Anna Nowak
+  { channel_id: "demo-dm-1", user_id: "demo-user-1" },
+  { channel_id: "demo-dm-1", user_id: "demo-user-2" },
+  // DM: Jan Kowalski (admin) <-> Piotr Wiśniewski
+  { channel_id: "demo-dm-2", user_id: "demo-user-1" },
+  { channel_id: "demo-dm-2", user_id: "demo-user-3" },
+  // DM: Anna Nowak <-> Katarzyna Zielińska
+  { channel_id: "demo-dm-3", user_id: "demo-user-2" },
+  { channel_id: "demo-dm-3", user_id: "demo-user-4" },
+];
+
+export const mockMessages = [
+  // Ogólny channel
+  { id: "demo-msg-1", channel_id: "demo-ch-1", sender_id: "demo-user-1", content: "Cześć wszystkim! 👋 Witam na kanale ogólnym.", created_at: daysAgo(5) + "T09:00:00Z", attachment_url: null, attachment_type: null, attachment_name: null },
+  { id: "demo-msg-2", channel_id: "demo-ch-1", sender_id: "demo-user-2", content: "Hej Jan! Jak tam nowy projekt dla TechCorp?", created_at: daysAgo(5) + "T09:15:00Z", attachment_url: null, attachment_type: null, attachment_name: null },
+  { id: "demo-msg-3", channel_id: "demo-ch-1", sender_id: "demo-user-1", content: "Idzie świetnie, mamy już wireframes gotowe. Piotr robi rewelacyjną robotę.", created_at: daysAgo(5) + "T09:20:00Z", attachment_url: null, attachment_type: null, attachment_name: null },
+  { id: "demo-msg-4", channel_id: "demo-ch-1", sender_id: "demo-user-3", content: "Dzięki! Właśnie skończyłem hero section, tutaj podgląd:", created_at: daysAgo(4) + "T10:00:00Z", attachment_url: "https://placehold.co/800x400/2563eb/ffffff?text=Hero+Section+Preview", attachment_type: "image", attachment_name: "hero-section-v2.png" },
+  { id: "demo-msg-5", channel_id: "demo-ch-1", sender_id: "demo-user-4", content: "Super wygląda! 🔥 Dodam to do kodu jutro.", created_at: daysAgo(4) + "T10:30:00Z", attachment_url: null, attachment_type: null, attachment_name: null },
+  { id: "demo-msg-6", channel_id: "demo-ch-1", sender_id: "demo-user-5", content: "Przypominam o spotkaniu zespołowym w piątek o 10:00", created_at: daysAgo(2) + "T14:00:00Z", attachment_url: null, attachment_type: null, attachment_name: null },
+  // Marketing channel
+  { id: "demo-msg-7", channel_id: "demo-ch-2", sender_id: "demo-user-2", content: "Nowa strategia content marketingu na Q2 — dokument w załączniku", created_at: daysAgo(3) + "T11:00:00Z", attachment_url: "https://example.com/docs/strategy-q2.pdf", attachment_type: "file", attachment_name: "Strategia-Content-Q2-2026.pdf" },
+  { id: "demo-msg-8", channel_id: "demo-ch-2", sender_id: "demo-user-1", content: "Przejrzałem, wygląda solidnie. Mam kilka uwag do sekcji o LinkedInie.", created_at: daysAgo(3) + "T13:00:00Z", attachment_url: null, attachment_type: null, attachment_name: null },
+  // Development channel
+  { id: "demo-msg-9", channel_id: "demo-ch-3", sender_id: "demo-user-4", content: "Deploy na staging poszedł pomyślnie ✅", created_at: daysAgo(1) + "T16:00:00Z", attachment_url: null, attachment_type: null, attachment_name: null },
+  { id: "demo-msg-10", channel_id: "demo-ch-3", sender_id: "demo-user-1", content: "Świetnie, testujemy od jutra.", created_at: daysAgo(1) + "T16:30:00Z", attachment_url: null, attachment_type: null, attachment_name: null },
+  // DM: Jan <-> Anna
+  { id: "demo-msg-11", channel_id: "demo-dm-1", sender_id: "demo-user-1", content: "Anna, możesz przygotować raport z kampanii do czwartku?", created_at: daysAgo(2) + "T09:00:00Z", attachment_url: null, attachment_type: null, attachment_name: null },
+  { id: "demo-msg-12", channel_id: "demo-dm-1", sender_id: "demo-user-2", content: "Jasne! Mam już większość danych, wyślę do środy.", created_at: daysAgo(2) + "T09:10:00Z", attachment_url: null, attachment_type: null, attachment_name: null },
+  { id: "demo-msg-13", channel_id: "demo-dm-1", sender_id: "demo-user-2", content: "Gotowy raport w załączniku 📊", created_at: daysAgo(1) + "T14:00:00Z", attachment_url: "https://example.com/reports/campaign-feb.xlsx", attachment_type: "file", attachment_name: "Raport-Kampania-Luty-2026.xlsx" },
+  { id: "demo-msg-14", channel_id: "demo-dm-1", sender_id: "demo-user-1", content: "Dzięki Anna, super robota! 👍", created_at: daysAgo(1) + "T14:30:00Z", attachment_url: null, attachment_type: null, attachment_name: null },
+  // DM: Jan <-> Piotr
+  { id: "demo-msg-15", channel_id: "demo-dm-2", sender_id: "demo-user-3", content: "Jan, mam pytanie odnośnie kolorystyki dla AutoParts Pro", created_at: daysAgo(3) + "T11:00:00Z", attachment_url: null, attachment_type: null, attachment_name: null },
+  { id: "demo-msg-16", channel_id: "demo-dm-2", sender_id: "demo-user-1", content: "Dawaj, słucham", created_at: daysAgo(3) + "T11:05:00Z", attachment_url: null, attachment_type: null, attachment_name: null },
+  { id: "demo-msg-17", channel_id: "demo-dm-2", sender_id: "demo-user-3", content: "Zrobiłem dwa warianty, który lepszy?", created_at: daysAgo(3) + "T11:10:00Z", attachment_url: "https://placehold.co/600x400/dc2626/ffffff?text=Wariant+A", attachment_type: "image", attachment_name: "wariant-a.png" },
+  { id: "demo-msg-18", channel_id: "demo-dm-2", sender_id: "demo-user-1", content: "Wariant A zdecydowanie! Bardziej pasuje do branży.", created_at: daysAgo(3) + "T11:30:00Z", attachment_url: null, attachment_type: null, attachment_name: null },
+  // DM: Anna <-> Katarzyna
+  { id: "demo-msg-19", channel_id: "demo-dm-3", sender_id: "demo-user-2", content: "Kasia, widziałaś nowe endpointy API?", created_at: daysAgo(1) + "T10:00:00Z", attachment_url: null, attachment_type: null, attachment_name: null },
+  { id: "demo-msg-20", channel_id: "demo-dm-3", sender_id: "demo-user-4", content: "Tak, wyglądają dobrze. Zintegruję je dziś po południu.", created_at: daysAgo(1) + "T10:15:00Z", attachment_url: null, attachment_type: null, attachment_name: null },
+];
+
+export const mockMessageReactions = [
+  { id: "demo-react-1", message_id: "demo-msg-4", user_id: "demo-user-1", emoji: "🔥" },
+  { id: "demo-react-2", message_id: "demo-msg-4", user_id: "demo-user-2", emoji: "🔥" },
+  { id: "demo-react-3", message_id: "demo-msg-4", user_id: "demo-user-4", emoji: "👍" },
+  { id: "demo-react-4", message_id: "demo-msg-6", user_id: "demo-user-1", emoji: "✅" },
+  { id: "demo-react-5", message_id: "demo-msg-9", user_id: "demo-user-1", emoji: "🎉" },
+  { id: "demo-react-6", message_id: "demo-msg-13", user_id: "demo-user-1", emoji: "👍" },
+  { id: "demo-react-7", message_id: "demo-msg-14", user_id: "demo-user-2", emoji: "❤️" },
+];
