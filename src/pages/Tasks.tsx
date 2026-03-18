@@ -64,9 +64,9 @@ export default function Tasks() {
   const filteredTasks = (tasks || []).filter((t: any) => {
     const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) || t.id.toLowerCase().includes(search.toLowerCase());
     if (!matchesSearch) return false;
-    if (typeFilter === "parent") return t.parent_task_id === null && mockTasks.some(mt => mt.parent_task_id === t.id);
-    if (typeFilter === "subtask") return t.parent_task_id !== null;
-    if (typeFilter === "standalone") return t.parent_task_id === null && !mockTasks.some(mt => mt.parent_task_id === t.id);
+    if (typeFilter === "parent") return !(t as any).parent_task_id && (tasks || []).some((mt: any) => mt.parent_task_id === t.id);
+    if (typeFilter === "subtask") return !!(t as any).parent_task_id;
+    if (typeFilter === "standalone") return !(t as any).parent_task_id && !(tasks || []).some((mt: any) => mt.parent_task_id === t.id);
     return true;
   });
 

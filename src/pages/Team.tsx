@@ -27,7 +27,7 @@ export default function Team() {
   const { data: tasks = [] } = useQuery({
     queryKey: ["team-tasks-stats", isDemo],
     queryFn: async () => {
-      if (isDemo) return mockTasks.filter(t => t.status !== "done" && t.status !== "cancelled");
+      if (isDemo) return mockTasks.filter(t => t.status !== "done" && (t.status as string) !== "cancelled");
       const { data } = await supabase.from("tasks").select("id, status, priority, due_date, created_by").not("status", "in", "(done,cancelled)");
       return data || [];
     },

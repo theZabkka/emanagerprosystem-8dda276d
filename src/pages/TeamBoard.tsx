@@ -50,7 +50,7 @@ export default function TeamBoard() {
     queryKey: ["tb-tasks", isDemo],
     queryFn: async () => {
       if (isDemo) {
-        return mockTasks.filter(t => t.status !== "done" && t.status !== "cancelled").map(t => {
+        return mockTasks.filter(t => t.status !== "done" && (t.status as string) !== "cancelled").map(t => {
           const client = mockClients.find(c => c.id === t.client_id);
           return { ...t, clients: client ? { name: client.name } : null };
         });
