@@ -141,11 +141,14 @@ export default function Messenger() {
       }
       const { data } = await supabase
         .from("messages")
-        .select("*, profiles:sender_id(full_name, avatar_url)")
+        .select("*")
         .eq("channel_id", activeChannel)
         .order("created_at")
         .limit(200);
-      return (data || []) as unknown as Message[];
+      return (data || []).map((m: any) => {
+        const sender = allProfiles.find(p => p.id === m.sender_id);
+        return { ...m, profiles: sender ? { full_name: sender.full_name, avatar_url: sender.avatar_url } : null };
+      }) as Message[];
     },
     enabled: !!activeChannel,
   });
