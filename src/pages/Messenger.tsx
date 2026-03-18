@@ -82,7 +82,7 @@ export default function Messenger() {
         .eq("channel_id", activeChannel)
         .order("created_at")
         .limit(200);
-      return (data || []) as Message[];
+      return (data || []) as unknown as Message[];
     },
     enabled: !!activeChannel,
   });
