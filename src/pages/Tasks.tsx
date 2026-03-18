@@ -79,20 +79,8 @@ export default function Tasks() {
   const reviewCount = allTasks.filter((t: any) => t.status === "review").length;
   const clientReviewCount = allTasks.filter((t: any) => t.status === "client_review").length;
 
-  async function handleCreate() {
-    if (!newTask.title.trim()) { toast.error("Podaj nazwę zadania"); return; }
-    if (isDemo) { toast.info("W trybie demo nie można tworzyć zadań"); return; }
-    const { error } = await supabase.from("tasks").insert({
-      title: newTask.title, description: newTask.description,
-      priority: newTask.priority as any, type: newTask.type || null,
-      created_by: user?.id,
-    });
-    if (error) { toast.error("Błąd", { description: error.message }); return; }
-    toast.success("Zadanie utworzone");
-    setNewTask({ title: "", description: "", priority: "medium", type: "" });
-    setIsCreateOpen(false);
-    refetch();
-  }
+
+
 
   async function handleStatusChange(taskId: string, newStatus: string) {
     if (isDemo) {
