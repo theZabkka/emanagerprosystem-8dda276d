@@ -172,6 +172,230 @@ export type Database = {
           },
         ]
       }
+      client_conversations: {
+        Row: {
+          client_id: string
+          created_at: string | null
+          id: string
+          participant_id: string | null
+          summary: string | null
+          type: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string | null
+          id?: string
+          participant_id?: string | null
+          summary?: string | null
+          type?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string | null
+          id?: string
+          participant_id?: string | null
+          summary?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_conversations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_conversations_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_files: {
+        Row: {
+          client_id: string
+          created_at: string | null
+          id: string
+          name: string
+          size: number | null
+          uploaded_by: string | null
+          url: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string | null
+          id?: string
+          name: string
+          size?: number | null
+          uploaded_by?: string | null
+          url?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          size?: number | null
+          uploaded_by?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_files_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_files_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_ideas: {
+        Row: {
+          client_id: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          status: string
+          title: string
+          votes: number | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          status?: string
+          title: string
+          votes?: number | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          status?: string
+          title?: string
+          votes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_ideas_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_ideas_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_invoice_data: {
+        Row: {
+          city: string | null
+          client_id: string
+          company_name: string | null
+          id: string
+          nip: string | null
+          postal_code: string | null
+          street: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          city?: string | null
+          client_id: string
+          company_name?: string | null
+          id?: string
+          nip?: string | null
+          postal_code?: string | null
+          street?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          city?: string | null
+          client_id?: string
+          company_name?: string | null
+          id?: string
+          nip?: string | null
+          postal_code?: string | null
+          street?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_invoice_data_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_offers: {
+        Row: {
+          client_id: string
+          created_at: string | null
+          created_by: string | null
+          file_url: string | null
+          id: string
+          name: string
+          status: string
+          value: number | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string | null
+          created_by?: string | null
+          file_url?: string | null
+          id?: string
+          name: string
+          status?: string
+          value?: number | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          file_url?: string | null
+          id?: string
+          name?: string
+          status?: string
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_offers_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_offers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           contact_person: string | null

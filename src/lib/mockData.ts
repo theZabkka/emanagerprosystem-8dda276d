@@ -227,3 +227,45 @@ export const mockMessageReactions = [
   { id: "demo-react-6", message_id: "demo-msg-13", user_id: "demo-user-1", emoji: "👍" },
   { id: "demo-react-7", message_id: "demo-msg-14", user_id: "demo-user-2", emoji: "❤️" },
 ];
+
+// ─── Client Offers Mock Data ────────────────────────────────────────────
+export const mockClientOffers = [
+  { id: "demo-offer-1", client_id: "demo-client-1", name: "Redesign strony głównej - pakiet Premium", value: 45000, status: "accepted", file_url: null, created_at: daysAgoFull(30), created_by: "demo-user-1" },
+  { id: "demo-offer-2", client_id: "demo-client-1", name: "Kampania Google Ads Q2 2026", value: 18000, status: "sent", file_url: null, created_at: daysAgoFull(5), created_by: "demo-user-5" },
+  { id: "demo-offer-3", client_id: "demo-client-1", name: "Aplikacja mobilna - wycena wstępna", value: 95000, status: "draft", file_url: null, created_at: daysAgoFull(2), created_by: "demo-user-1" },
+  { id: "demo-offer-4", client_id: "demo-client-2", name: "Social Media - pakiet roczny", value: 72000, status: "rejected", file_url: null, created_at: daysAgoFull(20), created_by: "demo-user-2" },
+  { id: "demo-offer-5", client_id: "demo-client-2", name: "Branding - identyfikacja wizualna", value: 25000, status: "accepted", file_url: null, created_at: daysAgoFull(45), created_by: "demo-user-3" },
+];
+
+// ─── Client Ideas Mock Data ─────────────────────────────────────────────
+export const mockClientIdeas = [
+  { id: "demo-idea-1", client_id: "demo-client-1", title: "Chatbot AI na stronie", description: "Zaimplementować chatbota opartego o AI, który odpowiada na pytania klientów 24/7 i przekierowuje do konsultanta.", status: "new", votes: 5, created_at: daysAgoFull(3), created_by: "demo-user-2" },
+  { id: "demo-idea-2", client_id: "demo-client-1", title: "Dark mode dla portalu klienta", description: "Dodać tryb ciemny do panelu klienta z automatycznym przełączaniem na podstawie preferencji systemowych.", status: "in_analysis", votes: 12, created_at: daysAgoFull(10), created_by: "demo-user-4" },
+  { id: "demo-idea-3", client_id: "demo-client-1", title: "Integracja z Zapier", description: "Umożliwić automatyzację workflow przez połączenie z Zapier - automatyczne powiadomienia, synchronizacja danych.", status: "implemented", votes: 8, created_at: daysAgoFull(25), created_by: "demo-user-1" },
+  { id: "demo-idea-4", client_id: "demo-client-2", name: "Newsletter automation", title: "Automatyczne newslettery", description: "System automatycznych newsletterów bazujący na aktywności użytkowników.", status: "new", votes: 3, created_at: daysAgoFull(7), created_by: "demo-user-2" },
+];
+
+// ─── Client Conversations Mock Data ─────────────────────────────────────
+export const mockClientConversations = [
+  { id: "demo-conv-1", client_id: "demo-client-1", type: "phone", summary: "Omówienie postępu prac nad redesignem. Klient zadowolony z kierunku, prosi o przyspieszenie prac nad mobile.", participant_id: "demo-user-1", created_at: daysAgoFull(1) },
+  { id: "demo-conv-2", client_id: "demo-client-1", type: "meeting", summary: "Kick-off meeting projektu aplikacji mobilnej. Ustalono scope, timeline i zespół projektowy. Następne spotkanie za 2 tygodnie.", participant_id: "demo-user-1", created_at: daysAgoFull(7) },
+  { id: "demo-conv-3", client_id: "demo-client-1", type: "email", summary: "Przesłanie zaktualizowanej oferty na kampanię Google Ads Q2. Klient ma potwierdzić do piątku.", participant_id: "demo-user-5", created_at: daysAgoFull(5) },
+  { id: "demo-conv-4", client_id: "demo-client-1", type: "phone", summary: "Szybki telefon w sprawie certyfikatu SSL - klient potwierdził dane do odnowienia.", participant_id: "demo-user-4", created_at: daysAgoFull(0) },
+  { id: "demo-conv-5", client_id: "demo-client-2", type: "meeting", summary: "Prezentacja wyników kampanii za luty. Klient chce zwiększyć budżet na marzec.", participant_id: "demo-user-2", created_at: daysAgoFull(12) },
+];
+
+// ─── Client Files Mock Data ─────────────────────────────────────────────
+export const mockClientFiles = [
+  { id: "demo-file-1", client_id: "demo-client-1", name: "Brand-Guidelines-TechCorp-v3.pdf", size: 4500000, url: null, uploaded_by: "demo-user-1", created_at: daysAgoFull(30) },
+  { id: "demo-file-2", client_id: "demo-client-1", name: "Logo-TechCorp-Final.svg", size: 85000, url: null, uploaded_by: "demo-user-3", created_at: daysAgoFull(28) },
+  { id: "demo-file-3", client_id: "demo-client-1", name: "Umowa-Wspolpracy-2026.pdf", size: 1200000, url: null, uploaded_by: "demo-user-1", created_at: daysAgoFull(60) },
+  { id: "demo-file-4", client_id: "demo-client-1", name: "Raport-SEO-Luty-2026.xlsx", size: 350000, url: null, uploaded_by: "demo-user-5", created_at: daysAgoFull(15) },
+  { id: "demo-file-5", client_id: "demo-client-1", name: "Wireframes-Mobile-App.fig", size: 8700000, url: null, uploaded_by: "demo-user-3", created_at: daysAgoFull(8) },
+  { id: "demo-file-6", client_id: "demo-client-2", name: "Social-Media-Strategy-Q1.pptx", size: 5200000, url: null, uploaded_by: "demo-user-2", created_at: daysAgoFull(40) },
+];
+
+// ─── Client Invoice Data Mock Data ──────────────────────────────────────
+export const mockClientInvoiceData = [
+  { id: "demo-inv-1", client_id: "demo-client-1", company_name: "TechCorp Sp. z o.o.", nip: "1234567890", street: "ul. Technologiczna 42", postal_code: "00-001", city: "Warszawa", updated_at: daysAgoFull(60) },
+  { id: "demo-inv-2", client_id: "demo-client-2", company_name: "Creative Studio Anna Kowalczyk", nip: "9876543210", street: "ul. Artystyczna 15/3", postal_code: "30-100", city: "Kraków", updated_at: daysAgoFull(45) },
+];
