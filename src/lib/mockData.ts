@@ -103,6 +103,12 @@ export const mockTaskAssignments = [
   { task_id: "demo-task-10", user_id: "demo-user-3", role: "primary" as const },
   { task_id: "demo-task-11", user_id: "demo-user-5", role: "primary" as const },
   { task_id: "demo-task-12", user_id: "demo-user-4", role: "primary" as const },
+  { task_id: "demo-task-13", user_id: "demo-user-3", role: "primary" as const },
+  { task_id: "demo-task-14", user_id: "demo-user-4", role: "primary" as const },
+  { task_id: "demo-task-15", user_id: "demo-user-2", role: "primary" as const },
+  { task_id: "demo-task-16", user_id: "demo-user-4", role: "primary" as const },
+  { task_id: "demo-task-17", user_id: "demo-user-1", role: "primary" as const },
+  // demo-task-18 and demo-task-19 intentionally have NO assignments (unassigned)
 ];
 
 // ─── Messenger Mock Data ────────────────────────────────────────────────
