@@ -865,18 +865,22 @@ export default function TaskDetail() {
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold">Materiały <span className="text-muted-foreground font-normal">({materials?.length || 0})</span></CardTitle>
+                <CardTitle className="text-sm font-semibold">Materiały <span className="text-muted-foreground font-normal">({(isPreviewMode ? materials?.filter((m: any) => m.is_visible_to_client) : materials)?.length || 0})</span></CardTitle>
+                {!isPreviewMode && (
                 <div className="flex gap-1.5">
                   <input ref={fileInputRef} type="file" className="hidden" onChange={e => { if (e.target.files?.[0]) uploadFile(e.target.files[0]); e.target.value = ""; }} />
                   <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => fileInputRef.current?.click()}><Upload className="h-3 w-3" />Plik</Button>
                   <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setLinkDialogOpen(true)}><LinkIcon className="h-3 w-3" />Link</Button>
                 </div>
+                )}
               </div>
             </CardHeader>
             <CardContent>
-              {materials && materials.length > 0 ? (
+              {(() => {
+                const filteredMats = isPreviewMode ? (materials || []).filter((m: any) => m.is_visible_to_client) : (materials || []);
+                return filteredMats.length > 0 ? (
                 <div className="space-y-2">
-                  {materials.map((m: any) => (
+                  {filteredMats.map((m: any) => (
                     <div key={m.id} className="flex items-center gap-2 p-2 rounded-md border bg-muted/30 group">
                       {m.type === "link" ? <LinkIcon className="h-4 w-4 text-blue-500" /> : <FileText className="h-4 w-4 text-muted-foreground" />}
                       <div className="flex-1 min-w-0">
@@ -889,17 +893,20 @@ export default function TaskDetail() {
                           {isDemo ? mockProfiles.find(p => p.id === m.uploaded_by)?.full_name : m.profiles?.full_name} • {new Date(m.created_at).toLocaleDateString("pl-PL")}
                         </span>
                       </div>
-                      {m.is_visible_to_client && <Badge variant="outline" className="text-[9px] h-4">Klient</Badge>}
+                      {m.is_visible_to_client && !isPreviewMode && <Badge variant="outline" className="text-[9px] h-4">Klient</Badge>}
+                      {!isPreviewMode && (
                       <button onClick={() => deleteMaterial(m.id)}
                         className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive/80 transition-opacity">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
+                      )}
                     </div>
                   ))}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">Brak materiałów.</p>
-              )}
+              );
+              })()}
             </CardContent>
           </Card>
 
