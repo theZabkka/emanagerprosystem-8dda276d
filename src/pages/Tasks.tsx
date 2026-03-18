@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
+import { useDataSource } from "@/hooks/useDataSource";
+import { mockTasks, mockClients, mockProjects, mockTaskAssignments, mockProfiles } from "@/lib/mockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,8 +33,31 @@ const priorityColors: Record<string, string> = {
   medium: "bg-info/15 text-info-foreground", low: "bg-muted text-muted-foreground",
 };
 
+function getDemoTasks(statusFilter: string, priorityFilter: string) {
+  let tasks = mockTasks.map(t => {
+    const assignments = mockTaskAssignments
+      .filter(a => a.task_id === t.id)
+      .map(a => ({
+        ...a,
+        profiles: mockProfiles.find(p => p.id === a.user_id) || null,
+      }));
+    const client = mockClients.find(c => c.id === t.client_id);
+    const project = mockProjects.find(p => p.id === t.project_id);
+    return {
+      ...t,
+      task_assignments: assignments,
+      clients: client ? { name: client.name } : null,
+      projects: project ? { name: project.name } : null,
+    };
+  });
+  if (statusFilter !== "all") tasks = tasks.filter(t => t.status === statusFilter);
+  if (priorityFilter !== "all") tasks = tasks.filter(t => t.priority === priorityFilter);
+  return tasks;
+}
+
 export default function Tasks() {
   const { user } = useAuth();
+  const { isDemo } = useDataSource();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
@@ -40,8 +65,9 @@ export default function Tasks() {
   const [newTask, setNewTask] = useState({ title: "", description: "", priority: "medium", type: "" });
 
   const { data: tasks, isLoading, refetch } = useQuery({
-    queryKey: ["tasks", statusFilter, priorityFilter],
+    queryKey: ["tasks", statusFilter, priorityFilter, isDemo],
     queryFn: async () => {
+      if (isDemo) return getDemoTasks(statusFilter, priorityFilter);
       let query = supabase
         .from("tasks")
         .select("*, clients(name), projects(name), task_assignments(user_id, role, profiles:user_id(full_name))")
@@ -61,6 +87,7 @@ export default function Tasks() {
 
   async function handleCreate() {
     if (!newTask.title.trim()) { toast.error("Podaj nazwę zadania"); return; }
+    if (isDemo) { toast.info("W trybie demo nie można tworzyć zadań"); return; }
     const { error } = await supabase.from("tasks").insert({
       title: newTask.title, description: newTask.description,
       priority: newTask.priority as any, type: newTask.type || null,
@@ -84,6 +111,12 @@ export default function Tasks() {
   return (
     <AppLayout title="Zadania">
       <div className="space-y-4 max-w-7xl mx-auto">
+        {isDemo && (
+          <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20 text-sm text-primary">
+            🎭 Tryb demo — wyświetlane są przykładowe dane.
+            <a href="/settings" className="underline font-medium ml-1">Zmień w Ustawieniach</a>
+          </div>
+        )}
         {/* Toolbar */}
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
           <div className="flex gap-2 flex-1 w-full sm:w-auto">

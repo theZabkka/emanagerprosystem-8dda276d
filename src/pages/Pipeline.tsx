@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useDataSource } from "@/hooks/useDataSource";
+import { mockPipelineDeals, mockClients, mockProfiles } from "@/lib/mockData";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -22,13 +24,23 @@ const stageColors: Record<string, string> = {
   won: "border-success/30 bg-success/10", lost: "border-destructive/30 bg-destructive/10",
 };
 
+function getDemoDeals() {
+  return mockPipelineDeals.map(d => ({
+    ...d,
+    clients: mockClients.find(c => c.id === d.client_id) ? { name: mockClients.find(c => c.id === d.client_id)!.name } : null,
+    profiles: mockProfiles.find(u => u.id === d.assigned_to) ? { full_name: mockProfiles.find(u => u.id === d.assigned_to)!.full_name } : null,
+  }));
+}
+
 export default function Pipeline() {
+  const { isDemo } = useDataSource();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [form, setForm] = useState({ title: "", value: "", stage: "potential", client_id: "" });
 
   const { data: deals, refetch } = useQuery({
-    queryKey: ["pipeline-deals"],
+    queryKey: ["pipeline-deals", isDemo],
     queryFn: async () => {
+      if (isDemo) return getDemoDeals();
       const { data } = await supabase
         .from("pipeline_deals")
         .select("*, clients(name), profiles:assigned_to(full_name)")
@@ -38,23 +50,26 @@ export default function Pipeline() {
   });
 
   const { data: clients } = useQuery({
-    queryKey: ["clients-list"],
+    queryKey: ["clients-list", isDemo],
     queryFn: async () => {
+      if (isDemo) return mockClients.map(c => ({ id: c.id, name: c.name }));
       const { data } = await supabase.from("clients").select("id, name").order("name");
       return data || [];
     },
   });
 
-  // Real-time
+  // Real-time (only for DB mode)
   useEffect(() => {
+    if (isDemo) return;
     const ch = supabase.channel("pipeline-rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "pipeline_deals" }, () => refetch())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [refetch]);
+  }, [refetch, isDemo]);
 
   async function handleCreate() {
     if (!form.title.trim()) { toast.error("Podaj tytuł"); return; }
+    if (isDemo) { toast.info("W trybie demo nie można dodawać szans"); return; }
     const { error } = await supabase.from("pipeline_deals").insert({
       title: form.title, value: form.value ? parseFloat(form.value) : 0,
       stage: form.stage as any, client_id: form.client_id || null,
@@ -71,6 +86,12 @@ export default function Pipeline() {
   return (
     <AppLayout title="Lejek sprzedaży">
       <div className="space-y-4 max-w-[100rem] mx-auto">
+        {isDemo && (
+          <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20 text-sm text-primary">
+            🎭 Tryb demo — wyświetlane są przykładowe dane.
+            <a href="/settings" className="underline font-medium ml-1">Zmień w Ustawieniach</a>
+          </div>
+        )}
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold">Lejek sprzedaży</h2>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
