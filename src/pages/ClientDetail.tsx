@@ -1,37 +1,66 @@
 import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useDataSource } from "@/hooks/useDataSource";
 import { supabase } from "@/integrations/supabase/client";
 import {
   mockClients, mockProjects, mockTasks, mockTaskAssignments, mockProfiles, mockPipelineDeals,
+  mockClientOffers, mockClientIdeas, mockClientConversations, mockClientFiles, mockClientInvoiceData,
 } from "@/lib/mockData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import TaskKanbanBoard from "@/components/tasks/TaskKanbanBoard";
 import {
   ArrowLeft, Phone, MessageSquare, DollarSign, ListTodo, AlertTriangle, PhoneCall,
   Copy, Check, CheckCircle2, Circle, Search, Plus, LayoutGrid, List, Timer,
+  FileText, Link as LinkIcon, ThumbsUp, Mail, Users, Upload, Trash2, Download,
+  Pencil, Calendar, ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { pl } from "date-fns/locale";
+import { useAuth } from "@/hooks/useAuth";
 
 const statusLabels: Record<string, string> = {
   active: "AKTYWNY", potential: "POTENCJALNY", negotiations: "NEGOCJACJE", project: "PROJEKT", inactive: "NIEAKTYWNY",
 };
 const statusColors: Record<string, string> = {
   active: "bg-green-600/15 text-green-700 border-green-600/30",
-  potential: "bg-info/15 text-info-foreground border-info/30",
-  negotiations: "bg-warning/15 text-warning-foreground border-warning/30",
-  project: "bg-primary/15 text-primary border-primary/30",
+  potential: "bg-blue-500/15 text-blue-700 border-blue-500/30",
+  negotiations: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30",
+  project: "bg-purple-500/15 text-purple-700 border-purple-500/30",
   inactive: "bg-muted text-muted-foreground border-border",
+};
+
+const offerStatusLabels: Record<string, { label: string; className: string }> = {
+  draft: { label: "Szkic", className: "bg-muted text-muted-foreground" },
+  sent: { label: "Wysłana", className: "bg-blue-500/15 text-blue-700 border-blue-500/30" },
+  accepted: { label: "Zaakceptowana", className: "bg-green-600/15 text-green-700 border-green-600/30" },
+  rejected: { label: "Odrzucona", className: "bg-red-500/15 text-red-700 border-red-500/30" },
+};
+
+const ideaStatusLabels: Record<string, { label: string; className: string }> = {
+  new: { label: "Nowy", className: "bg-blue-500/15 text-blue-700 border-blue-500/30" },
+  in_analysis: { label: "W analizie", className: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30" },
+  implemented: { label: "Wdrożony", className: "bg-green-600/15 text-green-700 border-green-600/30" },
+};
+
+const convTypeIcons: Record<string, { icon: typeof Phone; label: string }> = {
+  phone: { icon: Phone, label: "Telefon" },
+  meeting: { icon: Users, label: "Spotkanie" },
+  email: { icon: Mail, label: "E-mail" },
 };
 
 const CLIENT_TABS = [
@@ -48,9 +77,29 @@ const CLIENT_TABS = [
   { key: "scope", label: "Zakres współpracy" },
 ];
 
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1048576).toFixed(1)} MB`;
+}
+
+function getInitials(name: string | null | undefined) {
+  if (!name) return "?";
+  return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+}
+
+// Mutable demo state
+let demoOffersState = [...mockClientOffers];
+let demoIdeasState = [...mockClientIdeas];
+let demoConversationsState = [...mockClientConversations];
+let demoFilesState = [...mockClientFiles];
+let demoInvoiceDataState = [...mockClientInvoiceData];
+
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
   const { isDemo } = useDataSource();
+  const { user, profile } = useAuth();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("tasks");
   const [copied, setCopied] = useState(false);
   const [taskSearch, setTaskSearch] = useState("");
@@ -59,6 +108,16 @@ export default function ClientDetail() {
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
+  // Dialog states
+  const [showIdeaDialog, setShowIdeaDialog] = useState(false);
+  const [showLinkDialog, setShowLinkDialog] = useState(false);
+  const [showInvoiceEdit, setShowInvoiceEdit] = useState(false);
+  const [newIdeaTitle, setNewIdeaTitle] = useState("");
+  const [newIdeaDesc, setNewIdeaDesc] = useState("");
+  const [newLinkName, setNewLinkName] = useState("");
+  const [newLinkUrl, setNewLinkUrl] = useState("");
+  const [_demoTick, setDemoTick] = useState(0);
+  const forceDemoUpdate = () => setDemoTick(t => t + 1);
 
   // ─── Fetch client ──────────────────────────────────────────────
   const { data: client, isLoading: loadingClient } = useQuery({
@@ -72,7 +131,7 @@ export default function ClientDetail() {
     enabled: !!id,
   });
 
-  // ─── Fetch projects for this client ────────────────────────────
+  // ─── Fetch projects ────────────────────────────────────────────
   const { data: projects } = useQuery({
     queryKey: ["client-projects", id, isDemo],
     queryFn: async () => {
@@ -83,7 +142,7 @@ export default function ClientDetail() {
     enabled: !!id,
   });
 
-  // ─── Fetch tasks for this client ──────────────────────────────
+  // ─── Fetch tasks ──────────────────────────────────────────────
   const { data: tasks } = useQuery({
     queryKey: ["client-tasks", id, isDemo],
     queryFn: async () => {
@@ -120,7 +179,7 @@ export default function ClientDetail() {
     enabled: !!id,
   });
 
-  // ─── Fetch deals for this client ──────────────────────────────
+  // ─── Fetch deals ──────────────────────────────────────────────
   const { data: deals } = useQuery({
     queryKey: ["client-deals", id, isDemo],
     queryFn: async () => {
@@ -130,6 +189,99 @@ export default function ClientDetail() {
     },
     enabled: !!id,
   });
+
+  // ─── Fetch offers ─────────────────────────────────────────────
+  const { data: offers } = useQuery({
+    queryKey: ["client-offers", id, isDemo, _demoTick],
+    queryFn: async () => {
+      if (isDemo) return demoOffersState.filter(o => o.client_id === id);
+      const { data } = await supabase.from("client_offers").select("*").eq("client_id", id!).order("created_at", { ascending: false });
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
+  // ─── Fetch ideas ──────────────────────────────────────────────
+  const { data: ideas } = useQuery({
+    queryKey: ["client-ideas", id, isDemo, _demoTick],
+    queryFn: async () => {
+      if (isDemo) return demoIdeasState.filter(i => i.client_id === id);
+      const { data } = await supabase.from("client_ideas").select("*").eq("client_id", id!).order("created_at", { ascending: false });
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
+  // ─── Fetch conversations ──────────────────────────────────────
+  const { data: conversations } = useQuery({
+    queryKey: ["client-conversations", id, isDemo, _demoTick],
+    queryFn: async () => {
+      if (isDemo) return demoConversationsState.filter(c => c.client_id === id);
+      const { data } = await supabase.from("client_conversations").select("*").eq("client_id", id!).order("created_at", { ascending: false });
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
+  // ─── Fetch files ──────────────────────────────────────────────
+  const { data: files } = useQuery({
+    queryKey: ["client-files", id, isDemo, _demoTick],
+    queryFn: async () => {
+      if (isDemo) return demoFilesState.filter(f => f.client_id === id);
+      const { data } = await supabase.from("client_files").select("*").eq("client_id", id!).order("created_at", { ascending: false });
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
+  // ─── Fetch invoice data ───────────────────────────────────────
+  const { data: invoiceData } = useQuery({
+    queryKey: ["client-invoice", id, isDemo, _demoTick],
+    queryFn: async () => {
+      if (isDemo) return demoInvoiceDataState.find(i => i.client_id === id) || null;
+      const { data } = await supabase.from("client_invoice_data").select("*").eq("client_id", id!).maybeSingle();
+      return data || null;
+    },
+    enabled: !!id,
+  });
+
+  // ─── Invoice edit state ───────────────────────────────────────
+  const [invoiceForm, setInvoiceForm] = useState({ company_name: "", nip: "", street: "", postal_code: "", city: "" });
+
+  const openInvoiceEdit = () => {
+    if (invoiceData) {
+      setInvoiceForm({
+        company_name: (invoiceData as any).company_name || "",
+        nip: (invoiceData as any).nip || "",
+        street: (invoiceData as any).street || "",
+        postal_code: (invoiceData as any).postal_code || "",
+        city: (invoiceData as any).city || "",
+      });
+    } else {
+      setInvoiceForm({ company_name: client?.name || "", nip: "", street: "", postal_code: "", city: "" });
+    }
+    setShowInvoiceEdit(true);
+  };
+
+  const saveInvoiceData = async () => {
+    if (isDemo) {
+      const existing = demoInvoiceDataState.findIndex(i => i.client_id === id);
+      const entry = { id: `demo-inv-${Date.now()}`, client_id: id!, ...invoiceForm, updated_at: new Date().toISOString() };
+      if (existing >= 0) demoInvoiceDataState[existing] = entry;
+      else demoInvoiceDataState.push(entry);
+      forceDemoUpdate();
+    } else {
+      const { data: existing } = await supabase.from("client_invoice_data").select("id").eq("client_id", id!).maybeSingle();
+      if (existing) {
+        await supabase.from("client_invoice_data").update({ ...invoiceForm, updated_at: new Date().toISOString() }).eq("client_id", id!);
+      } else {
+        await supabase.from("client_invoice_data").insert({ client_id: id!, ...invoiceForm });
+      }
+      queryClient.invalidateQueries({ queryKey: ["client-invoice"] });
+    }
+    setShowInvoiceEdit(false);
+    toast.success("Dane do faktury zapisane");
+  };
 
   // ─── Computed values ──────────────────────────────────────────
   const activeTasks = useMemo(() => (tasks || []).filter((t: any) =>
@@ -158,17 +310,17 @@ export default function ClientDetail() {
   // ─── Tab counts ───────────────────────────────────────────────
   const tabCounts: Record<string, number> = useMemo(() => ({
     tasks: activeTasks.length,
-    conversations: 1,
-    offers: (deals || []).length,
-    ideas: 0,
+    conversations: (conversations || []).length,
+    offers: (offers || []).length,
+    ideas: (ideas || []).length,
     contracts: 0,
     orders: 0,
-    files: 0,
+    files: (files || []).length,
     social: 0,
-    billing: 0,
+    billing: invoiceData ? 1 : 0,
     history: 0,
     scope: 0,
-  }), [activeTasks, deals]);
+  }), [activeTasks, conversations, offers, ideas, files, invoiceData]);
 
   // ─── Filtered tasks ───────────────────────────────────────────
   const filteredTasks = useMemo(() => {
@@ -179,7 +331,6 @@ export default function ClientDetail() {
     return ft;
   }, [tasks, taskSearch, taskStatusFilter, taskPriorityFilter]);
 
-  // ─── Group tasks by project ───────────────────────────────────
   const tasksByProject = useMemo(() => {
     const groups: Record<string, { project: any; tasks: any[] }> = {};
     (filteredTasks || []).forEach((t: any) => {
@@ -193,16 +344,11 @@ export default function ClientDetail() {
     return Object.values(groups);
   }, [filteredTasks, projects]);
 
-  // ─── Status change handler for kanban ─────────────────────────
   const handleStatusChange = async (taskId: string, newStatus: string) => {
-    if (isDemo) {
-      toast.info("W trybie demo zmiana statusu jest symulowana");
-      return;
-    }
+    if (isDemo) { toast.info("W trybie demo zmiana statusu jest symulowana"); return; }
     await supabase.from("tasks").update({ status: newStatus as any }).eq("id", taskId);
   };
 
-  // ─── Copy link ────────────────────────────────────────────────
   const handleCopy = () => {
     if (!publicUrl) return;
     navigator.clipboard.writeText(publicUrl);
@@ -211,11 +357,86 @@ export default function ClientDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // ─── Timer ────────────────────────────────────────────────────
   const formatTimer = (s: number) => {
     const m = Math.floor(s / 60).toString().padStart(2, "0");
     const sec = (s % 60).toString().padStart(2, "0");
     return `${m}:${sec}`;
+  };
+
+  // ─── Actions ──────────────────────────────────────────────────
+  const handleAddIdea = async () => {
+    if (!newIdeaTitle.trim()) return;
+    if (isDemo) {
+      demoIdeasState.push({ id: `demo-idea-${Date.now()}`, client_id: id!, title: newIdeaTitle, description: newIdeaDesc, status: "new", votes: 0, created_at: new Date().toISOString(), created_by: "demo-user-1" });
+      forceDemoUpdate();
+    } else {
+      await supabase.from("client_ideas").insert({ client_id: id!, title: newIdeaTitle, description: newIdeaDesc, created_by: user?.id });
+      queryClient.invalidateQueries({ queryKey: ["client-ideas"] });
+    }
+    setNewIdeaTitle(""); setNewIdeaDesc(""); setShowIdeaDialog(false);
+    toast.success("Pomysł dodany");
+  };
+
+  const handleVoteIdea = async (ideaId: string) => {
+    if (isDemo) {
+      const idea = demoIdeasState.find(i => i.id === ideaId);
+      if (idea) idea.votes = (idea.votes || 0) + 1;
+      forceDemoUpdate();
+    } else {
+      const idea = (ideas || []).find((i: any) => i.id === ideaId);
+      if (idea) {
+        await supabase.from("client_ideas").update({ votes: ((idea as any).votes || 0) + 1 }).eq("id", ideaId);
+        queryClient.invalidateQueries({ queryKey: ["client-ideas"] });
+      }
+    }
+  };
+
+  const handleAddLink = async () => {
+    if (!newLinkName.trim() || !newLinkUrl.trim()) return;
+    if (isDemo) {
+      demoFilesState.push({ id: `demo-file-${Date.now()}`, client_id: id!, name: newLinkName, size: 0, url: newLinkUrl, uploaded_by: "demo-user-1", created_at: new Date().toISOString() });
+      forceDemoUpdate();
+    } else {
+      await supabase.from("client_files").insert({ client_id: id!, name: newLinkName, url: newLinkUrl, size: 0, uploaded_by: user?.id });
+      queryClient.invalidateQueries({ queryKey: ["client-files"] });
+    }
+    setNewLinkName(""); setNewLinkUrl(""); setShowLinkDialog(false);
+    toast.success("Link dodany");
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (isDemo) {
+      demoFilesState.push({ id: `demo-file-${Date.now()}`, client_id: id!, name: file.name, size: file.size, url: null, uploaded_by: "demo-user-1", created_at: new Date().toISOString() });
+      forceDemoUpdate();
+      toast.success("Plik dodany (demo)");
+      return;
+    }
+    const path = `${id}/${Date.now()}-${file.name}`;
+    const { error: uploadErr } = await supabase.storage.from("task_materials").upload(path, file);
+    if (uploadErr) { toast.error("Błąd uploadu"); return; }
+    const { data: urlData } = supabase.storage.from("task_materials").getPublicUrl(path);
+    await supabase.from("client_files").insert({ client_id: id!, name: file.name, size: file.size, url: urlData.publicUrl, uploaded_by: user?.id });
+    queryClient.invalidateQueries({ queryKey: ["client-files"] });
+    toast.success("Plik wgrany");
+  };
+
+  const handleDeleteFile = async (fileId: string) => {
+    if (isDemo) {
+      demoFilesState = demoFilesState.filter(f => f.id !== fileId);
+      forceDemoUpdate();
+    } else {
+      await supabase.from("client_files").delete().eq("id", fileId);
+      queryClient.invalidateQueries({ queryKey: ["client-files"] });
+    }
+    toast.success("Plik usunięty");
+  };
+
+  const getProfileName = (userId: string | null | undefined) => {
+    if (!userId) return "Nieznany";
+    const p = (profiles || []).find((pr: any) => pr.id === userId);
+    return (p as any)?.full_name || "Nieznany";
   };
 
   // Timer effect
@@ -252,7 +473,7 @@ export default function ClientDetail() {
               <Button size="sm" variant="outline" className="bg-green-600/10 border-green-600/30 text-green-700 hover:bg-green-600/20">
                 <Phone className="h-4 w-4 mr-1" /> Zadzwoń
               </Button>
-              <Button size="sm" variant="outline" className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20">
+              <Button size="sm" variant="outline" className="bg-red-500/10 border-red-500/30 text-red-600 hover:bg-red-500/20">
                 <MessageSquare className="h-4 w-4 mr-1" /> SMS
               </Button>
               <Badge variant="outline" className={`text-xs font-bold px-3 py-1 ${statusColors[client.status || "active"]}`}>
@@ -310,10 +531,10 @@ export default function ClientDetail() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground font-medium">Rozmowy</p>
-                  <p className="text-2xl font-extrabold text-foreground mt-1">1</p>
+                  <p className="text-2xl font-extrabold text-foreground mt-1">{(conversations || []).length}</p>
                 </div>
-                <div className="h-10 w-10 rounded-lg bg-info/10 flex items-center justify-center">
-                  <PhoneCall className="h-5 w-5 text-info" />
+                <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                  <PhoneCall className="h-5 w-5 text-blue-500" />
                 </div>
               </div>
             </CardContent>
@@ -322,7 +543,6 @@ export default function ClientDetail() {
 
         {/* ─── Onboarding + Public Status ─────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Onboarding */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-bold tracking-wider text-foreground">ONBOARDING</CardTitle>
@@ -341,30 +561,20 @@ export default function ClientDetail() {
                 <ul className="space-y-2">
                   {onboardingSteps.map((step: any, i: number) => (
                     <li key={i} className="flex items-center gap-2">
-                      {step.completed ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-                      ) : (
-                        <Circle className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
-                      )}
-                      <span className={`text-sm ${step.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
-                        {step.name}
-                      </span>
+                      {step.completed ? <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" /> : <Circle className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />}
+                      <span className={`text-sm ${step.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>{step.name}</span>
                     </li>
                   ))}
                 </ul>
               )}
             </CardContent>
           </Card>
-
-          {/* Public Status */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-bold tracking-wider text-foreground">PUBLICZNA STRONA STATUSU</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-xs text-muted-foreground">
-                Udostępnij klientowi link do publicznej strony z postępem prac. Klient może zobaczyć status zadań bez logowania.
-              </p>
+              <p className="text-xs text-muted-foreground">Udostępnij klientowi link do publicznej strony z postępem prac.</p>
               {publicUrl ? (
                 <div className="flex gap-2">
                   <Input value={publicUrl} readOnly className="text-xs bg-muted font-mono" />
@@ -388,21 +598,9 @@ export default function ClientDetail() {
                 const count = tabCounts[tab.key] || 0;
                 const isActive = activeTab === tab.key;
                 return (
-                  <TabsTrigger
-                    key={tab.key}
-                    value={tab.key}
-                    className={`text-xs font-semibold px-3 py-2 rounded-md transition-colors data-[state=active]:shadow-none ${
-                      isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    }`}
-                  >
+                  <TabsTrigger key={tab.key} value={tab.key} className={`text-xs font-semibold px-3 py-2 rounded-md transition-colors data-[state=active]:shadow-none ${isActive ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
                     {tab.label}
-                    <span className={`ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                      isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-background text-muted-foreground"
-                    }`}>
-                      {count}
-                    </span>
+                    <span className={`ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded ${isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-background text-muted-foreground"}`}>{count}</span>
                   </TabsTrigger>
                 );
               })}
@@ -412,7 +610,6 @@ export default function ClientDetail() {
 
           {/* ─── Tasks Tab ────────────────────────────────────── */}
           <TabsContent value="tasks" className="mt-4 space-y-4">
-            {/* Toolbar */}
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
               <div className="flex gap-2 flex-1">
                 <div className="relative flex-1 max-w-xs">
@@ -444,51 +641,235 @@ export default function ClientDetail() {
               <div className="flex items-center gap-2">
                 <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Nowe zadanie</Button>
                 <div className="flex bg-muted rounded-md p-0.5">
-                  <button
-                    onClick={() => setViewMode("kanban")}
-                    className={`p-1.5 rounded ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode("list")}
-                    className={`p-1.5 rounded ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-                  >
-                    <List className="h-4 w-4" />
-                  </button>
+                  <button onClick={() => setViewMode("kanban")} className={`p-1.5 rounded ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><LayoutGrid className="h-4 w-4" /></button>
+                  <button onClick={() => setViewMode("list")} className={`p-1.5 rounded ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><List className="h-4 w-4" /></button>
                 </div>
               </div>
             </div>
-
-            {/* Tasks grouped by project */}
             {tasksByProject.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground text-sm">Brak zadań dla tego klienta</div>
             ) : (
               tasksByProject.map(group => (
                 <div key={group.project.id} className="space-y-2">
-                  <h3 className="text-xs font-extrabold tracking-widest text-foreground uppercase border-b border-border pb-1.5">
-                    {group.project.name}
-                  </h3>
-                  <TaskKanbanBoard
-                    tasks={group.tasks}
-                    profiles={profiles || []}
-                    assignments={assignments || []}
-                    clients={[client]}
-                    onStatusChange={handleStatusChange}
-                  />
+                  <h3 className="text-xs font-extrabold tracking-widest text-foreground uppercase border-b border-border pb-1.5">{group.project.name}</h3>
+                  <TaskKanbanBoard tasks={group.tasks} profiles={profiles || []} assignments={assignments || []} clients={[client]} onStatusChange={handleStatusChange} />
                 </div>
               ))
             )}
           </TabsContent>
 
-          {/* ─── Other Tabs (stub) ────────────────────────────── */}
-          {CLIENT_TABS.filter(t => t.key !== "tasks").map(tab => (
-            <TabsContent key={tab.key} value={tab.key} className="mt-4">
-              <Card>
-                <CardContent className="py-12 text-center text-muted-foreground text-sm">
-                  Sekcja „{tab.label}" — wkrótce dostępna
-                </CardContent>
-              </Card>
+          {/* ─── Offers Tab ───────────────────────────────────── */}
+          <TabsContent value="offers" className="mt-4">
+            <Card>
+              <CardContent className="p-0">
+                {(offers || []).length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground text-sm">Brak ofert dla tego klienta</div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nazwa oferty</TableHead>
+                        <TableHead>Data utworzenia</TableHead>
+                        <TableHead>Wartość</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Akcja</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(offers || []).map((offer: any) => {
+                        const st = offerStatusLabels[offer.status] || offerStatusLabels.draft;
+                        return (
+                          <TableRow key={offer.id}>
+                            <TableCell className="font-medium">{offer.name}</TableCell>
+                            <TableCell className="text-muted-foreground text-sm">
+                              {format(new Date(offer.created_at), "dd.MM.yyyy", { locale: pl })}
+                            </TableCell>
+                            <TableCell className="font-semibold">{(offer.value || 0).toLocaleString("pl-PL")} zł</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={`text-xs ${st.className}`}>{st.label}</Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button size="sm" variant="ghost"><ExternalLink className="h-4 w-4 mr-1" /> Podgląd</Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ─── Ideas Tab ────────────────────────────────────── */}
+          <TabsContent value="ideas" className="mt-4 space-y-4">
+            <div className="flex justify-end">
+              <Button size="sm" onClick={() => setShowIdeaDialog(true)}><Plus className="h-4 w-4 mr-1" /> Zgłoś pomysł</Button>
+            </div>
+            {(ideas || []).length === 0 ? (
+              <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Brak pomysłów</CardContent></Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(ideas || []).map((idea: any) => {
+                  const st = ideaStatusLabels[idea.status] || ideaStatusLabels.new;
+                  return (
+                    <Card key={idea.id}>
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1 flex-1">
+                            <h4 className="font-semibold text-foreground">{idea.title}</h4>
+                            <p className="text-sm text-muted-foreground line-clamp-2">{idea.description}</p>
+                          </div>
+                          <Badge variant="outline" className={`text-xs ml-2 flex-shrink-0 ${st.className}`}>{st.label}</Badge>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(idea.created_at), "dd.MM.yyyy", { locale: pl })}
+                          </span>
+                          <Button size="sm" variant="ghost" className="gap-1" onClick={() => handleVoteIdea(idea.id)}>
+                            <ThumbsUp className="h-4 w-4" />
+                            <span className="font-bold">{idea.votes || 0}</span>
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ─── Conversations Tab ────────────────────────────── */}
+          <TabsContent value="conversations" className="mt-4">
+            {(conversations || []).length === 0 ? (
+              <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Brak rozmów</CardContent></Card>
+            ) : (
+              <div className="space-y-3">
+                {(conversations || []).map((conv: any) => {
+                  const cType = convTypeIcons[conv.type] || convTypeIcons.phone;
+                  const IconComp = cType.icon;
+                  const participantName = getProfileName(conv.participant_id);
+                  return (
+                    <Card key={conv.id}>
+                      <CardContent className="p-4 flex gap-4">
+                        <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                          <IconComp className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge variant="outline" className="text-[10px]">{cType.label}</Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {format(new Date(conv.created_at), "dd.MM.yyyy HH:mm", { locale: pl })}
+                            </span>
+                          </div>
+                          <p className="text-sm text-foreground">{conv.summary}</p>
+                        </div>
+                        <div className="flex-shrink-0 flex items-center gap-2">
+                          <Avatar className="h-7 w-7">
+                            <AvatarFallback className="text-xs bg-primary/10 text-primary">{getInitials(participantName)}</AvatarFallback>
+                          </Avatar>
+                          <span className="text-xs text-muted-foreground hidden sm:inline">{participantName}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ─── Files Tab ────────────────────────────────────── */}
+          <TabsContent value="files" className="mt-4 space-y-4">
+            <div className="flex gap-2 justify-end">
+              <Button size="sm" variant="outline" onClick={() => setShowLinkDialog(true)}>
+                <LinkIcon className="h-4 w-4 mr-1" /> Dodaj link
+              </Button>
+              <Button size="sm" asChild>
+                <label className="cursor-pointer">
+                  <Upload className="h-4 w-4 mr-1" /> Wgraj plik
+                  <input type="file" className="hidden" onChange={handleFileUpload} />
+                </label>
+              </Button>
+            </div>
+            <Card>
+              <CardContent className="p-0">
+                {(files || []).length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground text-sm">Brak plików</div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nazwa pliku</TableHead>
+                        <TableHead>Rozmiar</TableHead>
+                        <TableHead>Data wgrania</TableHead>
+                        <TableHead>Kto wgrał</TableHead>
+                        <TableHead className="text-right">Akcje</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(files || []).map((file: any) => {
+                        const uploaderName = getProfileName(file.uploaded_by);
+                        return (
+                          <TableRow key={file.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                <span className="font-medium">{file.name}</span>
+                                {file.url && <ExternalLink className="h-3 w-3 text-muted-foreground" />}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm">{file.size > 0 ? formatFileSize(file.size) : "—"}</TableCell>
+                            <TableCell className="text-muted-foreground text-sm">
+                              {format(new Date(file.created_at), "dd.MM.yyyy", { locale: pl })}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-6 w-6">
+                                  <AvatarFallback className="text-[10px] bg-primary/10 text-primary">{getInitials(uploaderName)}</AvatarFallback>
+                                </Avatar>
+                                <span className="text-sm text-muted-foreground">{uploaderName}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button size="sm" variant="ghost" onClick={() => handleDeleteFile(file.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ─── Billing Tab ──────────────────────────────────── */}
+          <TabsContent value="billing" className="mt-4">
+            <Card className="max-w-lg">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <CardTitle className="text-sm font-bold tracking-wider">DANE DO FAKTURY</CardTitle>
+                <Button size="sm" variant="outline" onClick={openInvoiceEdit}><Pencil className="h-4 w-4 mr-1" /> Edytuj dane</Button>
+              </CardHeader>
+              <CardContent>
+                {invoiceData ? (
+                  <div className="space-y-3 text-sm">
+                    <div><span className="text-muted-foreground">Nazwa firmy:</span> <span className="font-semibold text-foreground ml-2">{(invoiceData as any).company_name}</span></div>
+                    <div><span className="text-muted-foreground">NIP:</span> <span className="font-semibold text-foreground ml-2">{(invoiceData as any).nip}</span></div>
+                    <div><span className="text-muted-foreground">Adres:</span> <span className="font-semibold text-foreground ml-2">{(invoiceData as any).street}, {(invoiceData as any).postal_code} {(invoiceData as any).city}</span></div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Brak danych do faktury. Kliknij „Edytuj dane", aby dodać.</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ─── Stub Tabs ────────────────────────────────────── */}
+          {["contracts", "orders", "social", "history", "scope"].map(key => (
+            <TabsContent key={key} value={key} className="mt-4">
+              <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Sekcja „{CLIENT_TABS.find(t => t.key === key)?.label}" — wkrótce dostępna</CardContent></Card>
             </TabsContent>
           ))}
         </Tabs>
@@ -496,16 +877,54 @@ export default function ClientDetail() {
 
       {/* ─── Floating Timer Pill ──────────────────────────────── */}
       <button
-        onClick={() => {
-          setTimerRunning(!timerRunning);
-          if (timerRunning) setTimerSeconds(0);
-        }}
+        onClick={() => { setTimerRunning(!timerRunning); if (timerRunning) setTimerSeconds(0); }}
         className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-full shadow-lg hover:bg-green-700 transition-colors"
       >
         <Timer className="h-4 w-4" />
         <span className="text-sm font-bold">{formatTimer(timerSeconds)}</span>
         <span className="text-xs opacity-80">{client.name}</span>
       </button>
+
+      {/* ─── Idea Dialog ──────────────────────────────────────── */}
+      <Dialog open={showIdeaDialog} onOpenChange={setShowIdeaDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Zgłoś pomysł</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Tytuł</Label><Input value={newIdeaTitle} onChange={e => setNewIdeaTitle(e.target.value)} placeholder="Nazwa pomysłu..." /></div>
+            <div><Label>Opis</Label><Textarea value={newIdeaDesc} onChange={e => setNewIdeaDesc(e.target.value)} placeholder="Opisz pomysł..." rows={3} /></div>
+          </div>
+          <DialogFooter><Button onClick={handleAddIdea} disabled={!newIdeaTitle.trim()}>Dodaj pomysł</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Link Dialog ──────────────────────────────────────── */}
+      <Dialog open={showLinkDialog} onOpenChange={setShowLinkDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Dodaj link</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Nazwa</Label><Input value={newLinkName} onChange={e => setNewLinkName(e.target.value)} placeholder="Nazwa linku..." /></div>
+            <div><Label>URL</Label><Input value={newLinkUrl} onChange={e => setNewLinkUrl(e.target.value)} placeholder="https://..." /></div>
+          </div>
+          <DialogFooter><Button onClick={handleAddLink} disabled={!newLinkName.trim() || !newLinkUrl.trim()}>Dodaj link</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Invoice Edit Dialog ──────────────────────────────── */}
+      <Dialog open={showInvoiceEdit} onOpenChange={setShowInvoiceEdit}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Dane do faktury</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Nazwa firmy</Label><Input value={invoiceForm.company_name} onChange={e => setInvoiceForm(f => ({ ...f, company_name: e.target.value }))} /></div>
+            <div><Label>NIP</Label><Input value={invoiceForm.nip} onChange={e => setInvoiceForm(f => ({ ...f, nip: e.target.value }))} /></div>
+            <div><Label>Ulica</Label><Input value={invoiceForm.street} onChange={e => setInvoiceForm(f => ({ ...f, street: e.target.value }))} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Kod pocztowy</Label><Input value={invoiceForm.postal_code} onChange={e => setInvoiceForm(f => ({ ...f, postal_code: e.target.value }))} /></div>
+              <div><Label>Miasto</Label><Input value={invoiceForm.city} onChange={e => setInvoiceForm(f => ({ ...f, city: e.target.value }))} /></div>
+            </div>
+          </div>
+          <DialogFooter><Button onClick={saveInvoiceData}>Zapisz</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
