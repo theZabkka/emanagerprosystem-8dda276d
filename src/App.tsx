@@ -12,6 +12,11 @@ import Clients from "./pages/Clients";
 import Projects from "./pages/Projects";
 import Pipeline from "./pages/Pipeline";
 import Messenger from "./pages/Messenger";
+import OKR from "./pages/OKR";
+import OperationalBoard from "./pages/OperationalBoard";
+import TeamBoard from "./pages/TeamBoard";
+import TeamCalendar from "./pages/TeamCalendar";
+import TimeReports from "./pages/TimeReports";
 import StubPage from "./pages/StubPage";
 import NotFound from "./pages/NotFound";
 import { ReactNode } from "react";
@@ -34,27 +39,23 @@ function PublicRoute({ children }: { children: ReactNode }) {
 
 const stubRoutes = [
   { path: "/my-day", title: "Mój dzień" },
-  { path: "/okr", title: "Cele i OKR" },
-  { path: "/operational", title: "Tablica operacyjna" },
-  { path: "/team-board", title: "Tablica zespołu" },
   { path: "/routines", title: "Rutyny" },
   { path: "/contracts", title: "Umowy" },
   { path: "/orders", title: "Zlecenia" },
   { path: "/client-ideas", title: "Pomysły klientów" },
   { path: "/conversations", title: "Rozmowy" },
   { path: "/micro-interventions", title: "Mikro-interwencje" },
-  
   { path: "/client-inbox", title: "Skrzynka klientów" },
   { path: "/tickets", title: "Zgłoszenia" },
   { path: "/team", title: "Zespół" },
   { path: "/meetings", title: "Spotkania" },
-  { path: "/team/calendar", title: "Kalendarz" },
   { path: "/absences", title: "Nieobecności" },
   { path: "/equipment", title: "Sprzęt" },
   { path: "/analytics", title: "Analityki" },
   { path: "/retention", title: "Retencja" },
   { path: "/reports", title: "Raporty" },
-  { path: "/reports/time", title: "Raporty czasu" },
+  { path: "/team-results", title: "Wyniki zespołu" },
+  { path: "/team-notes", title: "Notatki zespołu" },
   { path: "/team-results", title: "Wyniki zespołu" },
   { path: "/team-notes", title: "Notatki zespołu" },
   { path: "/automations", title: "Automatyzacje" },
@@ -85,6 +86,11 @@ const App = () => (
             <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
             <Route path="/pipeline" element={<ProtectedRoute><Pipeline /></ProtectedRoute>} />
             <Route path="/messenger" element={<ProtectedRoute><Messenger /></ProtectedRoute>} />
+            <Route path="/okr" element={<ProtectedRoute><OKR /></ProtectedRoute>} />
+            <Route path="/operational" element={<ProtectedRoute><OperationalBoard /></ProtectedRoute>} />
+            <Route path="/team-board" element={<ProtectedRoute><TeamBoard /></ProtectedRoute>} />
+            <Route path="/team/calendar" element={<ProtectedRoute><TeamCalendar /></ProtectedRoute>} />
+            <Route path="/reports/time" element={<ProtectedRoute><TimeReports /></ProtectedRoute>} />
             {stubRoutes.map((r) => (
               <Route key={r.path} path={r.path} element={<ProtectedRoute><StubPage title={r.title} /></ProtectedRoute>} />
             ))}
