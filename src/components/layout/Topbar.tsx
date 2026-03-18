@@ -1,11 +1,13 @@
-import { Search, Phone, Focus, Sun, Moon, Bell, Database, FlaskConical } from "lucide-react";
+import { Search, Phone, Focus, Sun, Moon, Bell, Database, FlaskConical, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataSource } from "@/hooks/useDataSource";
+import { useRole, ROLE_LABELS, type AppRoleName } from "@/hooks/useRole";
 import { seedSupabaseDatabase } from "@/lib/seedDatabase";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -17,6 +19,7 @@ interface TopbarProps {
 export function Topbar({ title = "Pulpit" }: TopbarProps) {
   const { profile } = useAuth();
   const { dataSource, setDataSource, isDemo } = useDataSource();
+  const { simulatedRole, setSimulatedRole } = useRole();
   const [isDark, setIsDark] = useState(false);
   const [seeding, setSeeding] = useState(false);
 
@@ -46,6 +49,14 @@ export function Topbar({ title = "Pulpit" }: TopbarProps) {
     ? profile.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "U";
 
+  const roleColors: Record<string, string> = {
+    boss: "bg-amber-500/15 text-amber-700 border-amber-400/50",
+    koordynator: "bg-blue-500/15 text-blue-700 border-blue-400/50",
+    specjalista: "bg-emerald-500/15 text-emerald-700 border-emerald-400/50",
+    praktykant: "bg-purple-500/15 text-purple-700 border-purple-400/50",
+    klient: "bg-rose-500/15 text-rose-700 border-rose-400/50",
+  };
+
   return (
     <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4 gap-4">
       <div className="flex items-center gap-3">
@@ -64,6 +75,23 @@ export function Topbar({ title = "Pulpit" }: TopbarProps) {
       </div>
 
       <div className="flex items-center gap-1">
+        {/* Role simulator */}
+        <div className="flex items-center gap-1.5 mr-1">
+          <UserCog className="h-3.5 w-3.5 text-muted-foreground hidden lg:block" />
+          <Select value={simulatedRole} onValueChange={(v) => setSimulatedRole(v as AppRoleName)}>
+            <SelectTrigger className={`h-7 w-auto min-w-[110px] text-xs font-bold border ${roleColors[simulatedRole] || ""}`}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(ROLE_LABELS) as AppRoleName[]).map(role => (
+                <SelectItem key={role} value={role} className="text-xs font-medium">
+                  {ROLE_LABELS[role]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Data source toggle */}
         <button
           onClick={toggleDataSource}

@@ -107,6 +107,7 @@ export default function TaskDetail() {
   const [linkName, setLinkName] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
   const [manualMinutes, setManualMinutes] = useState("");
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset demo state on mount
@@ -572,6 +573,19 @@ export default function TaskDetail() {
   return (
     <AppLayout title={task.title}>
       <div className="max-w-5xl mx-auto space-y-5">
+        {/* Client Preview Banner */}
+        {isPreviewMode && (
+          <div className="flex items-center justify-between gap-4 bg-orange-500 text-white rounded-lg px-5 py-3">
+            <div className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              <span className="text-sm font-semibold">Tryb podglądu klienta — widzisz dokładnie to co widzi klient. Żadne zmiany nie są zapisywane.</span>
+            </div>
+            <Button size="sm" className="bg-amber-400 hover:bg-amber-300 text-amber-950 font-bold text-xs" onClick={() => setIsPreviewMode(false)}>
+              Wyjdź z trybu podglądu
+            </Button>
+          </div>
+        )}
+
         {/* Breadcrumbs */}
         <div className="flex items-center gap-1 text-sm text-muted-foreground">
           <Link to="/tasks" className="hover:text-foreground transition-colors">Zadania</Link>
@@ -583,32 +597,42 @@ export default function TaskDetail() {
 
         {/* Action buttons row */}
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" className="text-xs gap-1.5"><Eye className="h-3 w-3" />Zobacz jako klient</Button>
-          <Button variant="outline" size="sm" className="text-xs gap-1.5"><FileText className="h-3 w-3" />Zastosuj szablon</Button>
-          <Button variant="outline" size="sm" className="text-xs gap-1.5"><Zap className="h-3 w-3" />Uruchom automatyzację</Button>
-          <Button size="sm" className="text-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground"><MessageCircle className="h-3 w-3" />Czat zadania</Button>
+          {!isPreviewMode ? (
+            <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsPreviewMode(true)}><Eye className="h-3 w-3" />Zobacz jako klient</Button>
+          ) : (
+            <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsPreviewMode(false)}><Eye className="h-3 w-3" />Wróć do widoku pełnego</Button>
+          )}
+          {!isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><FileText className="h-3 w-3" />Zastosuj szablon</Button>}
+          {!isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><Zap className="h-3 w-3" />Uruchom automatyzację</Button>}
+          {!isPreviewMode && <Button size="sm" className="text-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground"><MessageCircle className="h-3 w-3" />Czat zadania</Button>}
         </div>
 
         {/* Tags row with status dropdown */}
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="text-xs font-mono">#{task.id.slice(0, 8)}</Badge>
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="cursor-pointer">
-                <Badge className={`text-[10px] font-bold ${statusColors[task.status] || "bg-muted"} hover:opacity-80 transition-opacity`}>
-                  {statusLabels[task.status] || task.status}
-                </Badge>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-48 p-1" align="start">
-              {Object.entries(statusLabels).map(([k, v]) => (
-                <button key={k} onClick={() => handleStatusChange(k)}
-                  className={`w-full text-left px-3 py-1.5 text-sm rounded-sm hover:bg-accent transition-colors ${k === task.status ? "font-bold bg-accent/50" : ""}`}>
-                  <Badge className={`text-[9px] ${statusColors[k]}`}>{v}</Badge>
+          {!isPreviewMode ? (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="cursor-pointer">
+                  <Badge className={`text-[10px] font-bold ${statusColors[task.status] || "bg-muted"} hover:opacity-80 transition-opacity`}>
+                    {statusLabels[task.status] || task.status}
+                  </Badge>
                 </button>
-              ))}
-            </PopoverContent>
-          </Popover>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-1" align="start">
+                {Object.entries(statusLabels).map(([k, v]) => (
+                  <button key={k} onClick={() => handleStatusChange(k)}
+                    className={`w-full text-left px-3 py-1.5 text-sm rounded-sm hover:bg-accent transition-colors ${k === task.status ? "font-bold bg-accent/50" : ""}`}>
+                    <Badge className={`text-[9px] ${statusColors[k]}`}>{v}</Badge>
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <Badge className={`text-[10px] font-bold ${statusColors[task.status] || "bg-muted"}`}>
+              {statusLabels[task.status] || task.status}
+            </Badge>
+          )}
           <Badge className={`text-[10px] font-bold border ${priorityColors[task.priority] || ""}`}>{priorityLabels[task.priority] || task.priority}</Badge>
           {hasNoAssignment && <Badge className="bg-destructive text-destructive-foreground text-[10px] font-bold">NIEPRZYPISANE!</Badge>}
           {isOverdue && <Badge className="bg-destructive text-destructive-foreground text-[10px] font-bold">PO TERMINIE</Badge>}
@@ -632,8 +656,8 @@ export default function TaskDetail() {
         {/* Cards grid */}
         <div className="space-y-4">
 
-          {/* Brief */}
-          <Card>
+          {/* Brief - hidden in preview */}
+          {!isPreviewMode && <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold">Brief zadania</CardTitle>
@@ -668,10 +692,10 @@ export default function TaskDetail() {
                 </div>
               )}
             </CardContent>
-          </Card>
+          </Card>}
 
-          {/* Assigned people */}
-          <Card>
+          {/* Assigned people - hidden in preview */}
+          {!isPreviewMode && <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold">Przypisane osoby</CardTitle>
@@ -724,7 +748,7 @@ export default function TaskDetail() {
                 <p className="text-sm text-destructive font-medium">Brak przypisanych osób!</p>
               )}
             </CardContent>
-          </Card>
+          </Card>}
 
           {/* Bug / Workflow status */}
           {(task as any).bug_severity && (
@@ -762,15 +786,17 @@ export default function TaskDetail() {
             <CardContent className="space-y-2">
               {subtasks?.map((s: any) => (
                 <div key={s.id} className="flex items-center gap-2 py-0.5">
-                  <Checkbox checked={s.is_completed} onCheckedChange={() => toggleSubtask(s.id, s.is_completed)} />
+                  <Checkbox checked={s.is_completed} disabled={isPreviewMode} onCheckedChange={() => !isPreviewMode && toggleSubtask(s.id, s.is_completed)} />
                   <span className={`text-sm flex-1 ${s.is_completed ? "line-through text-muted-foreground" : ""}`}>{s.title}</span>
                 </div>
               ))}
+              {!isPreviewMode && (
               <div className="flex gap-2 pt-1">
                 <Input placeholder="Dodaj podzadanie..." value={newSubtask} onChange={e => setNewSubtask(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && addSubtask()} className="text-sm h-8" />
                 <Button size="sm" variant="outline" onClick={addSubtask} className="h-8 w-8 p-0"><Plus className="h-3 w-3" /></Button>
               </div>
+              )}
             </CardContent>
           </Card>
 
@@ -789,8 +815,8 @@ export default function TaskDetail() {
                       <p className="text-sm font-medium">{cl.title}</p>
                       {(cl.items || []).map((item: any) => (
                         <div key={item.id} className="flex items-center gap-2 pl-2">
-                          <Checkbox checked={item.is_completed} disabled={item.is_na}
-                            onCheckedChange={() => toggleChecklistItem(item.id, item.is_completed)} />
+                          <Checkbox checked={item.is_completed} disabled={item.is_na || isPreviewMode}
+                            onCheckedChange={() => !isPreviewMode && toggleChecklistItem(item.id, item.is_completed)} />
                           <span className={`text-sm ${item.is_completed ? "line-through text-muted-foreground" : ""} ${item.is_na ? "text-muted-foreground italic" : ""}`}>
                             {item.title}
                           </span>
@@ -820,7 +846,8 @@ export default function TaskDetail() {
             </CardContent>
           </Card>
 
-          {/* Client visible toggle */}
+          {/* Client visible toggle - hidden in preview */}
+          {!isPreviewMode && (
           <Card>
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
@@ -832,23 +859,28 @@ export default function TaskDetail() {
               </div>
             </CardContent>
           </Card>
+          )}
 
           {/* Materials */}
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold">Materiały <span className="text-muted-foreground font-normal">({materials?.length || 0})</span></CardTitle>
+                <CardTitle className="text-sm font-semibold">Materiały <span className="text-muted-foreground font-normal">({(isPreviewMode ? materials?.filter((m: any) => m.is_visible_to_client) : materials)?.length || 0})</span></CardTitle>
+                {!isPreviewMode && (
                 <div className="flex gap-1.5">
                   <input ref={fileInputRef} type="file" className="hidden" onChange={e => { if (e.target.files?.[0]) uploadFile(e.target.files[0]); e.target.value = ""; }} />
                   <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => fileInputRef.current?.click()}><Upload className="h-3 w-3" />Plik</Button>
                   <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setLinkDialogOpen(true)}><LinkIcon className="h-3 w-3" />Link</Button>
                 </div>
+                )}
               </div>
             </CardHeader>
             <CardContent>
-              {materials && materials.length > 0 ? (
+              {(() => {
+                const filteredMats = isPreviewMode ? (materials || []).filter((m: any) => m.is_visible_to_client) : (materials || []);
+                return filteredMats.length > 0 ? (
                 <div className="space-y-2">
-                  {materials.map((m: any) => (
+                  {filteredMats.map((m: any) => (
                     <div key={m.id} className="flex items-center gap-2 p-2 rounded-md border bg-muted/30 group">
                       {m.type === "link" ? <LinkIcon className="h-4 w-4 text-blue-500" /> : <FileText className="h-4 w-4 text-muted-foreground" />}
                       <div className="flex-1 min-w-0">
@@ -861,22 +893,25 @@ export default function TaskDetail() {
                           {isDemo ? mockProfiles.find(p => p.id === m.uploaded_by)?.full_name : m.profiles?.full_name} • {new Date(m.created_at).toLocaleDateString("pl-PL")}
                         </span>
                       </div>
-                      {m.is_visible_to_client && <Badge variant="outline" className="text-[9px] h-4">Klient</Badge>}
+                      {m.is_visible_to_client && !isPreviewMode && <Badge variant="outline" className="text-[9px] h-4">Klient</Badge>}
+                      {!isPreviewMode && (
                       <button onClick={() => deleteMaterial(m.id)}
                         className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive/80 transition-opacity">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
+                      )}
                     </div>
                   ))}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">Brak materiałów.</p>
-              )}
+              );
+              })()}
             </CardContent>
           </Card>
 
-          {/* Time tracking */}
-          <Card>
+          {/* Time tracking - hidden in preview */}
+          {!isPreviewMode && (<Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold">Czas pracy</CardTitle>
             </CardHeader>
@@ -945,13 +980,14 @@ export default function TaskDetail() {
                 </>
               )}
             </CardContent>
-          </Card>
+          </Card>)}
 
           {/* Comments */}
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold">Komentarze</CardTitle>
+                {!isPreviewMode && (
                 <div className="flex gap-1">
                   {["all", "internal", "client"].map(f => (
                     <Button key={f} variant={commentFilter === f ? "default" : "outline"} size="sm" className="text-[10px] h-6 px-2"
@@ -960,11 +996,16 @@ export default function TaskDetail() {
                     </Button>
                   ))}
                 </div>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-3">
-                {filteredComments.length > 0 ? filteredComments.map((c: any) => (
+                {(() => {
+                  const displayComments = isPreviewMode
+                    ? filteredComments.filter((c: any) => c.type !== "internal")
+                    : filteredComments;
+                  return displayComments.length > 0 ? displayComments.map((c: any) => (
                   <div key={c.id} className="flex gap-3">
                     <Avatar className="h-7 w-7 mt-0.5">
                       <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-bold">
@@ -984,8 +1025,11 @@ export default function TaskDetail() {
                   </div>
                 )) : (
                   <p className="text-sm text-muted-foreground">Brak komentarzy.</p>
-                )}
+                );
+                })()}
               </div>
+              {!isPreviewMode && (
+              <>
               <Separator />
               <div className="flex gap-2 items-end">
                 <div className="flex-1 space-y-1.5">
@@ -1001,10 +1045,13 @@ export default function TaskDetail() {
                 </div>
                 <Button size="icon" onClick={addComment} className="h-9 w-9"><Send className="h-4 w-4" /></Button>
               </div>
+              </>
+              )}
             </CardContent>
           </Card>
 
-          {/* Status history */}
+          {/* Status history - hidden in preview */}
+          {!isPreviewMode && (
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold flex items-center gap-1.5"><History className="h-4 w-4" />Historia statusów</CardTitle>
@@ -1042,7 +1089,7 @@ export default function TaskDetail() {
                 <p className="text-sm text-muted-foreground">Brak historii statusów.</p>
               )}
             </CardContent>
-          </Card>
+          </Card>)}
         </div>
       </div>
 

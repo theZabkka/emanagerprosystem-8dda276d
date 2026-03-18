@@ -840,6 +840,30 @@ export type Database = {
           },
         ]
       }
+      role_permissions: {
+        Row: {
+          can_view: boolean
+          created_at: string | null
+          id: string
+          module_name: string
+          role_name: string
+        }
+        Insert: {
+          can_view?: boolean
+          created_at?: string | null
+          id?: string
+          module_name: string
+          role_name: string
+        }
+        Update: {
+          can_view?: boolean
+          created_at?: string | null
+          id?: string
+          module_name?: string
+          role_name?: string
+        }
+        Relationships: []
+      }
       subtasks: {
         Row: {
           assigned_to: string | null

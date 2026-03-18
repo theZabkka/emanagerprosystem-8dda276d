@@ -11,6 +11,7 @@ import {
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useRole } from "@/hooks/useRole";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter,
@@ -102,6 +103,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { profile, signOut } = useAuth();
+  const { canViewModule } = useRole();
 
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -124,7 +126,10 @@ export function AppSidebar() {
 
       <SidebarContent>
         <ScrollArea className="flex-1">
-          {sections.map((section) => (
+          {sections.map((section) => {
+            const visibleItems = section.items.filter(item => canViewModule(item.title));
+            if (visibleItems.length === 0) return null;
+            return (
             <SidebarGroup key={section.label}>
               {!collapsed && (
                 <SidebarGroupLabel className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
@@ -133,7 +138,7 @@ export function AppSidebar() {
               )}
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {section.items.map((item) => (
+                  {visibleItems.map((item) => (
                     <SidebarMenuItem key={item.url}>
                       <SidebarMenuButton
                         asChild
@@ -155,7 +160,8 @@ export function AppSidebar() {
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
-          ))}
+            );
+          })}
         </ScrollArea>
       </SidebarContent>
 

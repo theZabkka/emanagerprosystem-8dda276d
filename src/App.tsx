@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { DataSourceProvider } from "@/hooks/useDataSource";
+import { RoleProvider } from "@/hooks/useRole";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
@@ -28,6 +29,7 @@ import Team from "./pages/Team";
 import WhatsNew from "./pages/WhatsNew";
 import StubPage from "./pages/StubPage";
 import NotFound from "./pages/NotFound";
+import Permissions from "./pages/Permissions";
 import { ReactNode } from "react";
 
 const queryClient = new QueryClient();
@@ -78,6 +80,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <DataSourceProvider>
+          <RoleProvider>
           <Routes>
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -101,11 +104,13 @@ const App = () => (
             <Route path="/automations" element={<ProtectedRoute><Automations /></ProtectedRoute>} />
             <Route path="/automation-center" element={<ProtectedRoute><AutomationCenter /></ProtectedRoute>} />
             <Route path="/whats-new" element={<ProtectedRoute><WhatsNew /></ProtectedRoute>} />
+            <Route path="/settings/permissions" element={<ProtectedRoute><Permissions /></ProtectedRoute>} />
             {stubRoutes.map((r) => (
               <Route key={r.path} path={r.path} element={<ProtectedRoute><StubPage title={r.title} /></ProtectedRoute>} />
             ))}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </RoleProvider>
           </DataSourceProvider>
         </AuthProvider>
       </BrowserRouter>
