@@ -987,6 +987,7 @@ export default function TaskDetail() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold">Komentarze</CardTitle>
+                {!isPreviewMode && (
                 <div className="flex gap-1">
                   {["all", "internal", "client"].map(f => (
                     <Button key={f} variant={commentFilter === f ? "default" : "outline"} size="sm" className="text-[10px] h-6 px-2"
@@ -995,11 +996,16 @@ export default function TaskDetail() {
                     </Button>
                   ))}
                 </div>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-3">
-                {filteredComments.length > 0 ? filteredComments.map((c: any) => (
+                {(() => {
+                  const displayComments = isPreviewMode
+                    ? filteredComments.filter((c: any) => c.type !== "internal")
+                    : filteredComments;
+                  return displayComments.length > 0 ? displayComments.map((c: any) => (
                   <div key={c.id} className="flex gap-3">
                     <Avatar className="h-7 w-7 mt-0.5">
                       <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-bold">
