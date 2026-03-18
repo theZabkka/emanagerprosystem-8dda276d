@@ -40,7 +40,7 @@ export default function Tasks() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [newTask, setNewTask] = useState({ title: "", description: "", priority: "medium", type: "" });
+  
 
   const { data: tasks, isLoading, refetch } = useQuery({
     queryKey: ["tasks", statusFilter, priorityFilter, isDemo],
