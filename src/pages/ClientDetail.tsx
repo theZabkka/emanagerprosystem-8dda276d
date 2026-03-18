@@ -916,12 +916,163 @@ export default function ClientDetail() {
             </Card>
           </TabsContent>
 
-          {/* ─── Stub Tabs ────────────────────────────────────── */}
-          {["contracts", "orders", "social", "history", "scope"].map(key => (
-            <TabsContent key={key} value={key} className="mt-4">
-              <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Sekcja „{CLIENT_TABS.find(t => t.key === key)?.label}" — wkrótce dostępna</CardContent></Card>
-            </TabsContent>
-          ))}
+          {/* ─── Contracts Tab ────────────────────────────────── */}
+          <TabsContent value="contracts" className="mt-4">
+            <Card>
+              <CardContent className="p-0">
+                {(contracts || []).length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground text-sm">Brak umów</div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nazwa umowy</TableHead>
+                        <TableHead>Typ</TableHead>
+                        <TableHead>Wartość</TableHead>
+                        <TableHead>Okres</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(contracts || []).map((c: any) => {
+                        const typeLabels: Record<string, string> = { service: "Usługowa", nda: "NDA", amendment: "Aneks" };
+                        const cStatusColors: Record<string, string> = {
+                          active: "bg-green-600/15 text-green-700 border-green-600/30",
+                          signed: "bg-blue-500/15 text-blue-700 border-blue-500/30",
+                          draft: "bg-muted text-muted-foreground",
+                          expired: "bg-red-500/15 text-red-700 border-red-500/30",
+                        };
+                        const cStatusLabels: Record<string, string> = { active: "Aktywna", signed: "Podpisana", draft: "Szkic", expired: "Wygasła" };
+                        return (
+                          <TableRow key={c.id}>
+                            <TableCell className="font-medium">{c.name}</TableCell>
+                            <TableCell><Badge variant="outline" className="text-xs">{typeLabels[c.type] || c.type}</Badge></TableCell>
+                            <TableCell className="font-semibold">{c.value > 0 ? `${(c.value || 0).toLocaleString("pl-PL")} zł` : "—"}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {c.start_date && c.end_date ? `${format(new Date(c.start_date), "dd.MM.yyyy")} – ${format(new Date(c.end_date), "dd.MM.yyyy")}` : "—"}
+                            </TableCell>
+                            <TableCell><Badge variant="outline" className={`text-xs ${cStatusColors[c.status] || ""}`}>{cStatusLabels[c.status] || c.status}</Badge></TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ─── Orders Tab ───────────────────────────────────── */}
+          <TabsContent value="orders" className="mt-4">
+            <Card>
+              <CardContent className="p-0">
+                {(orders || []).length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground text-sm">Brak zleceń</div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nazwa zlecenia</TableHead>
+                        <TableHead>Wartość</TableHead>
+                        <TableHead>Termin</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(orders || []).map((o: any) => {
+                        const oStatusColors: Record<string, string> = {
+                          new: "bg-blue-500/15 text-blue-700 border-blue-500/30",
+                          in_progress: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30",
+                          completed: "bg-green-600/15 text-green-700 border-green-600/30",
+                          cancelled: "bg-red-500/15 text-red-700 border-red-500/30",
+                        };
+                        const oStatusLabels: Record<string, string> = { new: "Nowe", in_progress: "W realizacji", completed: "Ukończone", cancelled: "Anulowane" };
+                        return (
+                          <TableRow key={o.id}>
+                            <TableCell className="font-medium">{o.name}</TableCell>
+                            <TableCell className="font-semibold">{(o.value || 0).toLocaleString("pl-PL")} zł</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {o.due_date ? format(new Date(o.due_date), "dd.MM.yyyy") : "—"}
+                            </TableCell>
+                            <TableCell><Badge variant="outline" className={`text-xs ${oStatusColors[o.status] || ""}`}>{oStatusLabels[o.status] || o.status}</Badge></TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ─── Social Media Tab ─────────────────────────────── */}
+          <TabsContent value="social" className="mt-4">
+            {(socialAccounts || []).length === 0 ? (
+              <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Brak kont social media</CardContent></Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(socialAccounts || []).map((acc: any) => {
+                  const platformIcons: Record<string, string> = { facebook: "📘", instagram: "📸", linkedin: "💼", twitter: "🐦", tiktok: "🎵", youtube: "🎬" };
+                  return (
+                    <Card key={acc.id}>
+                      <CardContent className="p-4 flex items-center gap-4">
+                        <div className="text-2xl">{platformIcons[acc.platform] || "🌐"}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-foreground capitalize">{acc.platform}</span>
+                            <Badge variant="outline" className="text-xs">{acc.handle}</Badge>
+                          </div>
+                          <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                            <span><Users className="h-3 w-3 inline mr-1" />{(acc.followers || 0).toLocaleString("pl-PL")} obserwujących</span>
+                            {acc.last_post_at && <span><Calendar className="h-3 w-3 inline mr-1" />Ostatni post: {format(new Date(acc.last_post_at), "dd.MM.yyyy")}</span>}
+                          </div>
+                        </div>
+                        {acc.url && (
+                          <Button size="sm" variant="ghost" asChild>
+                            <a href={acc.url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a>
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ─── History Tab ──────────────────────────────────── */}
+          <TabsContent value="history" className="mt-4">
+            {(activityHistory || []).length === 0 ? (
+              <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Brak historii aktywności</CardContent></Card>
+            ) : (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="space-y-0">
+                    {(activityHistory || []).map((entry: any, i: number) => {
+                      const authorName = (entry as any).profiles?.full_name || getProfileName(entry.user_id);
+                      return (
+                        <div key={entry.id || i} className="flex items-start gap-3 py-3 border-b border-border last:border-0">
+                          <Avatar className="h-7 w-7 mt-0.5">
+                            <AvatarFallback className="text-[10px] bg-primary/10 text-primary">{getInitials(authorName)}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-foreground">
+                              <span className="font-semibold">{authorName}</span>{" "}
+                              <span className="text-muted-foreground">{entry.action}</span>{" "}
+                              <span className="font-medium">{entry.entity_name}</span>
+                            </p>
+                            <span className="text-xs text-muted-foreground">
+                              {format(new Date(entry.created_at), "dd.MM.yyyy HH:mm", { locale: pl })}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
         </Tabs>
       </div>
 
