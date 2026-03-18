@@ -269,3 +269,29 @@ export const mockClientInvoiceData = [
   { id: "demo-inv-1", client_id: "demo-client-1", company_name: "TechCorp Sp. z o.o.", nip: "1234567890", street: "ul. Technologiczna 42", postal_code: "00-001", city: "Warszawa", updated_at: daysAgoFull(60) },
   { id: "demo-inv-2", client_id: "demo-client-2", company_name: "Creative Studio Anna Kowalczyk", nip: "9876543210", street: "ul. Artystyczna 15/3", postal_code: "30-100", city: "Kraków", updated_at: daysAgoFull(45) },
 ];
+
+// ─── Client Contracts Mock Data ─────────────────────────────────────────
+export const mockClientContracts = [
+  { id: "demo-contract-1", client_id: "demo-client-1", name: "Umowa o współpracy marketingowej 2026", type: "service", value: 180000, status: "active", start_date: "2026-01-01", end_date: "2026-12-31", file_url: null, created_at: daysAgoFull(90), created_by: "demo-user-1" },
+  { id: "demo-contract-2", client_id: "demo-client-1", name: "Umowa NDA - projekt mobilny", type: "nda", value: 0, status: "signed", start_date: "2026-02-01", end_date: "2027-02-01", file_url: null, created_at: daysAgoFull(45), created_by: "demo-user-1" },
+  { id: "demo-contract-3", client_id: "demo-client-1", name: "Aneks - dodatkowe usługi SEO", type: "amendment", value: 24000, status: "draft", start_date: null, end_date: null, file_url: null, created_at: daysAgoFull(3), created_by: "demo-user-5" },
+  { id: "demo-contract-4", client_id: "demo-client-2", name: "Umowa Social Media Management", type: "service", value: 102000, status: "active", start_date: "2025-11-01", end_date: "2026-10-31", file_url: null, created_at: daysAgoFull(140), created_by: "demo-user-2" },
+];
+
+// ─── Client Orders Mock Data ────────────────────────────────────────────
+export const mockClientOrders = [
+  { id: "demo-order-1", client_id: "demo-client-1", name: "Redesign strony głównej - etap 1", value: 25000, status: "in_progress", due_date: daysFromNow(14), created_at: daysAgoFull(20), created_by: "demo-user-1" },
+  { id: "demo-order-2", client_id: "demo-client-1", name: "Kampania Google Ads - marzec", value: 8000, status: "completed", due_date: daysAgo(2), created_at: daysAgoFull(30), created_by: "demo-user-5" },
+  { id: "demo-order-3", client_id: "demo-client-1", name: "Materiały graficzne do prezentacji", value: 3500, status: "new", due_date: daysFromNow(7), created_at: daysAgoFull(1), created_by: "demo-user-3" },
+  { id: "demo-order-4", client_id: "demo-client-2", name: "Pakiet postów Instagram - marzec", value: 4500, status: "in_progress", due_date: daysFromNow(5), created_at: daysAgoFull(10), created_by: "demo-user-2" },
+];
+
+// ─── Client Social Accounts Mock Data ───────────────────────────────────
+export const mockClientSocialAccounts = [
+  { id: "demo-social-1", client_id: "demo-client-1", platform: "facebook", handle: "TechCorpPL", url: "https://facebook.com/TechCorpPL", followers: 12500, last_post_at: daysAgoFull(1), created_at: daysAgoFull(180) },
+  { id: "demo-social-2", client_id: "demo-client-1", platform: "instagram", handle: "@techcorp_pl", url: "https://instagram.com/techcorp_pl", followers: 8700, last_post_at: daysAgoFull(2), created_at: daysAgoFull(180) },
+  { id: "demo-social-3", client_id: "demo-client-1", platform: "linkedin", handle: "TechCorp Sp. z o.o.", url: "https://linkedin.com/company/techcorp", followers: 4200, last_post_at: daysAgoFull(5), created_at: daysAgoFull(150) },
+  { id: "demo-social-4", client_id: "demo-client-1", platform: "twitter", handle: "@TechCorp_PL", url: "https://twitter.com/TechCorp_PL", followers: 2100, last_post_at: daysAgoFull(3), created_at: daysAgoFull(120) },
+  { id: "demo-social-5", client_id: "demo-client-2", platform: "instagram", handle: "@creativestudio_pl", url: "https://instagram.com/creativestudio_pl", followers: 15600, last_post_at: daysAgoFull(0), created_at: daysAgoFull(200) },
+  { id: "demo-social-6", client_id: "demo-client-2", platform: "tiktok", handle: "@creativestudio", url: "https://tiktok.com/@creativestudio", followers: 32000, last_post_at: daysAgoFull(1), created_at: daysAgoFull(90) },
+];

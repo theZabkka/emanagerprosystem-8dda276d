@@ -172,6 +172,63 @@ export type Database = {
           },
         ]
       }
+      client_contracts: {
+        Row: {
+          client_id: string
+          created_at: string | null
+          created_by: string | null
+          end_date: string | null
+          file_url: string | null
+          id: string
+          name: string
+          start_date: string | null
+          status: string
+          type: string
+          value: number | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string | null
+          created_by?: string | null
+          end_date?: string | null
+          file_url?: string | null
+          id?: string
+          name: string
+          start_date?: string | null
+          status?: string
+          type?: string
+          value?: number | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          end_date?: string | null
+          file_url?: string | null
+          id?: string
+          name?: string
+          start_date?: string | null
+          status?: string
+          type?: string
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_contracts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_conversations: {
         Row: {
           client_id: string
@@ -392,6 +449,95 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_orders: {
+        Row: {
+          client_id: string
+          created_at: string | null
+          created_by: string | null
+          due_date: string | null
+          id: string
+          name: string
+          status: string
+          value: number | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string | null
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          name: string
+          status?: string
+          value?: number | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          name?: string
+          status?: string
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_orders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_social_accounts: {
+        Row: {
+          client_id: string
+          created_at: string | null
+          followers: number | null
+          handle: string
+          id: string
+          last_post_at: string | null
+          platform: string
+          url: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string | null
+          followers?: number | null
+          handle: string
+          id?: string
+          last_post_at?: string | null
+          platform: string
+          url?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string | null
+          followers?: number | null
+          handle?: string
+          id?: string
+          last_post_at?: string | null
+          platform?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_social_accounts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
