@@ -5,6 +5,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const TEST_PASSWORD = "haslo1234";
+
+const TEST_ACCOUNTS = [
+  { email: "boss@test.pl", full_name: "Jan Kowalski (Boss)", role: "boss", department: "Zarząd" },
+  { email: "koordynator@test.pl", full_name: "Anna Nowak (Koordynator)", role: "koordynator", department: "Marketing" },
+  { email: "specjalista@test.pl", full_name: "Piotr Wiśniewski (Specjalista)", role: "specjalista", department: "Design" },
+  { email: "praktykant@test.pl", full_name: "Tomasz Lewandowski (Praktykant)", role: "praktykant", department: "Development" },
+  { email: "klient@test.pl", full_name: "Marek Jankowski (Klient)", role: "klient", department: null },
+];
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -16,37 +26,69 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // 1. Insert clients
+    const createdUsers: { email: string; id: string; role: string }[] = [];
+
+    // 1. Create auth users + profiles
+    for (const account of TEST_ACCOUNTS) {
+      // Check if user already exists
+      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+      const existing = existingUsers?.users?.find((u: any) => u.email === account.email);
+
+      let userId: string;
+      if (existing) {
+        userId = existing.id;
+      } else {
+        const { data: newUser, error: authErr } = await supabaseAdmin.auth.admin.createUser({
+          email: account.email,
+          password: TEST_PASSWORD,
+          email_confirm: true,
+          user_metadata: { full_name: account.full_name },
+        });
+        if (authErr) throw new Error(`Auth ${account.email}: ${authErr.message}`);
+        userId = newUser.user.id;
+      }
+
+      // Update profile with role and department
+      await supabaseAdmin
+        .from("profiles")
+        .upsert({
+          id: userId,
+          email: account.email,
+          full_name: account.full_name,
+          role: account.role,
+          department: account.department,
+        }, { onConflict: "id" });
+
+      createdUsers.push({ email: account.email, id: userId, role: account.role });
+    }
+
+    // 2. Insert clients
+    const clientUserId = createdUsers.find(u => u.role === "klient")!.id;
+
     const { data: clients, error: cErr } = await supabaseAdmin
       .from("clients")
-      .insert([
+      .upsert([
         {
-          name: "Firma Testowa A Sp. z o.o.",
-          contact_person: "Anna Kowalska",
-          email: "anna@firmatestowa.pl",
+          name: "TechCorp Sp. z o.o.",
+          contact_person: "Marek Jankowski",
+          email: "marek@techcorp.pl",
           phone: "+48 500 100 200",
           status: "active",
-          monthly_value: 12000,
+          monthly_value: 15000,
           score: 85,
-          tags: ["e-commerce", "SEO"],
-          onboarding_steps: [
-            { name: "Brief zebrany", completed: true },
-            { name: "Dostępy skonfigurowane", completed: true },
-            { name: "Kick-off meeting", completed: false },
-          ],
+          tags: ["IT", "premium"],
         },
         {
-          name: "Firma Testowa B S.A.",
-          contact_person: "Marek Nowak",
-          email: "marek@firmatestowab.pl",
+          name: "Creative Studio",
+          contact_person: "Ewa Kowalczyk",
+          email: "ewa@creativestudio.pl",
           phone: "+48 600 300 400",
-          status: "potential",
-          monthly_value: 8000,
-          score: 60,
-          tags: ["branding", "social media"],
-          onboarding_steps: [{ name: "Brief zebrany", completed: false }],
+          status: "active",
+          monthly_value: 8500,
+          score: 72,
+          tags: ["design", "branding"],
         },
-      ])
+      ], { onConflict: "id" })
       .select("id, name");
 
     if (cErr || !clients || clients.length < 2) {
@@ -56,40 +98,54 @@ Deno.serve(async (req) => {
     const clientA = clients[0];
     const clientB = clients[1];
 
-    // 2. Insert projects
+    // 3. Link client user profile to their client record
+    await supabaseAdmin
+      .from("profiles")
+      .update({ client_id: clientA.id })
+      .eq("id", clientUserId);
+
+    // 4. Insert projects linked to clients
     const { data: projects, error: pErr } = await supabaseAdmin
       .from("projects")
       .insert([
         {
-          name: "Redesign strony A",
+          name: "Redesign strony TechCorp",
           client_id: clientA.id,
           status: "active",
-          description: "Pełny redesign witryny klienta A",
+          description: "Kompleksowy redesign witryny klienta TechCorp",
           start_date: "2026-01-15",
         },
         {
-          name: "Kampania Social B",
+          name: "Kampania Social Media",
+          client_id: clientA.id,
+          status: "active",
+          description: "Kampania social media Q1 2026 dla TechCorp",
+          start_date: "2026-02-01",
+        },
+        {
+          name: "Branding Creative Studio",
           client_id: clientB.id,
           status: "active",
-          description: "Kampania social media dla klienta B",
-          start_date: "2026-02-01",
+          description: "Rebranding i nowa identyfikacja wizualna",
+          start_date: "2026-03-01",
         },
       ])
       .select("id, name, client_id");
 
-    if (pErr || !projects || projects.length < 2) {
+    if (pErr || !projects) {
       throw new Error("Projects: " + (pErr?.message ?? "no data"));
     }
 
-    // 3. Insert tasks
+    // 5. Insert tasks
     const { error: tErr } = await supabaseAdmin.from("tasks").insert([
       {
         title: "Zaprojektować nowy landing page",
         project_id: projects[0].id,
         client_id: clientA.id,
-        status: "todo",
+        status: "client_review",
         priority: "high",
         estimated_time: 480,
+        is_client_visible: true,
       },
       {
         title: "Wdrożyć sekcję hero",
@@ -102,14 +158,15 @@ Deno.serve(async (req) => {
       {
         title: "Przygotować kreacje reklamowe",
         project_id: projects[1].id,
-        client_id: clientB.id,
-        status: "todo",
+        client_id: clientA.id,
+        status: "done",
         priority: "high",
         estimated_time: 360,
+        is_client_visible: true,
       },
       {
-        title: "Analiza konkurencji social media",
-        project_id: projects[1].id,
+        title: "Analiza konkurencji",
+        project_id: projects[2].id,
         client_id: clientB.id,
         status: "in_progress",
         priority: "low",
@@ -119,8 +176,26 @@ Deno.serve(async (req) => {
 
     if (tErr) throw new Error("Tasks: " + tErr.message);
 
-    // 4. Insert contracts & orders
-    const { error: ctErr } = await supabaseAdmin.from("client_contracts").insert([
+    // 6. Insert client ideas
+    await supabaseAdmin.from("client_ideas").insert([
+      {
+        client_id: clientA.id,
+        title: "Dodać chatbota na stronie",
+        description: "Klienci pytają o nasze usługi — chatbot mógłby odpowiadać automatycznie.",
+        status: "new",
+        created_by: clientUserId,
+      },
+      {
+        client_id: clientA.id,
+        title: "Newsletter z poradami SEO",
+        description: "Chcielibyśmy wysyłać klientom newsletter z poradami.",
+        status: "reviewed",
+        created_by: clientUserId,
+      },
+    ]);
+
+    // 7. Insert contracts & orders
+    await supabaseAdmin.from("client_contracts").insert([
       {
         client_id: clientA.id,
         name: "Umowa serwisowa 2026",
@@ -131,9 +206,8 @@ Deno.serve(async (req) => {
         end_date: "2026-12-31",
       },
     ]);
-    if (ctErr) throw new Error("Contracts: " + ctErr.message);
 
-    const { error: oErr } = await supabaseAdmin.from("client_orders").insert([
+    await supabaseAdmin.from("client_orders").insert([
       {
         client_id: clientB.id,
         name: "Zlecenie – pakiet grafik",
@@ -142,16 +216,14 @@ Deno.serve(async (req) => {
         due_date: "2026-04-15",
       },
     ]);
-    if (oErr) throw new Error("Orders: " + oErr.message);
 
     return new Response(
       JSON.stringify({
         success: true,
-        clientsCount: 2,
-        projectsCount: 2,
+        accounts: createdUsers.map(u => ({ email: u.email, role: u.role, password: TEST_PASSWORD })),
+        clientsCount: clients.length,
+        projectsCount: projects.length,
         tasksCount: 4,
-        contractsCount: 1,
-        ordersCount: 1,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
