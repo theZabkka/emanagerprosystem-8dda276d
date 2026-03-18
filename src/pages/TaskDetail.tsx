@@ -573,6 +573,19 @@ export default function TaskDetail() {
   return (
     <AppLayout title={task.title}>
       <div className="max-w-5xl mx-auto space-y-5">
+        {/* Client Preview Banner */}
+        {isPreviewMode && (
+          <div className="flex items-center justify-between gap-4 bg-orange-500 text-white rounded-lg px-5 py-3">
+            <div className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              <span className="text-sm font-semibold">Tryb podglądu klienta — widzisz dokładnie to co widzi klient. Żadne zmiany nie są zapisywane.</span>
+            </div>
+            <Button size="sm" className="bg-amber-400 hover:bg-amber-300 text-amber-950 font-bold text-xs" onClick={() => setIsPreviewMode(false)}>
+              Wyjdź z trybu podglądu
+            </Button>
+          </div>
+        )}
+
         {/* Breadcrumbs */}
         <div className="flex items-center gap-1 text-sm text-muted-foreground">
           <Link to="/tasks" className="hover:text-foreground transition-colors">Zadania</Link>
@@ -584,10 +597,14 @@ export default function TaskDetail() {
 
         {/* Action buttons row */}
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" className="text-xs gap-1.5"><Eye className="h-3 w-3" />Zobacz jako klient</Button>
-          <Button variant="outline" size="sm" className="text-xs gap-1.5"><FileText className="h-3 w-3" />Zastosuj szablon</Button>
-          <Button variant="outline" size="sm" className="text-xs gap-1.5"><Zap className="h-3 w-3" />Uruchom automatyzację</Button>
-          <Button size="sm" className="text-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground"><MessageCircle className="h-3 w-3" />Czat zadania</Button>
+          {!isPreviewMode ? (
+            <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsPreviewMode(true)}><Eye className="h-3 w-3" />Zobacz jako klient</Button>
+          ) : (
+            <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsPreviewMode(false)}><Eye className="h-3 w-3" />Wróć do widoku pełnego</Button>
+          )}
+          {!isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><FileText className="h-3 w-3" />Zastosuj szablon</Button>}
+          {!isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><Zap className="h-3 w-3" />Uruchom automatyzację</Button>}
+          {!isPreviewMode && <Button size="sm" className="text-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground"><MessageCircle className="h-3 w-3" />Czat zadania</Button>}
         </div>
 
         {/* Tags row with status dropdown */}
