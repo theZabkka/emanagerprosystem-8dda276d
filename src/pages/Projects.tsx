@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const statusColors: Record<string, string> = {
@@ -31,6 +32,7 @@ function getDemoProjects() {
 
 export default function Projects() {
   const { isDemo } = useDataSource();
+  const navigate = useNavigate();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", client_id: "", status: "active" });
 
@@ -122,7 +124,7 @@ export default function Projects() {
                 <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Brak projektów</TableCell></TableRow>
               ) : (
                 projects?.map((p: any) => (
-                  <TableRow key={p.id}>
+                  <TableRow key={p.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/projects/${p.id}`)}>
                     <TableCell>
                       <div>
                         <p className="font-medium">{p.name}</p>

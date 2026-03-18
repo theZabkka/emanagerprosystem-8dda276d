@@ -19,11 +19,51 @@ export const mockClients = [
 ];
 
 export const mockProjects = [
-  { id: "demo-proj-1", name: "Redesign strony TechCorp", client_id: "demo-client-1", manager_id: "demo-user-1", status: "active", description: "Kompleksowy redesign strony internetowej klienta", start_date: "2026-01-15", end_date: "2026-04-15", created_at: "2026-01-10T10:00:00Z" },
-  { id: "demo-proj-2", name: "Kampania Social Media - Creative Studio", client_id: "demo-client-2", manager_id: "demo-user-2", status: "active", description: "Prowadzenie kampanii na FB, IG, LinkedIn", start_date: "2026-02-01", end_date: "2026-05-31", created_at: "2026-01-28T10:00:00Z" },
-  { id: "demo-proj-3", name: "Aplikacja mobilna FoodDelivery24", client_id: "demo-client-3", manager_id: "demo-user-4", status: "active", description: "MVP aplikacji do zamawiania jedzenia", start_date: "2026-03-01", end_date: "2026-08-31", created_at: "2026-02-20T10:00:00Z" },
-  { id: "demo-proj-4", name: "Branding AutoParts Pro", client_id: "demo-client-4", manager_id: "demo-user-3", status: "active", description: "Identyfikacja wizualna i materiały marketingowe", start_date: "2026-02-15", end_date: "2026-04-30", created_at: "2026-02-10T10:00:00Z" },
-  { id: "demo-proj-5", name: "SEO & Content - EduLearn", client_id: "demo-client-5", manager_id: "demo-user-5", status: "active", description: "Strategia SEO i tworzenie treści edukacyjnych", start_date: "2025-12-01", end_date: "2026-06-30", created_at: "2025-11-25T10:00:00Z" },
+  {
+    id: "demo-proj-1", name: "Redesign strony TechCorp", client_id: "demo-client-1", manager_id: "demo-user-1",
+    status: "active", description: "Kompleksowy redesign strony internetowej klienta",
+    start_date: "2026-01-15", end_date: "2026-04-15", created_at: "2026-01-10T10:00:00Z",
+    ai_summary: "Klient TechCorp szuka nowoczesnego redesignu strony internetowej z naciskiem na UX, szybkość ładowania i konwersję. Projekt obejmuje nowy hero section, landing page, system nawigacji i pełną responsywność. Kluczowe KPI to wzrost konwersji o 20% i poprawa Lighthouse score do 90+.",
+    brief_data: [
+      { question: "Jaki jest główny cel projektu?", answer: "Zwiększenie konwersji na stronie o min. 20% oraz modernizacja wizerunku marki online." },
+      { question: "Kim jest grupa docelowa?", answer: "Decydenci IT w firmach średniej wielkości (50-500 pracowników), wiek 30-50 lat." },
+      { question: "Jakie są kluczowe funkcjonalności?", answer: "Nowy hero section z animacjami, interaktywny cennik, case studies, formularz kontaktowy z integracją CRM." },
+      { question: "Jakie są ograniczenia techniczne?", answer: "Stack: React + Next.js, hosting na Vercel, integracja z HubSpot CRM." },
+      { question: "Jaki jest budżet projektu?", answer: "45 000 PLN netto" },
+      { question: "Jakie są inspiracje wizualne?", answer: "Stripe.com, Linear.app, Vercel.com — minimalistyczny, nowoczesny design z dużą ilością białej przestrzeni." },
+      { question: "Czy istnieją materiały brandingowe?", answer: "Tak — brand guidelines z 2024, logo w wersji wektorowej, paleta kolorów i typografia." },
+      { question: "Jakie są kryteria sukcesu?", answer: "" },
+    ],
+  },
+  {
+    id: "demo-proj-2", name: "Kampania Social Media - Creative Studio", client_id: "demo-client-2", manager_id: "demo-user-2",
+    status: "active", description: "Prowadzenie kampanii na FB, IG, LinkedIn",
+    start_date: "2026-02-01", end_date: "2026-05-31", created_at: "2026-01-28T10:00:00Z",
+    ai_summary: "Creative Studio potrzebuje spójnej kampanii social media na 3 platformach. Główny nacisk na budowanie świadomości marki i generowanie leadów przez content marketing.",
+    brief_data: [
+      { question: "Jaki jest główny cel kampanii?", answer: "Budowanie świadomości marki i generowanie min. 50 leadów miesięcznie." },
+      { question: "Na jakich platformach prowadzimy kampanię?", answer: "Facebook, Instagram, LinkedIn" },
+      { question: "Jaki jest miesięczny budżet reklamowy?", answer: "8 500 PLN" },
+    ],
+  },
+  {
+    id: "demo-proj-3", name: "Aplikacja mobilna FoodDelivery24", client_id: "demo-client-3", manager_id: "demo-user-4",
+    status: "active", description: "MVP aplikacji do zamawiania jedzenia",
+    start_date: "2026-03-01", end_date: "2026-08-31", created_at: "2026-02-20T10:00:00Z",
+    ai_summary: null, brief_data: [],
+  },
+  {
+    id: "demo-proj-4", name: "Branding AutoParts Pro", client_id: "demo-client-4", manager_id: "demo-user-3",
+    status: "active", description: "Identyfikacja wizualna i materiały marketingowe",
+    start_date: "2026-02-15", end_date: "2026-04-30", created_at: "2026-02-10T10:00:00Z",
+    ai_summary: null, brief_data: [],
+  },
+  {
+    id: "demo-proj-5", name: "SEO & Content - EduLearn", client_id: "demo-client-5", manager_id: "demo-user-5",
+    status: "active", description: "Strategia SEO i tworzenie treści edukacyjnych",
+    start_date: "2025-12-01", end_date: "2026-06-30", created_at: "2025-11-25T10:00:00Z",
+    ai_summary: null, brief_data: [],
+  },
 ];
 
 const today = new Date();
