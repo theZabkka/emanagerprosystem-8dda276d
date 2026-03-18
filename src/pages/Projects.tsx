@@ -124,7 +124,7 @@ export default function Projects() {
                 <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Brak projektów</TableCell></TableRow>
               ) : (
                 projects?.map((p: any) => (
-                  <TableRow key={p.id}>
+                  <TableRow key={p.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/projects/${p.id}`)}>
                     <TableCell>
                       <div>
                         <p className="font-medium">{p.name}</p>
