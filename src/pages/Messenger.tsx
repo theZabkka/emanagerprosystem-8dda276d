@@ -49,7 +49,7 @@ export default function Messenger() {
   const [newChannelName, setNewChannelName] = useState("");
   const [showNewChannel, setShowNewChannel] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // Fetch channels
