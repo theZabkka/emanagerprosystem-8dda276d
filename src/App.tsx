@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import TaskDetail from "./pages/TaskDetail";
 import Clients from "./pages/Clients";
+import ClientDetail from "./pages/ClientDetail";
 import Projects from "./pages/Projects";
 import Pipeline from "./pages/Pipeline";
 import Messenger from "./pages/Messenger";
