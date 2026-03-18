@@ -846,7 +846,8 @@ export default function TaskDetail() {
             </CardContent>
           </Card>
 
-          {/* Client visible toggle */}
+          {/* Client visible toggle - hidden in preview */}
+          {!isPreviewMode && (
           <Card>
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
@@ -858,6 +859,7 @@ export default function TaskDetail() {
               </div>
             </CardContent>
           </Card>
+          )}
 
           {/* Materials */}
           <Card>
