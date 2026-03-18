@@ -786,7 +786,7 @@ export default function TaskDetail() {
             <CardContent className="space-y-2">
               {subtasks?.map((s: any) => (
                 <div key={s.id} className="flex items-center gap-2 py-0.5">
-                  <Checkbox checked={s.is_completed} onCheckedChange={() => toggleSubtask(s.id, s.is_completed)} />
+                  <Checkbox checked={s.is_completed} disabled={isPreviewMode} onCheckedChange={() => !isPreviewMode && toggleSubtask(s.id, s.is_completed)} />
                   <span className={`text-sm flex-1 ${s.is_completed ? "line-through text-muted-foreground" : ""}`}>{s.title}</span>
                 </div>
               ))}
