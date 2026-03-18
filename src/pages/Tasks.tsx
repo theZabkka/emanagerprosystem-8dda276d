@@ -8,13 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, LayoutGrid, List, AlertCircle, Clock, Eye, Layers } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import TaskKanbanBoard from "@/components/tasks/TaskKanbanBoard";
 import TaskListView from "@/components/tasks/TaskListView";
+import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";
 
 const priorityLabels: Record<string, string> = { critical: "Pilny", high: "Wysoki", medium: "Średni", low: "Niski" };
 
@@ -42,7 +40,7 @@ export default function Tasks() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [newTask, setNewTask] = useState({ title: "", description: "", priority: "medium", type: "" });
+  
 
   const { data: tasks, isLoading, refetch } = useQuery({
     queryKey: ["tasks", statusFilter, priorityFilter, isDemo],
@@ -81,20 +79,8 @@ export default function Tasks() {
   const reviewCount = allTasks.filter((t: any) => t.status === "review").length;
   const clientReviewCount = allTasks.filter((t: any) => t.status === "client_review").length;
 
-  async function handleCreate() {
-    if (!newTask.title.trim()) { toast.error("Podaj nazwę zadania"); return; }
-    if (isDemo) { toast.info("W trybie demo nie można tworzyć zadań"); return; }
-    const { error } = await supabase.from("tasks").insert({
-      title: newTask.title, description: newTask.description,
-      priority: newTask.priority as any, type: newTask.type || null,
-      created_by: user?.id,
-    });
-    if (error) { toast.error("Błąd", { description: error.message }); return; }
-    toast.success("Zadanie utworzone");
-    setNewTask({ title: "", description: "", priority: "medium", type: "" });
-    setIsCreateOpen(false);
-    refetch();
-  }
+
+
 
   async function handleStatusChange(taskId: string, newStatus: string) {
     if (isDemo) {
@@ -206,42 +192,10 @@ export default function Tasks() {
             </div>
           </div>
 
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-destructive hover:bg-destructive/90 text-destructive-foreground h-9">
-                <Plus className="h-4 w-4 mr-1" /> Nowe zadanie
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Nowe zadanie</DialogTitle></DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Nazwa zadania *</Label>
-                  <Input value={newTask.title} onChange={(e) => setNewTask({ ...newTask, title: e.target.value })} placeholder="Nazwa zadania" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Opis</Label>
-                  <Textarea value={newTask.description} onChange={(e) => setNewTask({ ...newTask, description: e.target.value })} />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Priorytet</Label>
-                    <Select value={newTask.priority} onValueChange={(v) => setNewTask({ ...newTask, priority: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(priorityLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Typ</Label>
-                    <Input value={newTask.type} onChange={(e) => setNewTask({ ...newTask, type: e.target.value })} placeholder="np. Grafika" />
-                  </div>
-                </div>
-                <Button onClick={handleCreate} className="w-full">Utwórz zadanie</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button className="bg-destructive hover:bg-destructive/90 text-destructive-foreground h-9" onClick={() => setIsCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Nowe zadanie
+          </Button>
+          <CreateTaskDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} onCreated={() => refetch()} />
         </div>
 
         {/* View content */}
