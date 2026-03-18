@@ -75,7 +75,6 @@ const CLIENT_TABS = [
   { key: "social", label: "Social Media" },
   { key: "billing", label: "Dane do faktury" },
   { key: "history", label: "Historia" },
-  { key: "scope", label: "Zakres współpracy" },
 ];
 
 function formatFileSize(bytes: number) {
