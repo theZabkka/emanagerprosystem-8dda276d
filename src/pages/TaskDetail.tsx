@@ -157,7 +157,7 @@ export default function TaskDetail() {
 
   async function handleStatusChange(newStatus: string) {
     if (!task) return;
-    const { error } = await supabase.from("tasks").update({ status: newStatus, updated_at: new Date().toISOString() }).eq("id", task.id);
+    const { error } = await supabase.from("tasks").update({ status: newStatus as any, updated_at: new Date().toISOString() }).eq("id", task.id);
     if (error) { toast.error(error.message); return; }
     await supabase.from("task_status_history").insert({
       task_id: task.id, old_status: task.status, new_status: newStatus, changed_by: user?.id,

@@ -31,7 +31,7 @@ export default function Clients() {
     queryKey: ["clients", statusFilter],
     queryFn: async () => {
       let q = supabase.from("clients").select("*").order("created_at", { ascending: false });
-      if (statusFilter !== "all") q = q.eq("status", statusFilter);
+      if (statusFilter !== "all") q = q.eq("status", statusFilter as any);
       const { data, error } = await q;
       if (error) throw error;
       return data || [];
