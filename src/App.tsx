@@ -12,6 +12,7 @@ import TaskDetail from "./pages/TaskDetail";
 import Clients from "./pages/Clients";
 import ClientDetail from "./pages/ClientDetail";
 import Projects from "./pages/Projects";
+import ProjectDetail from "./pages/ProjectDetail";
 import Pipeline from "./pages/Pipeline";
 import Messenger from "./pages/Messenger";
 import OKR from "./pages/OKR";
