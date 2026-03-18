@@ -109,7 +109,9 @@ export default function Tasks() {
 
         <CreateTaskDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} onCreated={() => refetch()} />
 
-        {viewMode === "kanban" ? (
+        {isLoading ? (
+          viewMode === "kanban" ? <KanbanSkeleton /> : <TableSkeleton columns={5} rows={8} />
+        ) : viewMode === "kanban" ? (
           <TaskKanbanBoard
             tasks={filteredTasks}
             profiles={isDemo ? mockProfiles : []}
