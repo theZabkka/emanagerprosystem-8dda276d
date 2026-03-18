@@ -51,7 +51,7 @@ function StatCard({ title, value, subtitle, icon: Icon, color }: { title: string
 function getDemoStats() {
   const activeClients = mockClients.filter(c => c.status === "active").length;
   const totalClients = mockClients.length;
-  const overdue = mockTasks.filter(t => t.due_date < new Date().toISOString().split("T")[0] && t.status !== "done" && t.status !== "cancelled").length;
+  const overdue = mockTasks.filter(t => t.due_date < new Date().toISOString().split("T")[0] && t.status !== "done" && (t.status as string) !== "cancelled").length;
   const corrections = mockTasks.filter(t => t.status === "corrections").length;
   const clientReview = mockTasks.filter(t => t.status === "client_review").length;
   const pipelineValue = mockPipelineDeals.filter(d => !["won", "lost"].includes(d.stage)).reduce((s, d) => s + (d.value || 0), 0);
