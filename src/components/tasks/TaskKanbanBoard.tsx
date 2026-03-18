@@ -260,7 +260,9 @@ function AssignPopover({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          type="button"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
           className="flex items-center gap-1.5 hover:bg-accent rounded-md px-1.5 py-1 transition-colors"
         >
           {assignee ? (
@@ -270,23 +272,30 @@ function AssignPopover({
               </AvatarFallback>
             </Avatar>
           ) : (
-            <Badge variant="destructive" className="text-[9px] h-5 px-2 font-bold gap-1">
+            <span className="inline-flex items-center rounded-full border border-transparent bg-destructive px-2.5 py-0.5 text-[9px] font-bold text-destructive-foreground gap-1">
               <UserPlus className="h-3 w-3" />
               PRZYPISZ
-            </Badge>
+            </span>
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-52 p-1" align="start" onClick={(e) => e.stopPropagation()}>
+      <PopoverContent
+        className="w-52 p-1"
+        align="start"
+        side="bottom"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+      >
         <p className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Przypisz osobę</p>
         <div className="max-h-48 overflow-y-auto space-y-0.5">
           {allProfiles.map((p: any) => (
             <button
               key={p.id}
-              onClick={(e) => {
-                e.preventDefault();
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={async (e) => {
                 e.stopPropagation();
-                onAssign(taskId, p.id);
+                await onAssign(taskId, p.id);
                 setOpen(false);
               }}
               className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded hover:bg-accent transition-colors ${assignee?.id === p.id ? "bg-accent font-medium" : ""}`}
