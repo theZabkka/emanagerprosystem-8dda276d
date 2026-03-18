@@ -104,6 +104,7 @@ const App = () => (
             <Route path="/automations" element={<ProtectedRoute><Automations /></ProtectedRoute>} />
             <Route path="/automation-center" element={<ProtectedRoute><AutomationCenter /></ProtectedRoute>} />
             <Route path="/whats-new" element={<ProtectedRoute><WhatsNew /></ProtectedRoute>} />
+            <Route path="/settings/permissions" element={<ProtectedRoute><Permissions /></ProtectedRoute>} />
             {stubRoutes.map((r) => (
               <Route key={r.path} path={r.path} element={<ProtectedRoute><StubPage title={r.title} /></ProtectedRoute>} />
             ))}
