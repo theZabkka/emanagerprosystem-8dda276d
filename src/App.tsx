@@ -86,6 +86,11 @@ const App = () => (
             <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
             <Route path="/pipeline" element={<ProtectedRoute><Pipeline /></ProtectedRoute>} />
             <Route path="/messenger" element={<ProtectedRoute><Messenger /></ProtectedRoute>} />
+            <Route path="/okr" element={<ProtectedRoute><OKR /></ProtectedRoute>} />
+            <Route path="/operational" element={<ProtectedRoute><OperationalBoard /></ProtectedRoute>} />
+            <Route path="/team-board" element={<ProtectedRoute><TeamBoard /></ProtectedRoute>} />
+            <Route path="/team/calendar" element={<ProtectedRoute><TeamCalendar /></ProtectedRoute>} />
+            <Route path="/reports/time" element={<ProtectedRoute><TimeReports /></ProtectedRoute>} />
             {stubRoutes.map((r) => (
               <Route key={r.path} path={r.path} element={<ProtectedRoute><StubPage title={r.title} /></ProtectedRoute>} />
             ))}
