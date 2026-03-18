@@ -192,42 +192,10 @@ export default function Tasks() {
             </div>
           </div>
 
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-destructive hover:bg-destructive/90 text-destructive-foreground h-9">
-                <Plus className="h-4 w-4 mr-1" /> Nowe zadanie
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Nowe zadanie</DialogTitle></DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Nazwa zadania *</Label>
-                  <Input value={newTask.title} onChange={(e) => setNewTask({ ...newTask, title: e.target.value })} placeholder="Nazwa zadania" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Opis</Label>
-                  <Textarea value={newTask.description} onChange={(e) => setNewTask({ ...newTask, description: e.target.value })} />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Priorytet</Label>
-                    <Select value={newTask.priority} onValueChange={(v) => setNewTask({ ...newTask, priority: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(priorityLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Typ</Label>
-                    <Input value={newTask.type} onChange={(e) => setNewTask({ ...newTask, type: e.target.value })} placeholder="np. Grafika" />
-                  </div>
-                </div>
-                <Button onClick={handleCreate} className="w-full">Utwórz zadanie</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button className="bg-destructive hover:bg-destructive/90 text-destructive-foreground h-9" onClick={() => setIsCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Nowe zadanie
+          </Button>
+          <CreateTaskDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} onCreated={() => refetch()} />
         </div>
 
         {/* View content */}
