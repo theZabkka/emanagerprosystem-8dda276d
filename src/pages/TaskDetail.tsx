@@ -881,8 +881,8 @@ export default function TaskDetail() {
             </Card>
           )}
 
-          {/* Subtasks */}
-          <Card>
+          {/* Subtasks - read-only for clients */}
+          {!isClient && <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold">
                 Podzadania <span className="text-muted-foreground font-normal ml-1">{completedSubtasks} z {subtasks?.length || 0} Ukończonych</span>
@@ -891,11 +891,11 @@ export default function TaskDetail() {
             <CardContent className="space-y-2">
               {subtasks?.map((s: any) => (
                 <div key={s.id} className="flex items-center gap-2 py-0.5">
-                  <Checkbox checked={s.is_completed} disabled={isPreviewMode} onCheckedChange={() => !isPreviewMode && toggleSubtask(s.id, s.is_completed)} />
+                  <Checkbox checked={s.is_completed} disabled={isPreviewMode || isClient} onCheckedChange={() => !isPreviewMode && !isClient && toggleSubtask(s.id, s.is_completed)} />
                   <span className={`text-sm flex-1 ${s.is_completed ? "line-through text-muted-foreground" : ""}`}>{s.title}</span>
                 </div>
               ))}
-              {!isPreviewMode && (
+              {!isPreviewMode && !isClient && (
               <div className="flex gap-2 pt-1">
                 <Input placeholder="Dodaj podzadanie..." value={newSubtask} onChange={e => setNewSubtask(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && addSubtask()} className="text-sm h-8" />
@@ -903,9 +903,9 @@ export default function TaskDetail() {
               </div>
               )}
             </CardContent>
-          </Card>
+          </Card>}
 
-          {/* Checklists */}
+          {/* Checklists - read-only for clients */}
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
@@ -920,20 +920,22 @@ export default function TaskDetail() {
                       <p className="text-sm font-medium">{cl.title}</p>
                       {(cl.items || []).map((item: any) => (
                         <div key={item.id} className="flex items-center gap-2 pl-2">
-                          <Checkbox checked={item.is_completed} disabled={item.is_na || isPreviewMode}
-                            onCheckedChange={() => !isPreviewMode && toggleChecklistItem(item.id, item.is_completed)} />
+                          <Checkbox checked={item.is_completed} disabled={item.is_na || isPreviewMode || isClient}
+                            onCheckedChange={() => !isPreviewMode && !isClient && toggleChecklistItem(item.id, item.is_completed)} />
                           <span className={`text-sm ${item.is_completed ? "line-through text-muted-foreground" : ""} ${item.is_na ? "text-muted-foreground italic" : ""}`}>
                             {item.title}
                           </span>
                           {item.is_na && <Badge variant="outline" className="text-[9px] h-4">N/A</Badge>}
                         </div>
                       ))}
+                      {!isClient && (
                       <div className="flex gap-2 pl-2">
                         <Input placeholder="Dodaj element..." value={newChecklistItemTexts[cl.id] || ""}
                           onChange={e => setNewChecklistItemTexts(prev => ({ ...prev, [cl.id]: e.target.value }))}
                           onKeyDown={e => e.key === "Enter" && addChecklistItem(cl.id)} className="text-sm h-7" />
                         <Button size="sm" variant="ghost" onClick={() => addChecklistItem(cl.id)} className="h-7 w-7 p-0"><Plus className="h-3 w-3" /></Button>
                       </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -941,6 +943,8 @@ export default function TaskDetail() {
               {(!checklists || checklists.length === 0) && (
                 <p className="text-sm text-muted-foreground">Brak list kontrolnych.</p>
               )}
+              {!isClient && (
+              <>
               <Separator />
               <div className="flex gap-2">
                 <Input placeholder="Nazwa nowej listy kontrolnej..." value={newChecklistName}
@@ -948,11 +952,13 @@ export default function TaskDetail() {
                   onKeyDown={e => e.key === "Enter" && addChecklist()} className="text-sm h-8" />
                 <Button variant="outline" size="sm" className="text-xs gap-1.5 h-8" onClick={addChecklist}><Plus className="h-3 w-3" />Dodaj listę</Button>
               </div>
+              </>
+              )}
             </CardContent>
           </Card>
 
-          {/* Client visible toggle - hidden in preview */}
-          {!isPreviewMode && (
+          {/* Client visible toggle - hidden in preview and for clients */}
+          {!isPreviewMode && !isClient && (
           <Card>
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
