@@ -269,10 +269,18 @@ export default function ProjectDetail() {
         {/* Tab content */}
         {activeTab === "tasks" && (
           <div className="space-y-2">
-            {!tasks || tasks.length === 0 ? (
-              <Card><CardContent className="py-8 text-center text-muted-foreground">Brak zadań w tym projekcie</CardContent></Card>
-            ) : (
-              tasks.map((task: any) => {
+            {(() => {
+              const displayTasks = isClient
+                ? (tasks || []).filter((t: any) => t.status === "client_review")
+                : tasks || [];
+              if (displayTasks.length === 0) {
+                return (
+                  <Card><CardContent className="py-8 text-center text-muted-foreground">
+                    {isClient ? "Brak zadań oczekujących na Twoją akceptację" : "Brak zadań w tym projekcie"}
+                  </CardContent></Card>
+                );
+              }
+              return displayTasks.map((task: any) => {
                 const isDone = task.status === "done";
                 return (
                   <Link key={task.id} to={`/tasks/${task.id}`} className="block">
@@ -300,8 +308,8 @@ export default function ProjectDetail() {
                     </Card>
                   </Link>
                 );
-              })
-            )}
+              });
+            })()}
           </div>
         )}
 
