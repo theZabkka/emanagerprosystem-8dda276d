@@ -176,7 +176,16 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }: C
                 <SelectTrigger><SelectValue placeholder="Wybierz klienta..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none">— Brak —</SelectItem>
-                  {(clients || []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  {(clientProfiles || []).map((p: any) => (
+                    <SelectItem key={p.id} value={p.client_id || p.id}>
+                      <span className="flex items-center gap-2">
+                        <Avatar className="h-5 w-5">
+                          <AvatarFallback className="text-[9px] bg-primary text-primary-foreground">{initials(p.full_name)}</AvatarFallback>
+                        </Avatar>
+                        {p.full_name}
+                      </span>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
