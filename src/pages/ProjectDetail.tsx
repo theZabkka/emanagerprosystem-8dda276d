@@ -46,6 +46,7 @@ export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isDemo } = useDataSource();
+  const { isClient } = useRole();
   const [activeTab, setActiveTab] = useState<"tasks" | "budget" | "brief">("tasks");
   const [editingBrief, setEditingBrief] = useState(false);
   const [editedBrief, setEditedBrief] = useState<BriefQuestion[]>([]);
