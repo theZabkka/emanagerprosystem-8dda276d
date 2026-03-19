@@ -14,6 +14,8 @@ const COLUMNS = [
   { key: "in_progress", label: "W trakcie", color: "bg-yellow-500/10" },
   { key: "review", label: "Weryfikacja", color: "bg-purple-500/10" },
   { key: "corrections", label: "Poprawki", color: "bg-destructive/10" },
+  { key: "client_review", label: "Akceptacja klienta", color: "bg-indigo-500/10" },
+  { key: "client_verified", label: "Zweryfikowane", color: "bg-emerald-500/10" },
   { key: "done", label: "Gotowe", color: "bg-green-500/10" },
 ];
 
