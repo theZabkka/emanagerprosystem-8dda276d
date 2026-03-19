@@ -42,6 +42,7 @@ interface TaskKanbanBoardProps {
   assignments: any[];
   clients: any[];
   onStatusChange: (taskId: string, newStatus: string) => void;
+  onArchive?: (taskId: string) => void;
   onRefresh?: () => void;
 }
 
