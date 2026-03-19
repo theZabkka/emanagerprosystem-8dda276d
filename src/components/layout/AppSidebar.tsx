@@ -1,6 +1,6 @@
 import {
   Sun, LayoutDashboard, Target,
-  CheckSquare, FolderKanban, Columns3, Users2, RotateCcw,
+  CheckSquare, FolderKanban, Columns3, Users2, RotateCcw, Archive,
   Building2, FileText, Briefcase, TrendingUp, Lightbulb, MessageCircle, Zap,
   MessagesSquare, Inbox, TicketCheck,
   Users, Calendar as CalendarIcon, Video, PalmtreeIcon, Monitor,
