@@ -216,7 +216,9 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
                 <SelectTrigger><SelectValue placeholder="Wybierz klienta..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none">— Brak —</SelectItem>
-                  {(filteredClients || []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  {(filteredClients || []).filter((c: any) => c.client_id).map((c: any) => (
+                    <SelectItem key={c.id} value={c.client_id}>{c.full_name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
