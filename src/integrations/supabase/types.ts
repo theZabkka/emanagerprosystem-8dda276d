@@ -589,25 +589,31 @@ export type Database = {
       }
       comments: {
         Row: {
+          client_reply: string | null
           content: string
           created_at: string | null
           id: string
+          requires_client_reply: boolean | null
           task_id: string
           type: string | null
           user_id: string
         }
         Insert: {
+          client_reply?: string | null
           content: string
           created_at?: string | null
           id?: string
+          requires_client_reply?: boolean | null
           task_id: string
           type?: string | null
           user_id: string
         }
         Update: {
+          client_reply?: string | null
           content?: string
           created_at?: string | null
           id?: string
+          requires_client_reply?: boolean | null
           task_id?: string
           type?: string | null
           user_id?: string
@@ -1042,6 +1048,7 @@ export type Database = {
       }
       tasks: {
         Row: {
+          accepted_responsibility_by: string | null
           brief_deliverable: string | null
           brief_dont_do: string | null
           brief_format: string | null
@@ -1061,6 +1068,7 @@ export type Database = {
           estimated_time: number | null
           id: string
           is_client_visible: boolean | null
+          is_video_task: boolean | null
           logged_time: number | null
           not_understood: boolean | null
           not_understood_at: string | null
@@ -1074,6 +1082,7 @@ export type Database = {
           verification_start_time: string | null
         }
         Insert: {
+          accepted_responsibility_by?: string | null
           brief_deliverable?: string | null
           brief_dont_do?: string | null
           brief_format?: string | null
@@ -1093,6 +1102,7 @@ export type Database = {
           estimated_time?: number | null
           id?: string
           is_client_visible?: boolean | null
+          is_video_task?: boolean | null
           logged_time?: number | null
           not_understood?: boolean | null
           not_understood_at?: string | null
@@ -1106,6 +1116,7 @@ export type Database = {
           verification_start_time?: string | null
         }
         Update: {
+          accepted_responsibility_by?: string | null
           brief_deliverable?: string | null
           brief_dont_do?: string | null
           brief_format?: string | null
@@ -1125,6 +1136,7 @@ export type Database = {
           estimated_time?: number | null
           id?: string
           is_client_visible?: boolean | null
+          is_video_task?: boolean | null
           logged_time?: number | null
           not_understood?: boolean | null
           not_understood_at?: string | null
