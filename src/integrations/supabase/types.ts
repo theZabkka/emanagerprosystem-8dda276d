@@ -544,46 +544,64 @@ export type Database = {
       }
       clients: {
         Row: {
+          address: string | null
+          city: string | null
           contact_person: string | null
+          country: string | null
           created_at: string | null
           email: string | null
           id: string
           monthly_value: number | null
           name: string
+          nip: string | null
           onboarding_steps: Json | null
           phone: string | null
+          postal_code: string | null
           public_status_token: string | null
           score: number | null
           status: Database["public"]["Enums"]["client_status"] | null
           tags: string[] | null
+          voivodeship: string | null
         }
         Insert: {
+          address?: string | null
+          city?: string | null
           contact_person?: string | null
+          country?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
           monthly_value?: number | null
           name: string
+          nip?: string | null
           onboarding_steps?: Json | null
           phone?: string | null
+          postal_code?: string | null
           public_status_token?: string | null
           score?: number | null
           status?: Database["public"]["Enums"]["client_status"] | null
           tags?: string[] | null
+          voivodeship?: string | null
         }
         Update: {
+          address?: string | null
+          city?: string | null
           contact_person?: string | null
+          country?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
           monthly_value?: number | null
           name?: string
+          nip?: string | null
           onboarding_steps?: Json | null
           phone?: string | null
+          postal_code?: string | null
           public_status_token?: string | null
           score?: number | null
           status?: Database["public"]["Enums"]["client_status"] | null
           tags?: string[] | null
+          voivodeship?: string | null
         }
         Relationships: []
       }
@@ -765,8 +783,11 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          phone: string | null
+          position: string | null
           role: string | null
           status: string | null
+          website: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -776,8 +797,11 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          phone?: string | null
+          position?: string | null
           role?: string | null
           status?: string | null
+          website?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -787,8 +811,11 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          phone?: string | null
+          position?: string | null
           role?: string | null
           status?: string | null
+          website?: string | null
         }
         Relationships: [
           {
