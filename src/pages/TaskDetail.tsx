@@ -401,20 +401,15 @@ export default function TaskDetail() {
   // Client reject task (request corrections)
   async function handleClientReject() {
     if (!task || !correctionText.trim()) { toast.error("Opisz co wymaga poprawki"); return; }
-    // Insert correction record
     await supabase.from("task_corrections").insert({
-      task_id: task.id,
-      created_by: user?.id,
-      severity: correctionSeverity,
-      description: correctionText,
+      task_id: task.id, created_by: user?.id, severity: correctionSeverity, description: correctionText,
     });
-    // Update task status to corrections
-    await supabase.from("tasks").update({
-      status: "corrections" as any,
-      correction_severity: correctionSeverity,
-      updated_at: new Date().toISOString(),
-    } as any).eq("id", task.id);
-    await supabase.from("task_status_history").insert({ task_id: task.id, old_status: task.status, new_status: "corrections", changed_by: user?.id });
+    // Update task status + correction severity directly, then use RPC for status transition
+    await supabase.from("tasks").update({ correction_severity: correctionSeverity } as any).eq("id", task.id);
+    const { error } = await supabase.rpc("change_task_status", {
+      _task_id: task.id, _new_status: "corrections" as any, _changed_by: user?.id!,
+    });
+    if (error) { toast.error(error.message); return; }
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     queryClient.invalidateQueries({ queryKey: ["task-corrections", id] });
     queryClient.invalidateQueries({ queryKey: ["status-history", id] });
