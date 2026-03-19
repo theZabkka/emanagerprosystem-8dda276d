@@ -28,8 +28,9 @@ import { toast } from "sonner";
 import {
   ChevronRight, Plus, Send, Clock, Play, FileText, Link as LinkIcon,
   CheckCircle2, MessageCircle, History, AlertTriangle, Eye, Zap,
-  Upload, Timer, UserPlus, Edit3, Bug, Lock, X, Trash2
+  Upload, Timer, UserPlus, Edit3, Bug, Lock, X, Trash2, HelpCircle
 } from "lucide-react";
+import { NotUnderstoodModal, ChecklistBlockModal, ResponsibilityModal } from "@/components/tasks/WorkflowModals";
 
 const statusLabels: Record<string, string> = {
   new: "NOWE", todo: "DO ZROBIENIA", in_progress: "W REALIZACJI", review: "WERYFIKACJA",
