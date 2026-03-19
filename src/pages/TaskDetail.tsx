@@ -1292,3 +1292,25 @@ export default function TaskDetail() {
     </AppLayout>
   );
 }
+
+// Small inline component for client reply input
+function ClientReplyInput({ commentId, taskId }: { commentId: string; taskId: string }) {
+  const [reply, setReply] = useState("");
+  const queryClient = useQueryClient();
+
+  async function submitReply() {
+    if (!reply.trim()) return;
+    const { error } = await supabase.from("comments").update({ client_reply: reply } as any).eq("id", commentId);
+    if (error) { toast.error("Błąd wysyłania odpowiedzi"); return; }
+    queryClient.invalidateQueries({ queryKey: ["comments", taskId] });
+    setReply("");
+    toast.success("Odpowiedź wysłana");
+  }
+
+  return (
+    <div className="mt-2 flex gap-2">
+      <Textarea value={reply} onChange={e => setReply(e.target.value)} placeholder="Napisz odpowiedź..." className="min-h-[40px] text-sm" />
+      <Button size="sm" onClick={submitReply} disabled={!reply.trim()} className="self-end"><Send className="h-3 w-3" /></Button>
+    </div>
+  );
+}

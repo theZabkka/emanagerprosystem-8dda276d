@@ -3,7 +3,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FolderKanban, ArrowRight, CheckCircle2, Clock, ShieldCheck, AlertTriangle } from "lucide-react";
+import { FolderKanban, ArrowRight, CheckCircle2, Clock, ShieldCheck, AlertTriangle, Archive } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/hooks/useRole";
