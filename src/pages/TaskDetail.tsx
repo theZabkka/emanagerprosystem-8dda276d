@@ -1383,44 +1383,13 @@ export default function TaskDetail() {
 
           {/* Status history - hidden in preview and for clients */}
           {!isPreviewMode && !isClient && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold flex items-center gap-1.5"><History className="h-4 w-4" />Historia statusów</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {statusHistory && statusHistory.length > 0 ? (
-                <div className="space-y-3">
-                  {statusHistory.map((h: any, i: number) => (
-                    <div key={h.id} className="flex items-start gap-3 relative">
-                      {i < (statusHistory.length - 1) && <div className="absolute left-[11px] top-6 w-px h-full bg-border" />}
-                      <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <CheckCircle2 className="h-3 w-3 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-1.5 text-sm">
-                          <Badge className={`text-[9px] ${statusColors[h.old_status] || "bg-muted"}`}>{statusLabels[h.old_status] || h.old_status || "—"}</Badge>
-                          <span className="text-muted-foreground">→</span>
-                          <Badge className={`text-[9px] ${statusColors[h.new_status] || "bg-muted"}`}>{statusLabels[h.new_status] || h.new_status}</Badge>
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <Avatar className="h-4 w-4">
-                            <AvatarFallback className="text-[8px] bg-primary/10 text-primary font-bold">
-                              {(h.profiles?.full_name || (isDemo ? mockProfiles.find(p => p.id === h.changed_by)?.full_name : "?") || "?").split(" ").map((n: string) => n[0]).join("")}
-                            </AvatarFallback>
-                          </Avatar>
-                          <p className="text-xs text-muted-foreground">
-                            {h.profiles?.full_name || (isDemo ? mockProfiles.find(p => p.id === h.changed_by)?.full_name : "?")} • {new Date(h.created_at).toLocaleString("pl-PL")}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Brak historii statusów.</p>
-              )}
-            </CardContent>
-          </Card>)}
+            <StatusTimeline
+              statusHistory={statusHistory || []}
+              currentStatus={task?.status || "new"}
+              isDemo={isDemo}
+              demoProfiles={mockProfiles}
+            />
+          )}
         </div>
       </div>
 
