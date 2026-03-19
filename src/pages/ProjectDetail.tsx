@@ -167,7 +167,7 @@ export default function ProjectDetail() {
       <AppLayout title="Projekt">
         <div className="flex flex-col items-center justify-center h-64 gap-4">
           <p className="text-muted-foreground">Nie znaleziono projektu</p>
-          <Button variant="outline" onClick={() => navigate(isClient ? "/client-dashboard" : "/projects")}>{isClient ? "Wróć do panelu klienta" : "Wróć do listy"}</Button>
+          <Button variant="outline" onClick={() => navigate(isClient ? "/dashboard" : "/projects")}>{isClient ? "Wróć do panelu klienta" : "Wróć do listy"}</Button>
         </div>
       </AppLayout>
     );
