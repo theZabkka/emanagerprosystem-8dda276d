@@ -976,8 +976,8 @@ export default function TaskDetail() {
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold">Materiały <span className="text-muted-foreground font-normal">({(isPreviewMode ? materials?.filter((m: any) => m.is_visible_to_client) : materials)?.length || 0})</span></CardTitle>
-                {!isPreviewMode && (
+                <CardTitle className="text-sm font-semibold">Materiały <span className="text-muted-foreground font-normal">({((isPreviewMode || isClient) ? materials?.filter((m: any) => m.is_visible_to_client) : materials)?.length || 0})</span></CardTitle>
+                {!isPreviewMode && !isClient && (
                 <div className="flex gap-1.5">
                   <input ref={fileInputRef} type="file" className="hidden" onChange={e => { if (e.target.files?.[0]) uploadFile(e.target.files[0]); e.target.value = ""; }} />
                   <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => fileInputRef.current?.click()}><Upload className="h-3 w-3" />Plik</Button>
@@ -988,7 +988,7 @@ export default function TaskDetail() {
             </CardHeader>
             <CardContent>
               {(() => {
-                const filteredMats = isPreviewMode ? (materials || []).filter((m: any) => m.is_visible_to_client) : (materials || []);
+                const filteredMats = (isPreviewMode || isClient) ? (materials || []).filter((m: any) => m.is_visible_to_client) : (materials || []);
                 return filteredMats.length > 0 ? (
                 <div className="space-y-2">
                   {filteredMats.map((m: any) => (
@@ -1004,8 +1004,8 @@ export default function TaskDetail() {
                           {isDemo ? mockProfiles.find(p => p.id === m.uploaded_by)?.full_name : m.profiles?.full_name} • {new Date(m.created_at).toLocaleDateString("pl-PL")}
                         </span>
                       </div>
-                      {m.is_visible_to_client && !isPreviewMode && <Badge variant="outline" className="text-[9px] h-4">Klient</Badge>}
-                      {!isPreviewMode && (
+                      {m.is_visible_to_client && !isPreviewMode && !isClient && <Badge variant="outline" className="text-[9px] h-4">Klient</Badge>}
+                      {!isPreviewMode && !isClient && (
                       <button onClick={() => deleteMaterial(m.id)}
                         className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive/80 transition-opacity">
                         <Trash2 className="h-3.5 w-3.5" />
