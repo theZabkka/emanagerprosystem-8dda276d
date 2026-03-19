@@ -311,16 +311,24 @@ export default function TaskDetail() {
   async function executeStatusChange(newStatus: string) {
     if (!task) return;
     const oldStatus = task.status;
-    const updates: any = { status: newStatus as any, updated_at: new Date().toISOString() };
-    if (newStatus === "review") updates.verification_start_time = new Date().toISOString();
-    if (newStatus !== "review") updates.verification_start_time = null;
 
     if (isDemo) {
+      const now = new Date().toISOString();
+      const updates: any = { status: newStatus, updated_at: now };
+      if (newStatus === "review") updates.verification_start_time = now;
+      if (newStatus !== "review") updates.verification_start_time = null;
       const idx = demoTasksState.findIndex(t => t.id === id);
       if (idx >= 0) demoTasksState[idx] = { ...demoTasksState[idx], ...updates };
+      // Close previous open period
+      demoStatusHistoryState.forEach(h => {
+        if (h.task_id === id && !h.status_exited_at) {
+          h.status_exited_at = now;
+          h.duration_seconds = Math.floor((new Date(now).getTime() - new Date(h.status_entered_at || h.created_at).getTime()) / 1000);
+        }
+      });
       demoStatusHistoryState.unshift({
         id: `demo-sh-${Date.now()}`, task_id: id!, old_status: oldStatus, new_status: newStatus,
-        changed_by: demoUserId, created_at: new Date().toISOString(),
+        changed_by: demoUserId, created_at: now, status_entered_at: now, status_exited_at: null, duration_seconds: null, note: null,
         profiles: { full_name: mockProfiles.find(p => p.id === demoUserId)?.full_name || "Demo" },
       });
       queryClient.invalidateQueries({ queryKey: ["task", id, isDemo] });
@@ -328,9 +336,12 @@ export default function TaskDetail() {
       toast.success(`Status zmieniony na ${statusLabels[newStatus]}`);
       return;
     }
-    const { error } = await supabase.from("tasks").update(updates).eq("id", task.id);
+    const { error } = await supabase.rpc("change_task_status", {
+      _task_id: task.id,
+      _new_status: newStatus,
+      _changed_by: user?.id!,
+    });
     if (error) { toast.error(error.message); return; }
-    await supabase.from("task_status_history").insert({ task_id: task.id, old_status: oldStatus, new_status: newStatus, changed_by: user?.id });
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     queryClient.invalidateQueries({ queryKey: ["status-history", id] });
     toast.success(`Status zmieniony na ${statusLabels[newStatus]}`);
