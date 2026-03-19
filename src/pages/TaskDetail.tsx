@@ -256,13 +256,47 @@ export default function TaskDetail() {
 
   // ─── Actions ─────────────────────────────────────────────────────
 
-  // 1. Status change
+  // 1. Status change with workflow validation
   async function handleStatusChange(newStatus: string) {
     if (!task || newStatus === task.status) return;
+
+    // Rule: in_progress -> review requires complete checklist
+    if (task.status === "in_progress" && newStatus === "review") {
+      const allComplete = checklists?.every((cl: any) =>
+        (cl.items || []).length === 0 || (cl.items || []).every((i: any) => i.is_completed || i.is_na)
+      ) ?? true;
+      if (!allComplete) {
+        setChecklistBlockOpen(true);
+        return;
+      }
+    }
+
+    // Rule: client_review only from review
+    if (newStatus === "client_review" && task.status !== "review") {
+      toast.error("Zadanie może trafić do akceptacji klienta tylko ze statusu Weryfikacja");
+      return;
+    }
+
+    // Rule: review -> client_review requires responsibility confirmation
+    if (task.status === "review" && newStatus === "client_review") {
+      setPendingStatus(newStatus);
+      setResponsibilityOpen(true);
+      return;
+    }
+
+    await executeStatusChange(newStatus);
+  }
+
+  async function executeStatusChange(newStatus: string) {
+    if (!task) return;
     const oldStatus = task.status;
+    const updates: any = { status: newStatus as any, updated_at: new Date().toISOString() };
+    if (newStatus === "review") updates.verification_start_time = new Date().toISOString();
+    if (newStatus !== "review") updates.verification_start_time = null;
+
     if (isDemo) {
       const idx = demoTasksState.findIndex(t => t.id === id);
-      if (idx >= 0) demoTasksState[idx] = { ...demoTasksState[idx], status: newStatus as any };
+      if (idx >= 0) demoTasksState[idx] = { ...demoTasksState[idx], ...updates };
       demoStatusHistoryState.unshift({
         id: `demo-sh-${Date.now()}`, task_id: id!, old_status: oldStatus, new_status: newStatus,
         changed_by: demoUserId, created_at: new Date().toISOString(),
@@ -273,12 +307,51 @@ export default function TaskDetail() {
       toast.success(`Status zmieniony na ${statusLabels[newStatus]}`);
       return;
     }
-    const { error } = await supabase.from("tasks").update({ status: newStatus as any, updated_at: new Date().toISOString() }).eq("id", task.id);
+    const { error } = await supabase.from("tasks").update(updates).eq("id", task.id);
     if (error) { toast.error(error.message); return; }
     await supabase.from("task_status_history").insert({ task_id: task.id, old_status: oldStatus, new_status: newStatus, changed_by: user?.id });
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     queryClient.invalidateQueries({ queryKey: ["status-history", id] });
     toast.success(`Status zmieniony na ${statusLabels[newStatus]}`);
+  }
+
+  // "Not understood" handler
+  async function handleNotUnderstood(reason: string) {
+    if (!task) return;
+    if (isDemo) {
+      const idx = demoTasksState.findIndex(t => t.id === id);
+      if (idx >= 0) demoTasksState[idx] = { ...demoTasksState[idx], not_understood: true, not_understood_at: new Date().toISOString() };
+      queryClient.invalidateQueries({ queryKey: ["task", id, isDemo] });
+      toast.success("Zgłoszono niezrozumienie zadania — koordynator został powiadomiony");
+      return;
+    }
+    await supabase.from("tasks").update({
+      not_understood: true,
+      not_understood_at: new Date().toISOString(),
+    } as any).eq("id", task.id);
+    // Add a comment about the confusion
+    if (reason.trim()) {
+      await supabase.from("comments").insert({
+        task_id: task.id, user_id: user?.id!, content: `❓ Nie rozumiem polecenia: ${reason}`, type: "internal",
+      });
+    }
+    queryClient.invalidateQueries({ queryKey: ["task", id] });
+    queryClient.invalidateQueries({ queryKey: ["comments", id] });
+    toast.success("Zgłoszono niezrozumienie zadania — koordynator został powiadomiony");
+  }
+
+  async function clearNotUnderstood() {
+    if (!task) return;
+    if (isDemo) {
+      const idx = demoTasksState.findIndex(t => t.id === id);
+      if (idx >= 0) demoTasksState[idx] = { ...demoTasksState[idx], not_understood: false, not_understood_at: null };
+      queryClient.invalidateQueries({ queryKey: ["task", id, isDemo] });
+      toast.success("Oznaczono jako wyjaśnione");
+      return;
+    }
+    await supabase.from("tasks").update({ not_understood: false, not_understood_at: null } as any).eq("id", task.id);
+    queryClient.invalidateQueries({ queryKey: ["task", id] });
+    toast.success("Oznaczono jako wyjaśnione");
   }
 
   // 2. Brief editing
