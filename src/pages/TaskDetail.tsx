@@ -600,6 +600,20 @@ export default function TaskDetail() {
     toast.success("Materiał usunięty");
   }
 
+  async function toggleMaterialVisibility(materialId: string, visible: boolean) {
+    if (isDemo) {
+      const idx = demoMaterialsState.findIndex(m => m.id === materialId);
+      if (idx >= 0) demoMaterialsState[idx] = { ...demoMaterialsState[idx], is_visible_to_client: visible };
+      queryClient.invalidateQueries({ queryKey: ["materials", id, isDemo] });
+      toast.success(visible ? "Materiał widoczny dla klienta" : "Materiał ukryty przed klientem");
+      return;
+    }
+    const { error } = await supabase.from("task_materials").update({ is_visible_to_client: visible } as any).eq("id", materialId);
+    if (error) { toast.error(error.message); return; }
+    queryClient.invalidateQueries({ queryKey: ["materials", id] });
+    toast.success(visible ? "Materiał widoczny dla klienta" : "Materiał ukryty przed klientem");
+  }
+
   // 7. Time logging
   async function logTime(minutes: number) {
     if (minutes <= 0) return;
