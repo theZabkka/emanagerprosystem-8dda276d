@@ -119,6 +119,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
 
   const handleCreate = async () => {
     if (!form.title.trim()) { toast.error("Podaj nazwę zadania"); return; }
+    if (selectedUsers.length === 0) { toast.error("Musisz przypisać co najmniej jedną osobę do zadania"); return; }
 
     if (isDemo) {
       toast.info("W trybie demo nie można tworzyć zadań");
