@@ -247,7 +247,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
 
           {/* Assignees */}
           <div className="space-y-1.5">
-            <Label>Przypisane osoby</Label>
+            <Label>Przypisane osoby <span className="text-destructive">*</span></Label>
             <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-background min-h-[42px]">
               {selectedUsers.map(uid => {
                 const profile = (profiles || []).find((p: any) => p.id === uid);

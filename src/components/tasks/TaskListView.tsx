@@ -44,8 +44,9 @@ export default function TaskListView({ tasks, isLoading }: TaskListViewProps) {
           ) : (
             tasks.map((task: any) => {
               const assignee = task.task_assignments?.find((a: any) => a.role === "primary");
+              const isUnassigned = !assignee;
               return (
-                <TableRow key={task.id} className="cursor-pointer hover:bg-muted/50">
+                <TableRow key={task.id} className={`cursor-pointer hover:bg-muted/50 ${isUnassigned ? "bg-destructive/15 animate-pulse" : ""}`}>
                   <TableCell>
                     <Link to={`/tasks/${task.id}`} className="block">
                       <p className="text-xs text-muted-foreground">{task.id.slice(0, 8)}</p>
