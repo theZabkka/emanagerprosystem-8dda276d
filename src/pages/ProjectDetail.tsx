@@ -326,11 +326,11 @@ export default function ProjectDetail() {
                     {hasBrief ? "Wypełniony ✓" : "Brak"}
                   </Badge>
                 </div>
-                {!editingBrief ? (
+                {!isClient && !editingBrief ? (
                   <Button variant="ghost" size="sm" className="gap-1 text-xs" onClick={startEdit}>
                     <Pencil className="h-3 w-3" /> Edytuj
                   </Button>
-                ) : (
+                ) : editingBrief ? (
                   <div className="flex gap-1">
                     <Button variant="ghost" size="sm" className="gap-1 text-xs" onClick={() => setEditingBrief(false)}>
                       <X className="h-3 w-3" /> Anuluj
@@ -339,7 +339,7 @@ export default function ProjectDetail() {
                       <Save className="h-3 w-3" /> Zapisz
                     </Button>
                   </div>
-                )}
+                ) : null}
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* AI Summary */}
