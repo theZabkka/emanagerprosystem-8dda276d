@@ -33,7 +33,8 @@ import {
 
 const statusLabels: Record<string, string> = {
   new: "NOWE", todo: "DO ZROBIENIA", in_progress: "W REALIZACJI", review: "WERYFIKACJA",
-  corrections: "POPRAWKI", client_review: "DO AKCEPTACJI KLIENTA", done: "GOTOWE", cancelled: "ANULOWANE",
+  corrections: "POPRAWKI", client_review: "DO AKCEPTACJI KLIENTA", client_verified: "ZWERYFIKOWANE PRZEZ KLIENTA",
+  waiting_for_client: "W OCZEKIWANIU NA KLIENTA", done: "GOTOWE", closed: "ZAMKNIĘTE", cancelled: "ANULOWANE",
 };
 const priorityLabels: Record<string, string> = { critical: "PILNY", high: "WYSOKI", medium: "ŚREDNI", low: "NISKI" };
 const priorityColors: Record<string, string> = {
@@ -49,7 +50,10 @@ const statusColors: Record<string, string> = {
   review: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
   corrections: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
   client_review: "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300",
+  client_verified: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+  waiting_for_client: "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300",
   done: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300",
+  closed: "bg-slate-100 text-slate-700 dark:bg-slate-950 dark:text-slate-300",
   cancelled: "bg-muted text-muted-foreground line-through",
 };
 
