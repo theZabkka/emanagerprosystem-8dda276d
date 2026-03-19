@@ -15,7 +15,9 @@ import { KanbanSkeleton } from "@/components/skeletons/KanbanSkeleton";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 
 function enrichDemoTasks(statusFilter: string, priorityFilter: string) {
-  let tasks = mockTasks.map(t => {
+  let tasks = mockTasks
+    .filter(t => t.status !== "closed")
+    .map(t => {
     const assignments = mockTaskAssignments
       .filter(a => a.task_id === t.id)
       .map(a => ({ ...a, profiles: mockProfiles.find(p => p.id === a.user_id) || null }));
