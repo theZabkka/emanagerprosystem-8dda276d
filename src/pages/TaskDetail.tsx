@@ -759,22 +759,24 @@ export default function TaskDetail() {
         {/* Cards grid */}
         <div className="space-y-4">
 
-          {/* Brief - hidden in preview */}
+          {/* Brief - hidden in preview, read-only for clients */}
           {!isPreviewMode && <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold">Brief zadania</CardTitle>
-                <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={openBriefEditor}><Edit3 className="h-3 w-3" />Edytuj brief</Button>
+                {!isClient && <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={openBriefEditor}><Edit3 className="h-3 w-3" />Edytuj brief</Button>}
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
+              {!isClient && (
               <div className="flex items-center gap-3">
                 <Progress value={(briefFilledCount / briefFields.length) * 100} className="h-2 flex-1" />
                 <span className={`text-xs font-semibold ${briefFilledCount === 0 ? "text-destructive" : briefFilledCount < briefFields.length ? "text-amber-600" : "text-green-600"}`}>
                   {briefFilledCount}/{briefFields.length} pól
                 </span>
               </div>
-              {briefFilledCount === 0 && (
+              )}
+              {!isClient && briefFilledCount === 0 && (
                 <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 rounded-md px-3 py-2">
                   <AlertTriangle className="h-3.5 w-3.5" />
                   Brief jest pusty! Uzupełnij go, aby zespół wiedział, co robić.
