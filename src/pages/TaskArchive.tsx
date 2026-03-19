@@ -23,7 +23,7 @@ export default function TaskArchive() {
     queryFn: async () => {
       if (isDemo) {
         return mockTasks
-          .filter(t => t.status === "closed")
+          .filter(t => t.is_archived)
           .map(t => {
             const client = mockClients.find(c => c.id === t.client_id);
             const project = mockProjects.find(p => p.id === t.project_id);
