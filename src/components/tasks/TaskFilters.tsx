@@ -8,8 +8,6 @@ const priorityLabels: Record<string, string> = { critical: "Pilny", high: "Wysok
 interface TaskFiltersProps {
   search: string;
   onSearchChange: (value: string) => void;
-  statusFilter: string;
-  onStatusChange: (value: string) => void;
   priorityFilter: string;
   onPriorityChange: (value: string) => void;
   typeFilter: string;
@@ -21,7 +19,6 @@ interface TaskFiltersProps {
 
 export function TaskFilters({
   search, onSearchChange,
-  statusFilter, onStatusChange,
   priorityFilter, onPriorityChange,
   typeFilter, onTypeChange,
   viewMode, onViewModeChange,
@@ -36,24 +33,6 @@ export function TaskFilters({
 
       <div className="flex flex-wrap gap-2 items-center justify-between">
         <div className="flex flex-wrap gap-2 items-center">
-          <Select value={statusFilter} onValueChange={onStatusChange}>
-            <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Wszystkie statusy" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Wszystkie statusy</SelectItem>
-              <SelectItem value="new">Nowe</SelectItem>
-              <SelectItem value="todo">Do zrobienia</SelectItem>
-              <SelectItem value="in_progress">W realizacji</SelectItem>
-              <SelectItem value="review">Weryfikacja</SelectItem>
-              <SelectItem value="corrections">Poprawki</SelectItem>
-              <SelectItem value="client_review">Akceptacja klienta</SelectItem>
-              <SelectItem value="client_verified">Zweryfikowane przez klienta</SelectItem>
-              <SelectItem value="waiting_for_client">W oczekiwaniu na klienta</SelectItem>
-              <SelectItem value="done">Gotowe</SelectItem>
-              <SelectItem value="closed">Zamknięte</SelectItem>
-              <SelectItem value="cancelled">Anulowane</SelectItem>
-            </SelectContent>
-          </Select>
-
           <Select value={priorityFilter} onValueChange={onPriorityChange}>
             <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Wszystkie priorytety" /></SelectTrigger>
             <SelectContent>

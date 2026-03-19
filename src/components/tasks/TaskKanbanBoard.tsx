@@ -215,6 +215,8 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
                             const waitingTime = (col.key === "client_review" || col.key === "corrections" || col.key === "review")
                               ? getWaitingTime(task.updated_at || task.created_at) : null;
 
+                            const isUnassigned = !assignee;
+
                             return (
                               <Draggable key={task.id} draggableId={task.id} index={index}>
                                 {(provided, snapshot) => (
@@ -222,7 +224,7 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
                                     ref={provided.innerRef}
                                     {...provided.draggableProps}
                                     {...provided.dragHandleProps}
-                                    className={`rounded-lg border bg-card shadow-sm transition-shadow ${task.not_understood ? "ring-2 ring-amber-500/50 border-amber-500/30" : ""} ${task.correction_severity === "critical" ? "ring-2 ring-destructive/50" : ""} ${snapshot.isDragging ? "shadow-lg ring-2 ring-destructive/20" : "hover:shadow-md"}`}
+                                    className={`rounded-lg border shadow-sm transition-shadow ${isUnassigned ? "bg-destructive/15 animate-pulse border-destructive/50 ring-2 ring-destructive/30" : "bg-card"} ${task.not_understood ? "ring-2 ring-amber-500/50 border-amber-500/30" : ""} ${task.correction_severity === "critical" ? "ring-2 ring-destructive/50" : ""} ${snapshot.isDragging ? "shadow-lg ring-2 ring-destructive/20" : "hover:shadow-md"}`}
                                   >
                                     <Link to={`/tasks/${task.id}`} className="block p-3">
                                       <div className="flex items-center justify-between mb-2">
