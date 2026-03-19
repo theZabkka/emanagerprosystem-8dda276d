@@ -113,6 +113,10 @@ export default function TaskDetail() {
   const [linkUrl, setLinkUrl] = useState("");
   const [manualMinutes, setManualMinutes] = useState("");
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [notUnderstoodOpen, setNotUnderstoodOpen] = useState(false);
+  const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
+  const [responsibilityOpen, setResponsibilityOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset demo state on mount
