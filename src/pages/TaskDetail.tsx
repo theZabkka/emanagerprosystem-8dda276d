@@ -713,7 +713,7 @@ export default function TaskDetail() {
         {/* Tags row with status dropdown */}
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="text-xs font-mono">#{task.id.slice(0, 8)}</Badge>
-          {!isPreviewMode ? (
+          {!isPreviewMode && !isClient ? (
             <Popover>
               <PopoverTrigger asChild>
                 <button className="cursor-pointer">
