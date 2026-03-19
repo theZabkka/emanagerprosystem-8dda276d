@@ -1147,6 +1147,112 @@ export default function TaskDetail() {
             </CardContent>
           </Card>)}
 
+          {/* Client Review Actions - only for clients when task is in client_review */}
+          {isClient && task.status === "client_review" && (
+            <Card className="border-2 border-primary/30 bg-primary/5">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  Akcja wymagana — przejrzyj i zaakceptuj lub zgłoś poprawki
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!clientReviewOpen ? (
+                  <div className="flex gap-3">
+                    <Button onClick={handleClientAccept} className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+                      <CheckCircle2 className="h-4 w-4" /> Akceptuję — wszystko OK
+                    </Button>
+                    <Button onClick={() => setClientReviewOpen(true)} variant="destructive" className="flex-1 gap-2">
+                      <AlertTriangle className="h-4 w-4" /> Do poprawy
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-semibold">Rodzaj poprawek</Label>
+                      <div className="flex gap-2">
+                        <Button
+                          variant={correctionSeverity === "normal" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCorrectionSeverity("normal")}
+                          className="flex-1 text-xs"
+                        >
+                          Drobne / kosmetyczne
+                        </Button>
+                        <Button
+                          variant={correctionSeverity === "critical" ? "destructive" : "outline"}
+                          size="sm"
+                          onClick={() => setCorrectionSeverity("critical")}
+                          className="flex-1 text-xs"
+                        >
+                          🔴 Krytyczne
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-semibold">Co wymaga poprawy?</Label>
+                      <Textarea
+                        value={correctionText}
+                        onChange={e => setCorrectionText(e.target.value)}
+                        placeholder="Opisz szczegółowo, co jest nie tak..."
+                        className="min-h-[80px] text-sm"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => { setClientReviewOpen(false); setCorrectionText(""); }} className="flex-1">
+                        Anuluj
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={handleClientReject} disabled={!correctionText.trim()} className="flex-1">
+                        Wyślij poprawki
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Corrections history - visible for everyone */}
+          {corrections && corrections.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Bug className="h-4 w-4 text-orange-500" />
+                  Poprawki ({corrections.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {corrections.map((c: any) => (
+                  <div key={c.id} className={`rounded-lg border p-3 space-y-1.5 ${
+                    c.severity === "critical"
+                      ? "border-destructive/40 bg-destructive/5"
+                      : "border-amber-400/40 bg-amber-500/5"
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <Badge className={`text-[9px] font-bold ${
+                        c.severity === "critical"
+                          ? "bg-destructive text-destructive-foreground"
+                          : "bg-amber-500/15 text-amber-700 border-amber-400/40"
+                      }`}>
+                        {c.severity === "critical" ? "🔴 KRYTYCZNE" : "Drobne"}
+                      </Badge>
+                      <Badge variant="outline" className={`text-[9px] ${c.status === "resolved" ? "bg-emerald-500/15 text-emerald-700" : ""}`}>
+                        {c.status === "resolved" ? "Rozwiązane" : "Oczekujące"}
+                      </Badge>
+                      <span className="text-[10px] text-muted-foreground ml-auto">
+                        {new Date(c.created_at).toLocaleString("pl-PL")}
+                      </span>
+                    </div>
+                    <p className="text-sm">{c.description}</p>
+                    {c.profiles?.full_name && (
+                      <p className="text-[10px] text-muted-foreground">Zgłoszone przez: {c.profiles.full_name}</p>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Comments - clients only see requires_client_reply comments */}
           <Card>
             <CardHeader className="pb-2">
