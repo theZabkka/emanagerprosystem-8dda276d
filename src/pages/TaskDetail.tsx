@@ -799,8 +799,8 @@ export default function TaskDetail() {
             </CardContent>
           </Card>}
 
-          {/* Assigned people - hidden in preview */}
-          {!isPreviewMode && <Card>
+          {/* Assigned people - hidden in preview and for clients */}
+          {!isPreviewMode && !isClient && <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold">Przypisane osoby</CardTitle>
