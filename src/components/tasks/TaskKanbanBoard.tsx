@@ -188,7 +188,7 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex gap-3 h-[calc(100vh-16rem)] overflow-x-auto pb-4">
           {KANBAN_COLUMNS.map((col) => {
-            const columnTasks = tasks.filter((t: any) => t.status === col.key);
+            const columnTasks = tasks.filter((t: any) => t.status === col.key && !t.is_archived);
             const isEmpty = columnTasks.length === 0;
             return (
               <div key={col.key} className="flex-shrink-0 w-72 flex flex-col">
