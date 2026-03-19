@@ -86,19 +86,20 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
     },
   });
 
-  // Filter projects by selected client
+  // Filter projects by selected client profile's client_id
   const filteredProjects = useMemo(() => {
     if (!allProjects) return [];
     if (!form.client_id) return allProjects;
+    // form.client_id stores the profile's client_id (from clients table)
     return allProjects.filter((p: any) => p.client_id === form.client_id);
   }, [allProjects, form.client_id]);
 
-  // Filter clients by selected project (reverse filtering)
+  // Filter client profiles by selected project
   const filteredClients = useMemo(() => {
     if (!clients) return [];
     if (!form.project_id) return clients;
     const project = (allProjects || []).find((p: any) => p.id === form.project_id);
-    if (project?.client_id) return clients.filter((c: any) => c.id === project.client_id);
+    if (project?.client_id) return clients.filter((c: any) => c.client_id === project.client_id);
     return clients;
   }, [clients, allProjects, form.project_id]);
 
