@@ -277,7 +277,7 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
                                       </div>
                                     </Link>
 
-                                    <div className="px-3 pb-2 -mt-2">
+                                    <div className="px-3 pb-2 -mt-2 flex items-center justify-between">
                                       <AssignPopover
                                         taskId={task.id}
                                         assignee={assignee}
@@ -286,6 +286,18 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
                                         getAvatarColor={getAvatarColor}
                                         onAssign={handleAssign}
                                       />
+                                      {col.key === "closed" && onArchive && (
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-7 text-[10px] gap-1 text-muted-foreground hover:text-primary"
+                                          onPointerDown={(e) => e.stopPropagation()}
+                                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onArchive(task.id); }}
+                                        >
+                                          <Archive className="h-3 w-3" />
+                                          Archiwizuj
+                                        </Button>
+                                      )}
                                     </div>
                                   </div>
                                 )}
