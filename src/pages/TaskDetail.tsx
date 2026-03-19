@@ -28,12 +28,14 @@ import { toast } from "sonner";
 import {
   ChevronRight, Plus, Send, Clock, Play, FileText, Link as LinkIcon,
   CheckCircle2, MessageCircle, History, AlertTriangle, Eye, Zap,
-  Upload, Timer, UserPlus, Edit3, Bug, Lock, X, Trash2
+  Upload, Timer, UserPlus, Edit3, Bug, Lock, X, Trash2, HelpCircle
 } from "lucide-react";
+import { NotUnderstoodModal, ChecklistBlockModal, ResponsibilityModal } from "@/components/tasks/WorkflowModals";
 
 const statusLabels: Record<string, string> = {
   new: "NOWE", todo: "DO ZROBIENIA", in_progress: "W REALIZACJI", review: "WERYFIKACJA",
-  corrections: "POPRAWKI", client_review: "DO AKCEPTACJI KLIENTA", done: "GOTOWE", cancelled: "ANULOWANE",
+  corrections: "POPRAWKI", client_review: "DO AKCEPTACJI KLIENTA", client_verified: "ZWERYFIKOWANE PRZEZ KLIENTA",
+  waiting_for_client: "W OCZEKIWANIU NA KLIENTA", done: "GOTOWE", closed: "ZAMKNIĘTE", cancelled: "ANULOWANE",
 };
 const priorityLabels: Record<string, string> = { critical: "PILNY", high: "WYSOKI", medium: "ŚREDNI", low: "NISKI" };
 const priorityColors: Record<string, string> = {
@@ -49,7 +51,10 @@ const statusColors: Record<string, string> = {
   review: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
   corrections: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
   client_review: "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300",
+  client_verified: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+  waiting_for_client: "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300",
   done: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300",
+  closed: "bg-slate-100 text-slate-700 dark:bg-slate-950 dark:text-slate-300",
   cancelled: "bg-muted text-muted-foreground line-through",
 };
 
@@ -108,6 +113,10 @@ export default function TaskDetail() {
   const [linkUrl, setLinkUrl] = useState("");
   const [manualMinutes, setManualMinutes] = useState("");
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [notUnderstoodOpen, setNotUnderstoodOpen] = useState(false);
+  const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
+  const [responsibilityOpen, setResponsibilityOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset demo state on mount
@@ -247,13 +256,47 @@ export default function TaskDetail() {
 
   // ─── Actions ─────────────────────────────────────────────────────
 
-  // 1. Status change
+  // 1. Status change with workflow validation
   async function handleStatusChange(newStatus: string) {
     if (!task || newStatus === task.status) return;
+
+    // Rule: in_progress -> review requires complete checklist
+    if (task.status === "in_progress" && newStatus === "review") {
+      const allComplete = checklists?.every((cl: any) =>
+        (cl.items || []).length === 0 || (cl.items || []).every((i: any) => i.is_completed || i.is_na)
+      ) ?? true;
+      if (!allComplete) {
+        setChecklistBlockOpen(true);
+        return;
+      }
+    }
+
+    // Rule: client_review only from review
+    if (newStatus === "client_review" && task.status !== "review") {
+      toast.error("Zadanie może trafić do akceptacji klienta tylko ze statusu Weryfikacja");
+      return;
+    }
+
+    // Rule: review -> client_review requires responsibility confirmation
+    if (task.status === "review" && newStatus === "client_review") {
+      setPendingStatus(newStatus);
+      setResponsibilityOpen(true);
+      return;
+    }
+
+    await executeStatusChange(newStatus);
+  }
+
+  async function executeStatusChange(newStatus: string) {
+    if (!task) return;
     const oldStatus = task.status;
+    const updates: any = { status: newStatus as any, updated_at: new Date().toISOString() };
+    if (newStatus === "review") updates.verification_start_time = new Date().toISOString();
+    if (newStatus !== "review") updates.verification_start_time = null;
+
     if (isDemo) {
       const idx = demoTasksState.findIndex(t => t.id === id);
-      if (idx >= 0) demoTasksState[idx] = { ...demoTasksState[idx], status: newStatus as any };
+      if (idx >= 0) demoTasksState[idx] = { ...demoTasksState[idx], ...updates };
       demoStatusHistoryState.unshift({
         id: `demo-sh-${Date.now()}`, task_id: id!, old_status: oldStatus, new_status: newStatus,
         changed_by: demoUserId, created_at: new Date().toISOString(),
@@ -264,12 +307,51 @@ export default function TaskDetail() {
       toast.success(`Status zmieniony na ${statusLabels[newStatus]}`);
       return;
     }
-    const { error } = await supabase.from("tasks").update({ status: newStatus as any, updated_at: new Date().toISOString() }).eq("id", task.id);
+    const { error } = await supabase.from("tasks").update(updates).eq("id", task.id);
     if (error) { toast.error(error.message); return; }
     await supabase.from("task_status_history").insert({ task_id: task.id, old_status: oldStatus, new_status: newStatus, changed_by: user?.id });
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     queryClient.invalidateQueries({ queryKey: ["status-history", id] });
     toast.success(`Status zmieniony na ${statusLabels[newStatus]}`);
+  }
+
+  // "Not understood" handler
+  async function handleNotUnderstood(reason: string) {
+    if (!task) return;
+    if (isDemo) {
+      const idx = demoTasksState.findIndex(t => t.id === id);
+      if (idx >= 0) demoTasksState[idx] = { ...demoTasksState[idx], not_understood: true, not_understood_at: new Date().toISOString() };
+      queryClient.invalidateQueries({ queryKey: ["task", id, isDemo] });
+      toast.success("Zgłoszono niezrozumienie zadania — koordynator został powiadomiony");
+      return;
+    }
+    await supabase.from("tasks").update({
+      not_understood: true,
+      not_understood_at: new Date().toISOString(),
+    } as any).eq("id", task.id);
+    // Add a comment about the confusion
+    if (reason.trim()) {
+      await supabase.from("comments").insert({
+        task_id: task.id, user_id: user?.id!, content: `❓ Nie rozumiem polecenia: ${reason}`, type: "internal",
+      });
+    }
+    queryClient.invalidateQueries({ queryKey: ["task", id] });
+    queryClient.invalidateQueries({ queryKey: ["comments", id] });
+    toast.success("Zgłoszono niezrozumienie zadania — koordynator został powiadomiony");
+  }
+
+  async function clearNotUnderstood() {
+    if (!task) return;
+    if (isDemo) {
+      const idx = demoTasksState.findIndex(t => t.id === id);
+      if (idx >= 0) demoTasksState[idx] = { ...demoTasksState[idx], not_understood: false, not_understood_at: null };
+      queryClient.invalidateQueries({ queryKey: ["task", id, isDemo] });
+      toast.success("Oznaczono jako wyjaśnione");
+      return;
+    }
+    await supabase.from("tasks").update({ not_understood: false, not_understood_at: null } as any).eq("id", task.id);
+    queryClient.invalidateQueries({ queryKey: ["task", id] });
+    toast.success("Oznaczono jako wyjaśnione");
   }
 
   // 2. Brief editing
@@ -604,8 +686,27 @@ export default function TaskDetail() {
           )}
           {!isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><FileText className="h-3 w-3" />Zastosuj szablon</Button>}
           {!isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><Zap className="h-3 w-3" />Uruchom automatyzację</Button>}
+          {!isPreviewMode && (task.status === "in_progress" || task.status === "todo") && !(task as any).not_understood && (
+            <Button variant="outline" size="sm" className="text-xs gap-1.5 border-amber-500/50 text-amber-600 hover:bg-amber-500/10" onClick={() => setNotUnderstoodOpen(true)}>
+              <HelpCircle className="h-3 w-3" />Nie rozumiem polecenia
+            </Button>
+          )}
           {!isPreviewMode && <Button size="sm" className="text-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground"><MessageCircle className="h-3 w-3" />Czat zadania</Button>}
         </div>
+
+        {/* Not understood banner */}
+        {(task as any).not_understood && !isPreviewMode && (
+          <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+            <div className="flex items-center gap-2">
+              <HelpCircle className="h-5 w-5 text-amber-600" />
+              <div>
+                <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Zadanie oznaczone jako niezrozumiałe</p>
+                <p className="text-xs text-muted-foreground">Przypisana osoba nie rozumie polecenia — wymagane wyjaśnienie od koordynatora.</p>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" className="text-xs" onClick={clearNotUnderstood}>Oznacz jako wyjaśnione</Button>
+          </div>
+        )}
 
         {/* Tags row with status dropdown */}
         <div className="flex flex-wrap items-center gap-2">
@@ -1139,6 +1240,24 @@ export default function TaskDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Workflow Modals */}
+      <NotUnderstoodModal
+        open={notUnderstoodOpen}
+        onOpenChange={setNotUnderstoodOpen}
+        onConfirm={handleNotUnderstood}
+      />
+      <ChecklistBlockModal open={checklistBlockOpen} onOpenChange={setChecklistBlockOpen} />
+      <ResponsibilityModal
+        open={responsibilityOpen}
+        onOpenChange={setResponsibilityOpen}
+        onConfirm={() => {
+          if (pendingStatus) {
+            executeStatusChange(pendingStatus);
+            setPendingStatus(null);
+          }
+        }}
+      />
     </AppLayout>
   );
 }

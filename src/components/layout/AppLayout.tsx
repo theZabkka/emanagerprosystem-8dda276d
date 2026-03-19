@@ -6,6 +6,7 @@ import { Topbar } from "./Topbar";
 import { AIAssistantButton } from "./AIAssistantButton";
 import { useRole } from "@/hooks/useRole";
 import { useRoutePrefetch } from "@/hooks/useRoutePrefetch";
+import { CoordinatorFreezeOverlay } from "@/components/tasks/CoordinatorFreezeOverlay";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -28,6 +29,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
         </div>
       </div>
       <AIAssistantButton />
+      <CoordinatorFreezeOverlay />
     </SidebarProvider>
   );
 }

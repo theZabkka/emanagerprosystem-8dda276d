@@ -1,18 +1,24 @@
+import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FolderKanban, ArrowRight, CheckCircle2, Clock } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { FolderKanban, ArrowRight, CheckCircle2, Clock, ShieldCheck, AlertTriangle } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { ClientReviewModal } from "@/components/tasks/WorkflowModals";
+import { toast } from "sonner";
 
 export default function ClientDashboard() {
   const { clientId } = useRole();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   const { data: projects, isLoading } = useQuery({
     queryKey: ["client-projects", clientId],
@@ -28,7 +34,7 @@ export default function ClientDashboard() {
     enabled: !!clientId,
   });
 
-  const { data: tasks } = useQuery({
+  const { data: taskSummary } = useQuery({
     queryKey: ["client-tasks-summary", clientId],
     queryFn: async () => {
       if (!clientId) return { review: 0, done: 0 };
@@ -36,13 +42,80 @@ export default function ClientDashboard() {
         .from("tasks")
         .select("status")
         .eq("client_id", clientId)
-        .in("status", ["client_review", "done"]);
+        .in("status", ["client_review", "done", "client_verified"]);
       const review = data?.filter(t => t.status === "client_review").length || 0;
-      const done = data?.filter(t => t.status === "done").length || 0;
+      const done = data?.filter(t => t.status === "done" || t.status === "client_verified").length || 0;
       return { review, done };
     },
     enabled: !!clientId,
   });
+
+  // Fetch tasks awaiting client review
+  const { data: reviewTasks } = useQuery({
+    queryKey: ["client-review-tasks", clientId],
+    queryFn: async () => {
+      if (!clientId) return [];
+      const { data } = await supabase
+        .from("tasks")
+        .select("id, title, description, due_date, type, projects(name)")
+        .eq("client_id", clientId)
+        .eq("status", "client_review" as any)
+        .eq("is_client_visible", true)
+        .order("due_date", { ascending: true });
+      return data || [];
+    },
+    enabled: !!clientId,
+  });
+
+  async function handleApprove() {
+    if (!selectedTaskId) return;
+    const { error } = await supabase.from("tasks").update({
+      status: "client_verified" as any,
+      updated_at: new Date().toISOString(),
+      client_review_accepted_by: user?.id || profile?.full_name,
+    } as any).eq("id", selectedTaskId);
+    if (error) { toast.error("Błąd akceptacji"); return; }
+    await supabase.from("task_status_history").insert({
+      task_id: selectedTaskId,
+      old_status: "client_review",
+      new_status: "client_verified",
+      changed_by: user?.id,
+    });
+    queryClient.invalidateQueries({ queryKey: ["client-review-tasks"] });
+    queryClient.invalidateQueries({ queryKey: ["client-tasks-summary"] });
+    toast.success("Zadanie zaakceptowane!");
+    setSelectedTaskId(null);
+  }
+
+  async function handleReject(severity: string, reason: string) {
+    if (!selectedTaskId) return;
+    const { error } = await supabase.from("tasks").update({
+      status: "corrections" as any,
+      updated_at: new Date().toISOString(),
+      correction_severity: severity,
+      bug_reason: reason,
+    } as any).eq("id", selectedTaskId);
+    if (error) { toast.error("Błąd zgłaszania poprawek"); return; }
+    await supabase.from("task_status_history").insert({
+      task_id: selectedTaskId,
+      old_status: "client_review",
+      new_status: "corrections",
+      changed_by: user?.id,
+    });
+    // Add comment with feedback
+    if (user?.id) {
+      await supabase.from("comments").insert({
+        task_id: selectedTaskId,
+        user_id: user.id,
+        content: `📋 Uwagi klienta (${severity === "critical" ? "krytyczne" : "małe poprawki"}): ${reason}`,
+        type: "client",
+      });
+    }
+    queryClient.invalidateQueries({ queryKey: ["client-review-tasks"] });
+    queryClient.invalidateQueries({ queryKey: ["client-tasks-summary"] });
+    toast.success("Poprawki zgłoszone");
+    setSelectedTaskId(null);
+  }
 
   const statusColors: Record<string, string> = {
     active: "bg-emerald-500/15 text-emerald-700 border-emerald-400/50",
@@ -88,7 +161,7 @@ export default function ClientDashboard() {
                 <Clock className="h-5 w-5 text-amber-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{tasks?.review || 0}</p>
+                <p className="text-2xl font-bold">{taskSummary?.review || 0}</p>
                 <p className="text-sm text-muted-foreground">Do akceptacji</p>
               </div>
             </CardContent>
@@ -99,12 +172,56 @@ export default function ClientDashboard() {
                 <CheckCircle2 className="h-5 w-5 text-emerald-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{tasks?.done || 0}</p>
+                <p className="text-2xl font-bold">{taskSummary?.done || 0}</p>
                 <p className="text-sm text-muted-foreground">Zakończonych</p>
               </div>
             </CardContent>
           </Card>
         </div>
+
+        {/* Tasks awaiting review */}
+        {reviewTasks && reviewTasks.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Clock className="h-5 w-5 text-amber-600" />
+              Zadania do akceptacji ({reviewTasks.length})
+            </h3>
+            <div className="grid grid-cols-1 gap-3">
+              {reviewTasks.map((task: any) => (
+                <Card key={task.id} className="border-amber-500/30">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold">{task.title}</p>
+                        {task.projects?.name && (
+                          <p className="text-xs text-muted-foreground mt-0.5">{task.projects.name}</p>
+                        )}
+                        {task.description && (
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.description}</p>
+                        )}
+                        {task.due_date && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Termin: {new Date(task.due_date).toLocaleDateString("pl-PL")}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <Button
+                          size="sm"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs gap-1"
+                          onClick={() => { setSelectedTaskId(task.id); setReviewModalOpen(true); }}
+                        >
+                          <ShieldCheck className="h-3 w-3" />
+                          Sprawdź
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Projects list */}
         <div>
@@ -144,6 +261,13 @@ export default function ClientDashboard() {
           )}
         </div>
       </div>
+
+      <ClientReviewModal
+        open={reviewModalOpen}
+        onOpenChange={setReviewModalOpen}
+        onApprove={handleApprove}
+        onReject={handleReject}
+      />
     </AppLayout>
   );
 }

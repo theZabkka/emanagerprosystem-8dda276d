@@ -1,16 +1,26 @@
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Clock, Eye } from "lucide-react";
+import { AlertCircle, Clock, Eye, HelpCircle } from "lucide-react";
 
 interface TaskAlertBannersProps {
   unassignedCount: number;
   reviewCount: number;
   clientReviewCount: number;
+  notUnderstoodCount?: number;
   onFilterStatus: (status: string) => void;
 }
 
-export function TaskAlertBanners({ unassignedCount, reviewCount, clientReviewCount, onFilterStatus }: TaskAlertBannersProps) {
+export function TaskAlertBanners({ unassignedCount, reviewCount, clientReviewCount, notUnderstoodCount = 0, onFilterStatus }: TaskAlertBannersProps) {
   return (
     <>
+      {notUnderstoodCount > 0 && (
+        <div className="flex items-center justify-between px-5 py-3 rounded-xl bg-amber-500 text-white">
+          <div className="flex items-center gap-2">
+            <HelpCircle className="h-5 w-5" />
+            <span className="font-semibold text-sm">{notUnderstoodCount} zadań zgłoszonych jako niezrozumiałe — wymagana akcja koordynatora.</span>
+          </div>
+          <Button variant="secondary" size="sm" className="text-xs font-medium" onClick={() => onFilterStatus("all")}>Zobacz</Button>
+        </div>
+      )}
       {unassignedCount > 0 && (
         <div className="flex items-center justify-between px-5 py-3 rounded-xl bg-destructive text-destructive-foreground">
           <div className="flex items-center gap-2">
