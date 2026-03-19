@@ -28,7 +28,7 @@ import { toast } from "sonner";
 import {
   ChevronRight, Plus, Send, Clock, Play, FileText, Link as LinkIcon,
   CheckCircle2, MessageCircle, History, AlertTriangle, Eye, Zap,
-  Upload, Timer, UserPlus, Edit3, Bug, Lock, X, Trash2, HelpCircle
+  Upload, Timer, UserPlus, Edit3, Bug, Lock, X, Trash2, HelpCircle, ArrowLeft
 } from "lucide-react";
 import { NotUnderstoodModal, ChecklistBlockModal, ResponsibilityModal } from "@/components/tasks/WorkflowModals";
 import { useRole } from "@/hooks/useRole";
@@ -725,14 +725,21 @@ export default function TaskDetail() {
           </div>
         )}
 
-        {/* Breadcrumbs */}
-        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-          <Link to="/tasks" className="hover:text-foreground transition-colors">Zadania</Link>
-          <ChevronRight className="h-3 w-3" />
-          {task.clients?.name && <><Link to="/clients" className="hover:text-foreground transition-colors">{task.clients.name}</Link><ChevronRight className="h-3 w-3" /></>}
-          {task.projects?.name && <><span>{task.projects.name}</span><ChevronRight className="h-3 w-3" /></>}
-          <span className="text-foreground font-medium">{task.title}</span>
-        </div>
+        {/* Breadcrumbs / Client back button */}
+        {isClient ? (
+          <Link to="/client-dashboard" className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors">
+            <ArrowLeft className="h-4 w-4" />
+            Wróć do panelu klienta
+          </Link>
+        ) : (
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <Link to="/tasks" className="hover:text-foreground transition-colors">Zadania</Link>
+            <ChevronRight className="h-3 w-3" />
+            {task.clients?.name && <><Link to="/clients" className="hover:text-foreground transition-colors">{task.clients.name}</Link><ChevronRight className="h-3 w-3" /></>}
+            {task.projects?.name && <><span>{task.projects.name}</span><ChevronRight className="h-3 w-3" /></>}
+            <span className="text-foreground font-medium">{task.title}</span>
+          </div>
+        )}
 
         {/* Action buttons row */}
         <div className="flex flex-wrap items-center gap-2">
