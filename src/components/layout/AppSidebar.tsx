@@ -35,6 +35,7 @@ const sections = [
     label: "PRACA",
     items: [
       { title: "Zadania", url: "/tasks", icon: CheckSquare },
+      { title: "Archiwum", url: "/tasks/archive", icon: Archive },
       { title: "Projekty", url: "/projects", icon: FolderKanban },
       { title: "Tablica operacyjna", url: "/operational", icon: Columns3 },
       { title: "Tablica zespołu", url: "/team-board", icon: Users2 },
