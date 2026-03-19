@@ -374,6 +374,42 @@ export default function TaskDetail() {
     toast.success("Oznaczono jako wyjaśnione");
   }
 
+  // Client accept task
+  async function handleClientAccept() {
+    if (!task) return;
+    await supabase.from("tasks").update({ status: "client_verified" as any, updated_at: new Date().toISOString() }).eq("id", task.id);
+    await supabase.from("task_status_history").insert({ task_id: task.id, old_status: task.status, new_status: "client_verified", changed_by: user?.id });
+    queryClient.invalidateQueries({ queryKey: ["task", id] });
+    queryClient.invalidateQueries({ queryKey: ["status-history", id] });
+    toast.success("Zadanie zaakceptowane!");
+  }
+
+  // Client reject task (request corrections)
+  async function handleClientReject() {
+    if (!task || !correctionText.trim()) { toast.error("Opisz co wymaga poprawki"); return; }
+    // Insert correction record
+    await supabase.from("task_corrections").insert({
+      task_id: task.id,
+      created_by: user?.id,
+      severity: correctionSeverity,
+      description: correctionText,
+    });
+    // Update task status to corrections
+    await supabase.from("tasks").update({
+      status: "corrections" as any,
+      correction_severity: correctionSeverity,
+      updated_at: new Date().toISOString(),
+    } as any).eq("id", task.id);
+    await supabase.from("task_status_history").insert({ task_id: task.id, old_status: task.status, new_status: "corrections", changed_by: user?.id });
+    queryClient.invalidateQueries({ queryKey: ["task", id] });
+    queryClient.invalidateQueries({ queryKey: ["task-corrections", id] });
+    queryClient.invalidateQueries({ queryKey: ["status-history", id] });
+    setClientReviewOpen(false);
+    setCorrectionText("");
+    setCorrectionSeverity("normal");
+    toast.success("Poprawki zgłoszone");
+  }
+
   // 2. Brief editing
   function openBriefEditor() {
     if (!task) return;
