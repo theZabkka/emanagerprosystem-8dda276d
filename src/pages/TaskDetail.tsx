@@ -292,14 +292,14 @@ export default function TaskDetail() {
       }
     }
 
-    // Rule: client_review only from review
-    if (newStatus === "client_review" && task.status !== "review") {
-      toast.error("Zadanie może trafić do akceptacji klienta tylko ze statusu Weryfikacja");
+    // Rule: client_review only from review or corrections
+    if (newStatus === "client_review" && task.status !== "review" && task.status !== "corrections") {
+      toast.error("Zadanie może trafić do akceptacji klienta tylko ze statusu Weryfikacja lub Poprawki");
       return;
     }
 
-    // Rule: review -> client_review requires responsibility confirmation
-    if (task.status === "review" && newStatus === "client_review") {
+    // Rule: review/corrections -> client_review requires responsibility confirmation
+    if ((task.status === "review" || task.status === "corrections") && newStatus === "client_review") {
       setPendingStatus(newStatus);
       setResponsibilityOpen(true);
       return;
