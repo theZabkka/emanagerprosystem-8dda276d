@@ -37,6 +37,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Permissions = lazy(() => import("./pages/Permissions"));
 const ClientIdeas = lazy(() => import("./pages/ClientIdeas"));
 const StaffIdeas = lazy(() => import("./pages/StaffIdeas"));
+const TaskArchive = lazy(() => import("./pages/TaskArchive"));
 
 const queryClient = new QueryClient();
 
