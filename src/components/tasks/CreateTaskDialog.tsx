@@ -206,19 +206,28 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
               <Label>Klient</Label>
               <Select value={form.client_id} onValueChange={v => {
                 update("client_id", v === "__none" ? "" : v);
-                // Reset project if client changes
                 if (v === "__none" || v !== form.client_id) update("project_id", "");
               }}>
                 <SelectTrigger><SelectValue placeholder="Wybierz klienta..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none">— Brak —</SelectItem>
-                  {(clients || []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  {(filteredClients || []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
               <Label>Projekt</Label>
-              <Select value={form.project_id} onValueChange={v => update("project_id", v === "__none" ? "" : v)}>
+              <Select value={form.project_id} onValueChange={v => {
+                const val = v === "__none" ? "" : v;
+                update("project_id", val);
+                // Auto-set client from project
+                if (val) {
+                  const project = (allProjects || []).find((p: any) => p.id === val);
+                  if (project?.client_id && !form.client_id) {
+                    update("client_id", project.client_id);
+                  }
+                }
+              }}>
                 <SelectTrigger><SelectValue placeholder="Wybierz projekt..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none">— Brak —</SelectItem>
