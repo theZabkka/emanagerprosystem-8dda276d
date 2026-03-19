@@ -389,8 +389,10 @@ export default function TaskDetail() {
   // Client accept task
   async function handleClientAccept() {
     if (!task) return;
-    await supabase.from("tasks").update({ status: "client_verified" as any, updated_at: new Date().toISOString() }).eq("id", task.id);
-    await supabase.from("task_status_history").insert({ task_id: task.id, old_status: task.status, new_status: "client_verified", changed_by: user?.id });
+    const { error } = await supabase.rpc("change_task_status", {
+      _task_id: task.id, _new_status: "client_verified" as any, _changed_by: user?.id!,
+    });
+    if (error) { toast.error(error.message); return; }
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     queryClient.invalidateQueries({ queryKey: ["status-history", id] });
     toast.success("Zadanie zaakceptowane!");
