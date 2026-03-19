@@ -31,6 +31,7 @@ import {
   Upload, Timer, UserPlus, Edit3, Bug, Lock, X, Trash2, HelpCircle
 } from "lucide-react";
 import { NotUnderstoodModal, ChecklistBlockModal, ResponsibilityModal } from "@/components/tasks/WorkflowModals";
+import { useRole } from "@/hooks/useRole";
 
 const statusLabels: Record<string, string> = {
   new: "NOWE", todo: "DO ZROBIENIA", in_progress: "W REALIZACJI", review: "WERYFIKACJA",
