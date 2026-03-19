@@ -31,6 +31,7 @@ import {
   Upload, Timer, UserPlus, Edit3, Bug, Lock, X, Trash2, HelpCircle
 } from "lucide-react";
 import { NotUnderstoodModal, ChecklistBlockModal, ResponsibilityModal } from "@/components/tasks/WorkflowModals";
+import { useRole } from "@/hooks/useRole";
 
 const statusLabels: Record<string, string> = {
   new: "NOWE", todo: "DO ZROBIENIA", in_progress: "W REALIZACJI", review: "WERYFIKACJA",
@@ -96,6 +97,7 @@ export default function TaskDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { isDemo } = useDataSource();
+  const { isClient, currentRole } = useRole();
   const queryClient = useQueryClient();
   const [commentText, setCommentText] = useState("");
   const [commentType, setCommentType] = useState("internal");
@@ -679,19 +681,19 @@ export default function TaskDetail() {
 
         {/* Action buttons row */}
         <div className="flex flex-wrap items-center gap-2">
-          {!isPreviewMode ? (
+          {!isClient && !isPreviewMode ? (
             <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsPreviewMode(true)}><Eye className="h-3 w-3" />Zobacz jako klient</Button>
-          ) : (
+          ) : !isClient && isPreviewMode ? (
             <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsPreviewMode(false)}><Eye className="h-3 w-3" />Wróć do widoku pełnego</Button>
-          )}
-          {!isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><FileText className="h-3 w-3" />Zastosuj szablon</Button>}
-          {!isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><Zap className="h-3 w-3" />Uruchom automatyzację</Button>}
-          {!isPreviewMode && (task.status === "in_progress" || task.status === "todo") && !(task as any).not_understood && (
+          ) : null}
+          {!isClient && !isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><FileText className="h-3 w-3" />Zastosuj szablon</Button>}
+          {!isClient && !isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><Zap className="h-3 w-3" />Uruchom automatyzację</Button>}
+          {!isClient && !isPreviewMode && (task.status === "in_progress" || task.status === "todo") && !(task as any).not_understood && (
             <Button variant="outline" size="sm" className="text-xs gap-1.5 border-amber-500/50 text-amber-600 hover:bg-amber-500/10" onClick={() => setNotUnderstoodOpen(true)}>
               <HelpCircle className="h-3 w-3" />Nie rozumiem polecenia
             </Button>
           )}
-          {!isPreviewMode && <Button size="sm" className="text-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground"><MessageCircle className="h-3 w-3" />Czat zadania</Button>}
+          {!isClient && !isPreviewMode && <Button size="sm" className="text-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground"><MessageCircle className="h-3 w-3" />Czat zadania</Button>}
         </div>
 
         {/* Not understood banner */}
@@ -711,7 +713,7 @@ export default function TaskDetail() {
         {/* Tags row with status dropdown */}
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="text-xs font-mono">#{task.id.slice(0, 8)}</Badge>
-          {!isPreviewMode ? (
+          {!isPreviewMode && !isClient ? (
             <Popover>
               <PopoverTrigger asChild>
                 <button className="cursor-pointer">
@@ -757,22 +759,24 @@ export default function TaskDetail() {
         {/* Cards grid */}
         <div className="space-y-4">
 
-          {/* Brief - hidden in preview */}
+          {/* Brief - hidden in preview, read-only for clients */}
           {!isPreviewMode && <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold">Brief zadania</CardTitle>
-                <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={openBriefEditor}><Edit3 className="h-3 w-3" />Edytuj brief</Button>
+                {!isClient && <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={openBriefEditor}><Edit3 className="h-3 w-3" />Edytuj brief</Button>}
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
+              {!isClient && (
               <div className="flex items-center gap-3">
                 <Progress value={(briefFilledCount / briefFields.length) * 100} className="h-2 flex-1" />
                 <span className={`text-xs font-semibold ${briefFilledCount === 0 ? "text-destructive" : briefFilledCount < briefFields.length ? "text-amber-600" : "text-green-600"}`}>
                   {briefFilledCount}/{briefFields.length} pól
                 </span>
               </div>
-              {briefFilledCount === 0 && (
+              )}
+              {!isClient && briefFilledCount === 0 && (
                 <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 rounded-md px-3 py-2">
                   <AlertTriangle className="h-3.5 w-3.5" />
                   Brief jest pusty! Uzupełnij go, aby zespół wiedział, co robić.
@@ -795,8 +799,8 @@ export default function TaskDetail() {
             </CardContent>
           </Card>}
 
-          {/* Assigned people - hidden in preview */}
-          {!isPreviewMode && <Card>
+          {/* Assigned people - hidden in preview and for clients */}
+          {!isPreviewMode && !isClient && <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold">Przypisane osoby</CardTitle>
@@ -877,8 +881,8 @@ export default function TaskDetail() {
             </Card>
           )}
 
-          {/* Subtasks */}
-          <Card>
+          {/* Subtasks - read-only for clients */}
+          {!isClient && <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold">
                 Podzadania <span className="text-muted-foreground font-normal ml-1">{completedSubtasks} z {subtasks?.length || 0} Ukończonych</span>
@@ -887,11 +891,11 @@ export default function TaskDetail() {
             <CardContent className="space-y-2">
               {subtasks?.map((s: any) => (
                 <div key={s.id} className="flex items-center gap-2 py-0.5">
-                  <Checkbox checked={s.is_completed} disabled={isPreviewMode} onCheckedChange={() => !isPreviewMode && toggleSubtask(s.id, s.is_completed)} />
+                  <Checkbox checked={s.is_completed} disabled={isPreviewMode || isClient} onCheckedChange={() => !isPreviewMode && !isClient && toggleSubtask(s.id, s.is_completed)} />
                   <span className={`text-sm flex-1 ${s.is_completed ? "line-through text-muted-foreground" : ""}`}>{s.title}</span>
                 </div>
               ))}
-              {!isPreviewMode && (
+              {!isPreviewMode && !isClient && (
               <div className="flex gap-2 pt-1">
                 <Input placeholder="Dodaj podzadanie..." value={newSubtask} onChange={e => setNewSubtask(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && addSubtask()} className="text-sm h-8" />
@@ -899,9 +903,9 @@ export default function TaskDetail() {
               </div>
               )}
             </CardContent>
-          </Card>
+          </Card>}
 
-          {/* Checklists */}
+          {/* Checklists - read-only for clients */}
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
@@ -916,20 +920,22 @@ export default function TaskDetail() {
                       <p className="text-sm font-medium">{cl.title}</p>
                       {(cl.items || []).map((item: any) => (
                         <div key={item.id} className="flex items-center gap-2 pl-2">
-                          <Checkbox checked={item.is_completed} disabled={item.is_na || isPreviewMode}
-                            onCheckedChange={() => !isPreviewMode && toggleChecklistItem(item.id, item.is_completed)} />
+                          <Checkbox checked={item.is_completed} disabled={item.is_na || isPreviewMode || isClient}
+                            onCheckedChange={() => !isPreviewMode && !isClient && toggleChecklistItem(item.id, item.is_completed)} />
                           <span className={`text-sm ${item.is_completed ? "line-through text-muted-foreground" : ""} ${item.is_na ? "text-muted-foreground italic" : ""}`}>
                             {item.title}
                           </span>
                           {item.is_na && <Badge variant="outline" className="text-[9px] h-4">N/A</Badge>}
                         </div>
                       ))}
+                      {!isClient && (
                       <div className="flex gap-2 pl-2">
                         <Input placeholder="Dodaj element..." value={newChecklistItemTexts[cl.id] || ""}
                           onChange={e => setNewChecklistItemTexts(prev => ({ ...prev, [cl.id]: e.target.value }))}
                           onKeyDown={e => e.key === "Enter" && addChecklistItem(cl.id)} className="text-sm h-7" />
                         <Button size="sm" variant="ghost" onClick={() => addChecklistItem(cl.id)} className="h-7 w-7 p-0"><Plus className="h-3 w-3" /></Button>
                       </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -937,6 +943,8 @@ export default function TaskDetail() {
               {(!checklists || checklists.length === 0) && (
                 <p className="text-sm text-muted-foreground">Brak list kontrolnych.</p>
               )}
+              {!isClient && (
+              <>
               <Separator />
               <div className="flex gap-2">
                 <Input placeholder="Nazwa nowej listy kontrolnej..." value={newChecklistName}
@@ -944,11 +952,13 @@ export default function TaskDetail() {
                   onKeyDown={e => e.key === "Enter" && addChecklist()} className="text-sm h-8" />
                 <Button variant="outline" size="sm" className="text-xs gap-1.5 h-8" onClick={addChecklist}><Plus className="h-3 w-3" />Dodaj listę</Button>
               </div>
+              </>
+              )}
             </CardContent>
           </Card>
 
-          {/* Client visible toggle - hidden in preview */}
-          {!isPreviewMode && (
+          {/* Client visible toggle - hidden in preview and for clients */}
+          {!isPreviewMode && !isClient && (
           <Card>
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
@@ -966,8 +976,8 @@ export default function TaskDetail() {
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold">Materiały <span className="text-muted-foreground font-normal">({(isPreviewMode ? materials?.filter((m: any) => m.is_visible_to_client) : materials)?.length || 0})</span></CardTitle>
-                {!isPreviewMode && (
+                <CardTitle className="text-sm font-semibold">Materiały <span className="text-muted-foreground font-normal">({((isPreviewMode || isClient) ? materials?.filter((m: any) => m.is_visible_to_client) : materials)?.length || 0})</span></CardTitle>
+                {!isPreviewMode && !isClient && (
                 <div className="flex gap-1.5">
                   <input ref={fileInputRef} type="file" className="hidden" onChange={e => { if (e.target.files?.[0]) uploadFile(e.target.files[0]); e.target.value = ""; }} />
                   <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => fileInputRef.current?.click()}><Upload className="h-3 w-3" />Plik</Button>
@@ -978,7 +988,7 @@ export default function TaskDetail() {
             </CardHeader>
             <CardContent>
               {(() => {
-                const filteredMats = isPreviewMode ? (materials || []).filter((m: any) => m.is_visible_to_client) : (materials || []);
+                const filteredMats = (isPreviewMode || isClient) ? (materials || []).filter((m: any) => m.is_visible_to_client) : (materials || []);
                 return filteredMats.length > 0 ? (
                 <div className="space-y-2">
                   {filteredMats.map((m: any) => (
@@ -994,8 +1004,8 @@ export default function TaskDetail() {
                           {isDemo ? mockProfiles.find(p => p.id === m.uploaded_by)?.full_name : m.profiles?.full_name} • {new Date(m.created_at).toLocaleDateString("pl-PL")}
                         </span>
                       </div>
-                      {m.is_visible_to_client && !isPreviewMode && <Badge variant="outline" className="text-[9px] h-4">Klient</Badge>}
-                      {!isPreviewMode && (
+                      {m.is_visible_to_client && !isPreviewMode && !isClient && <Badge variant="outline" className="text-[9px] h-4">Klient</Badge>}
+                      {!isPreviewMode && !isClient && (
                       <button onClick={() => deleteMaterial(m.id)}
                         className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive/80 transition-opacity">
                         <Trash2 className="h-3.5 w-3.5" />
@@ -1011,8 +1021,8 @@ export default function TaskDetail() {
             </CardContent>
           </Card>
 
-          {/* Time tracking - hidden in preview */}
-          {!isPreviewMode && (<Card>
+          {/* Time tracking - hidden in preview and for clients */}
+          {!isPreviewMode && !isClient && (<Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold">Czas pracy</CardTitle>
             </CardHeader>
@@ -1083,12 +1093,12 @@ export default function TaskDetail() {
             </CardContent>
           </Card>)}
 
-          {/* Comments */}
+          {/* Comments - clients only see requires_client_reply comments */}
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold">Komentarze</CardTitle>
-                {!isPreviewMode && (
+                {!isPreviewMode && !isClient && (
                 <div className="flex gap-1">
                   {["all", "internal", "client"].map(f => (
                     <Button key={f} variant={commentFilter === f ? "default" : "outline"} size="sm" className="text-[10px] h-6 px-2"
@@ -1103,43 +1113,64 @@ export default function TaskDetail() {
             <CardContent className="space-y-3">
               <div className="space-y-3">
                 {(() => {
-                  const displayComments = isPreviewMode
-                    ? filteredComments.filter((c: any) => c.type !== "internal")
-                    : filteredComments;
+                  let displayComments = filteredComments;
+                  if (isClient) {
+                    displayComments = (comments || []).filter((c: any) => c.requires_client_reply === true);
+                  } else if (isPreviewMode) {
+                    displayComments = filteredComments.filter((c: any) => c.type !== "internal");
+                  }
                   return displayComments.length > 0 ? displayComments.map((c: any) => (
-                  <div key={c.id} className="flex gap-3">
-                    <Avatar className="h-7 w-7 mt-0.5">
-                      <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-bold">
-                        {(c.profiles?.full_name || (isDemo ? mockProfiles.find(p => p.id === c.user_id)?.full_name : "?") || "?").split(" ").map((n: string) => n[0]).join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{c.profiles?.full_name || (isDemo ? mockProfiles.find(p => p.id === c.user_id)?.full_name : "?")}</span>
-                        <Badge variant={c.type === "client" ? "default" : "outline"} className="text-[9px] h-4">
-                          {c.type === "client" ? "Klient" : "Wewnętrzny"}
-                        </Badge>
-                        <span className="text-[10px] text-muted-foreground">{new Date(c.created_at).toLocaleString("pl-PL")}</span>
+                  <div key={c.id} className="space-y-2">
+                    <div className="flex gap-3">
+                      <Avatar className="h-7 w-7 mt-0.5">
+                        <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-bold">
+                          {(c.profiles?.full_name || (isDemo ? mockProfiles.find(p => p.id === c.user_id)?.full_name : "?") || "?").split(" ").map((n: string) => n[0]).join("")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium">{c.profiles?.full_name || (isDemo ? mockProfiles.find(p => p.id === c.user_id)?.full_name : "?")}</span>
+                          {!isClient && (
+                          <Badge variant={c.type === "client" ? "default" : "outline"} className="text-[9px] h-4">
+                            {c.type === "client" ? "Klient" : "Wewnętrzny"}
+                          </Badge>
+                          )}
+                          {c.requires_client_reply && !isClient && <Badge className="text-[9px] h-4 bg-amber-500 text-white">Wymaga odpowiedzi klienta</Badge>}
+                          <span className="text-[10px] text-muted-foreground">{new Date(c.created_at).toLocaleString("pl-PL")}</span>
+                        </div>
+                        <p className="text-sm mt-0.5">{c.content}</p>
+                        {/* Client reply */}
+                        {c.client_reply && (
+                          <div className="mt-2 bg-primary/5 border border-primary/20 rounded-md px-3 py-2">
+                            <p className="text-[10px] font-semibold text-primary uppercase mb-1">Odpowiedź klienta</p>
+                            <p className="text-sm">{c.client_reply}</p>
+                          </div>
+                        )}
+                        {/* Client reply input */}
+                        {isClient && c.requires_client_reply && !c.client_reply && (
+                          <ClientReplyInput commentId={c.id} taskId={id!} />
+                        )}
                       </div>
-                      <p className="text-sm mt-0.5">{c.content}</p>
                     </div>
                   </div>
                 )) : (
-                  <p className="text-sm text-muted-foreground">Brak komentarzy.</p>
+                  <p className="text-sm text-muted-foreground">{isClient ? "Brak pytań wymagających odpowiedzi." : "Brak komentarzy."}</p>
                 );
                 })()}
               </div>
-              {!isPreviewMode && (
+              {!isPreviewMode && !isClient && (
               <>
               <Separator />
               <div className="flex gap-2 items-end">
                 <div className="flex-1 space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="internal-comment" checked={commentType === "internal"} onCheckedChange={(v) => setCommentType(v ? "internal" : "client")} />
-                    <Label htmlFor="internal-comment" className="text-xs flex items-center gap-1 cursor-pointer">
-                      <Lock className="h-3 w-3 text-amber-500" />
-                      Komentarz wewnętrzny
-                    </Label>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Checkbox id="internal-comment" checked={commentType === "internal"} onCheckedChange={(v) => setCommentType(v ? "internal" : "client")} />
+                      <Label htmlFor="internal-comment" className="text-xs flex items-center gap-1 cursor-pointer">
+                        <Lock className="h-3 w-3 text-amber-500" />
+                        Wewnętrzny
+                      </Label>
+                    </div>
                   </div>
                   <Textarea value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Napisz komentarz..."
                     onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); addComment(); } }} className="min-h-[50px] text-sm" />
@@ -1151,8 +1182,8 @@ export default function TaskDetail() {
             </CardContent>
           </Card>
 
-          {/* Status history - hidden in preview */}
-          {!isPreviewMode && (
+          {/* Status history - hidden in preview and for clients */}
+          {!isPreviewMode && !isClient && (
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold flex items-center gap-1.5"><History className="h-4 w-4" />Historia statusów</CardTitle>
@@ -1259,5 +1290,27 @@ export default function TaskDetail() {
         }}
       />
     </AppLayout>
+  );
+}
+
+// Small inline component for client reply input
+function ClientReplyInput({ commentId, taskId }: { commentId: string; taskId: string }) {
+  const [reply, setReply] = useState("");
+  const queryClient = useQueryClient();
+
+  async function submitReply() {
+    if (!reply.trim()) return;
+    const { error } = await supabase.from("comments").update({ client_reply: reply } as any).eq("id", commentId);
+    if (error) { toast.error("Błąd wysyłania odpowiedzi"); return; }
+    queryClient.invalidateQueries({ queryKey: ["comments", taskId] });
+    setReply("");
+    toast.success("Odpowiedź wysłana");
+  }
+
+  return (
+    <div className="mt-2 flex gap-2">
+      <Textarea value={reply} onChange={e => setReply(e.target.value)} placeholder="Napisz odpowiedź..." className="min-h-[40px] text-sm" />
+      <Button size="sm" onClick={submitReply} disabled={!reply.trim()} className="self-end"><Send className="h-3 w-3" /></Button>
+    </div>
   );
 }

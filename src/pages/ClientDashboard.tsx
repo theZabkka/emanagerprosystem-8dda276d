@@ -3,7 +3,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FolderKanban, ArrowRight, CheckCircle2, Clock, ShieldCheck, AlertTriangle } from "lucide-react";
+import { FolderKanban, ArrowRight, CheckCircle2, Clock, ShieldCheck, AlertTriangle, Archive } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/hooks/useRole";
@@ -62,6 +62,23 @@ export default function ClientDashboard() {
         .eq("status", "client_review" as any)
         .eq("is_client_visible", true)
         .order("due_date", { ascending: true });
+      return data || [];
+    },
+    enabled: !!clientId,
+  });
+
+  // Fetch archived (completed) tasks
+  const { data: archivedTasks } = useQuery({
+    queryKey: ["client-archived-tasks", clientId],
+    queryFn: async () => {
+      if (!clientId) return [];
+      const { data } = await supabase
+        .from("tasks")
+        .select("id, title, due_date, type, projects(name), status")
+        .eq("client_id", clientId)
+        .eq("is_client_visible", true)
+        .in("status", ["client_verified", "done", "closed"] as any)
+        .order("updated_at", { ascending: false });
       return data || [];
     },
     enabled: !!clientId,
@@ -260,6 +277,32 @@ export default function ClientDashboard() {
             </Card>
           )}
         </div>
+
+        {/* Archive */}
+        {archivedTasks && archivedTasks.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Archive className="h-5 w-5 text-muted-foreground" />
+              Archiwum zakończonych zadań ({archivedTasks.length})
+            </h3>
+            <div className="grid grid-cols-1 gap-2">
+              {archivedTasks.map((task: any) => (
+                <Card key={task.id} className="opacity-75 hover:opacity-100 transition-opacity cursor-pointer" onClick={() => navigate(`/tasks/${task.id}`)}>
+                  <CardContent className="p-3 flex items-center gap-3">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{task.title}</p>
+                      <p className="text-xs text-muted-foreground">{(task.projects as any)?.name}</p>
+                    </div>
+                    <Badge variant="outline" className="text-[10px]">
+                      {task.status === "client_verified" ? "Zaakceptowane" : task.status === "closed" ? "Zamknięte" : "Gotowe"}
+                    </Badge>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <ClientReviewModal

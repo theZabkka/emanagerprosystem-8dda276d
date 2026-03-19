@@ -16,6 +16,7 @@ import { ChecklistBlockModal, ResponsibilityModal } from "./WorkflowModals";
 const KANBAN_COLUMNS = [
   { key: "todo", label: "DO ZROBIENIA" },
   { key: "in_progress", label: "W REALIZACJI" },
+  { key: "waiting_for_client", label: "OCZEKIWANIE NA KLIENTA" },
   { key: "review", label: "WERYFIKACJA" },
   { key: "corrections", label: "POPRAWKI" },
   { key: "client_review", label: "DO AKCEPTACJI KLIENTA" },

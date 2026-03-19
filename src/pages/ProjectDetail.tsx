@@ -1,4 +1,5 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useRole } from "@/hooks/useRole";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,6 +46,7 @@ export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isDemo } = useDataSource();
+  const { isClient } = useRole();
   const [activeTab, setActiveTab] = useState<"tasks" | "budget" | "brief">("tasks");
   const [editingBrief, setEditingBrief] = useState(false);
   const [editedBrief, setEditedBrief] = useState<BriefQuestion[]>([]);
@@ -173,7 +175,7 @@ export default function ProjectDetail() {
 
   const tabs = [
     { key: "tasks" as const, label: "Zadania", icon: ListChecks, count: totalTasks },
-    { key: "budget" as const, label: "Budżet", icon: Briefcase },
+    ...(!isClient ? [{ key: "budget" as const, label: "Budżet", icon: Briefcase }] : []),
     { key: "brief" as const, label: "Brief", icon: FileText },
   ];
 
@@ -182,8 +184,8 @@ export default function ProjectDetail() {
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div className="space-y-3">
-          <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground -ml-2" onClick={() => navigate("/projects")}>
-            <ArrowLeft className="h-4 w-4" /> Wróć do projektów
+          <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground -ml-2" onClick={() => navigate(isClient ? "/client-dashboard" : "/projects")}>
+            <ArrowLeft className="h-4 w-4" /> {isClient ? "Wróć do dashboardu" : "Wróć do projektów"}
           </Button>
 
           <div className="flex items-start gap-3 flex-wrap">
@@ -324,11 +326,11 @@ export default function ProjectDetail() {
                     {hasBrief ? "Wypełniony ✓" : "Brak"}
                   </Badge>
                 </div>
-                {!editingBrief ? (
+                {!isClient && !editingBrief ? (
                   <Button variant="ghost" size="sm" className="gap-1 text-xs" onClick={startEdit}>
                     <Pencil className="h-3 w-3" /> Edytuj
                   </Button>
-                ) : (
+                ) : editingBrief ? (
                   <div className="flex gap-1">
                     <Button variant="ghost" size="sm" className="gap-1 text-xs" onClick={() => setEditingBrief(false)}>
                       <X className="h-3 w-3" /> Anuluj
@@ -337,7 +339,7 @@ export default function ProjectDetail() {
                       <Save className="h-3 w-3" /> Zapisz
                     </Button>
                   </div>
-                )}
+                ) : null}
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* AI Summary */}
