@@ -109,6 +109,20 @@ export default function Tasks() {
     refetch();
   }
 
+  async function handleArchive(taskId: string) {
+    if (isDemo) {
+      queryClient.setQueryData(["tasks", statusFilter, priorityFilter, isDemo], (old: any[]) =>
+        old?.map(t => t.id === taskId ? { ...t, is_archived: true } : t)
+      );
+      toast.success("Zadanie zarchiwizowane (demo)");
+      return;
+    }
+    const { error } = await supabase.from("tasks").update({ is_archived: true, updated_at: new Date().toISOString() } as any).eq("id", taskId);
+    if (error) { toast.error("Błąd archiwizacji"); return; }
+    toast.success("Zadanie zarchiwizowane");
+    refetch();
+  }
+
   return (
     <AppLayout title="Zadania">
       <div className="space-y-4 mx-auto">
@@ -140,6 +154,7 @@ export default function Tasks() {
             assignments={isDemo ? mockTaskAssignments : filteredTasks.flatMap((t: any) => (t.task_assignments || []).map((a: any) => ({ ...a, task_id: t.id })))}
             clients={isDemo ? mockClients : filteredTasks.map((t: any) => t.clients ? { id: t.client_id, name: t.clients.name } : null).filter(Boolean)}
             onStatusChange={handleStatusChange}
+            onArchive={handleArchive}
             onRefresh={() => refetch()}
           />
         ) : (
