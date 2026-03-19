@@ -89,6 +89,15 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
     return allProjects.filter((p: any) => p.client_id === form.client_id);
   }, [allProjects, form.client_id]);
 
+  // Filter clients by selected project (reverse filtering)
+  const filteredClients = useMemo(() => {
+    if (!clients) return [];
+    if (!form.project_id) return clients;
+    const project = (allProjects || []).find((p: any) => p.id === form.project_id);
+    if (project?.client_id) return clients.filter((c: any) => c.id === project.client_id);
+    return clients;
+  }, [clients, allProjects, form.project_id]);
+
   const update = (field: string, value: any) => setForm(prev => ({ ...prev, [field]: value }));
 
   const toggleUser = (userId: string) => {
