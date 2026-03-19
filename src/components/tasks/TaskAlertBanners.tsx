@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button";
 import { AlertCircle, Clock, Eye, HelpCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface TaskAlertBannersProps {
   unassignedCount: number;
@@ -22,12 +22,11 @@ export function TaskAlertBanners({ unassignedCount, reviewCount, clientReviewCou
         </div>
       )}
       {unassignedCount > 0 && (
-        <div className="flex items-center justify-between px-5 py-3 rounded-xl bg-destructive text-destructive-foreground">
+        <div className="flex items-center px-5 py-3 rounded-xl bg-destructive text-destructive-foreground">
           <div className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5" />
-            <span className="font-semibold text-sm">{unassignedCount} zadań nieprzypisanych.</span>
+            <span className="font-semibold text-sm">{unassignedCount} zadań nieprzypisanych — wymagają natychmiastowego przypisania osoby odpowiedzialnej.</span>
           </div>
-          <Button variant="secondary" size="sm" className="text-xs font-medium" onClick={() => onFilterStatus("all")}>Przypisz</Button>
         </div>
       )}
       {reviewCount > 0 && (

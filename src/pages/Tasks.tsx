@@ -14,7 +14,7 @@ import { TaskFilters } from "@/components/tasks/TaskFilters";
 import { KanbanSkeleton } from "@/components/skeletons/KanbanSkeleton";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 
-function enrichDemoTasks(statusFilter: string, priorityFilter: string) {
+function enrichDemoTasks(priorityFilter: string) {
   let tasks = mockTasks
     .filter(t => !t.is_archived)
     .map(t => {
@@ -25,7 +25,6 @@ function enrichDemoTasks(statusFilter: string, priorityFilter: string) {
     const project = mockProjects.find(p => p.id === t.project_id);
     return { ...t, task_assignments: assignments, clients: client ? { name: client.name } : null, projects: project ? { name: project.name } : null };
   });
-  if (statusFilter !== "all") tasks = tasks.filter(t => t.status === statusFilter);
   if (priorityFilter !== "all") tasks = tasks.filter(t => t.priority === priorityFilter);
   return tasks;
 }
@@ -35,22 +34,20 @@ export default function Tasks() {
   const { isDemo } = useDataSource();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const { data: tasks, isLoading, refetch } = useQuery({
-    queryKey: ["tasks", statusFilter, priorityFilter, isDemo],
+    queryKey: ["tasks", priorityFilter, isDemo],
     queryFn: async () => {
-      if (isDemo) return enrichDemoTasks(statusFilter, priorityFilter);
+      if (isDemo) return enrichDemoTasks(priorityFilter);
       let query = supabase
         .from("tasks")
         .select("*, clients(name), projects(name), task_assignments(user_id, role, profiles:user_id(full_name))")
         .eq("is_archived", false)
         .order("created_at", { ascending: false });
-      if (statusFilter !== "all") query = query.eq("status", statusFilter as any);
       if (priorityFilter !== "all") query = query.eq("priority", priorityFilter as any);
       const { data, error } = await query;
       if (error) throw error;
@@ -78,9 +75,15 @@ export default function Tasks() {
   const clientReviewCount = allTasks.filter((t: any) => t.status === "client_review").length;
   const notUnderstoodCount = allTasks.filter((t: any) => t.not_understood).length;
 
+  // onFilterStatus is kept for review/client_review alerts but no longer sets status filter
+  const handleFilterStatus = (_status: string) => {
+    // Status filter removed - alerts are informational only for unassigned
+    // For review/client_review we could scroll or highlight but no filter action
+  };
+
   async function handleStatusChange(taskId: string, newStatus: string) {
     if (isDemo) {
-      queryClient.setQueryData(["tasks", statusFilter, priorityFilter, isDemo], (old: any[]) =>
+      queryClient.setQueryData(["tasks", priorityFilter, isDemo], (old: any[]) =>
         old?.map(t => {
           if (t.id !== taskId) return t;
           const updates: any = { status: newStatus, updated_at: new Date().toISOString() };
@@ -94,11 +97,9 @@ export default function Tasks() {
     }
 
     const updates: any = { status: newStatus as any, updated_at: new Date().toISOString() };
-    // Set verification_start_time when entering review
     if (newStatus === "review") {
       updates.verification_start_time = new Date().toISOString();
     }
-    // Clear when leaving review
     if (newStatus !== "review") {
       updates.verification_start_time = null;
     }
@@ -111,7 +112,7 @@ export default function Tasks() {
 
   async function handleArchive(taskId: string) {
     if (isDemo) {
-      queryClient.setQueryData(["tasks", statusFilter, priorityFilter, isDemo], (old: any[]) =>
+      queryClient.setQueryData(["tasks", priorityFilter, isDemo], (old: any[]) =>
         old?.map(t => t.id === taskId ? { ...t, is_archived: true } : t)
       );
       toast.success("Zadanie zarchiwizowane (demo)");
@@ -131,12 +132,11 @@ export default function Tasks() {
           reviewCount={reviewCount}
           clientReviewCount={clientReviewCount}
           notUnderstoodCount={notUnderstoodCount}
-          onFilterStatus={setStatusFilter}
+          onFilterStatus={handleFilterStatus}
         />
 
         <TaskFilters
           search={search} onSearchChange={setSearch}
-          statusFilter={statusFilter} onStatusChange={setStatusFilter}
           priorityFilter={priorityFilter} onPriorityChange={setPriorityFilter}
           typeFilter={typeFilter} onTypeChange={setTypeFilter}
           viewMode={viewMode} onViewModeChange={setViewMode}
