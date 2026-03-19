@@ -956,6 +956,54 @@ export type Database = {
           },
         ]
       }
+      task_corrections: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string
+          id: string
+          resolved_at: string | null
+          severity: string
+          status: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description: string
+          id?: string
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string
+          id?: string
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_corrections_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_corrections_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_materials: {
         Row: {
           created_at: string | null
