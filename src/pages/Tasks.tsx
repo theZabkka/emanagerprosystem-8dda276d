@@ -96,15 +96,11 @@ export default function Tasks() {
       return;
     }
 
-    const updates: any = { status: newStatus as any, updated_at: new Date().toISOString() };
-    if (newStatus === "review") {
-      updates.verification_start_time = new Date().toISOString();
-    }
-    if (newStatus !== "review") {
-      updates.verification_start_time = null;
-    }
-
-    const { error } = await supabase.from("tasks").update(updates).eq("id", taskId);
+    const { error } = await supabase.rpc("change_task_status", {
+      _task_id: taskId,
+      _new_status: newStatus as any,
+      _changed_by: user?.id!,
+    });
     if (error) { toast.error("Błąd aktualizacji statusu"); return; }
     toast.success("Status zaktualizowany");
     refetch();
