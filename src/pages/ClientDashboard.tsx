@@ -67,16 +67,15 @@ export default function ClientDashboard() {
     enabled: !!clientId,
   });
 
-  // Fetch archived (completed) tasks
+  // Fetch archived (completed) tasks - client sees all finished tasks in their projects
   const { data: archivedTasks } = useQuery({
     queryKey: ["client-archived-tasks", clientId],
     queryFn: async () => {
       if (!clientId) return [];
       const { data } = await supabase
         .from("tasks")
-        .select("id, title, due_date, type, projects(name), status")
+        .select("id, title, due_date, type, projects(name), status, updated_at")
         .eq("client_id", clientId)
-        .eq("is_client_visible", true)
         .in("status", ["client_verified", "done", "closed"] as any)
         .order("updated_at", { ascending: false });
       return data || [];
