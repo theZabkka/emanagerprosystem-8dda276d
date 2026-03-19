@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useDataSource } from "@/hooks/useDataSource";
 import { mockProfiles } from "@/lib/mockData";
 import { toast } from "sonner";
+import { ChecklistBlockModal, ResponsibilityModal } from "./WorkflowModals";
 
 const KANBAN_COLUMNS = [
   { key: "todo", label: "DO ZROBIENIA" },
@@ -18,6 +19,7 @@ const KANBAN_COLUMNS = [
   { key: "review", label: "WERYFIKACJA" },
   { key: "corrections", label: "POPRAWKI" },
   { key: "client_review", label: "DO AKCEPTACJI KLIENTA" },
+  { key: "client_verified", label: "ZWERYFIKOWANE" },
 ] as const;
 
 const PRIORITY_CONFIG: Record<string, { label: string; border: string; bg: string; text: string }> = {
@@ -42,8 +44,10 @@ interface TaskKanbanBoardProps {
 
 export default function TaskKanbanBoard({ tasks, profiles, assignments, clients, onStatusChange, onRefresh }: TaskKanbanBoardProps) {
   const { isDemo } = useDataSource();
+  const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
+  const [responsibilityOpen, setResponsibilityOpen] = useState(false);
+  const [pendingMove, setPendingMove] = useState<{ taskId: string; newStatus: string } | null>(null);
 
-  // Fetch all profiles for assignment popover
   const { data: allProfiles } = useQuery({
     queryKey: ["kanban-profiles", isDemo],
     queryFn: async () => {
@@ -53,10 +57,32 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
     },
   });
 
+  // Fetch checklists for checklist validation
+  const { data: allChecklists } = useQuery({
+    queryKey: ["kanban-checklists", isDemo],
+    queryFn: async () => {
+      if (isDemo) return [];
+      const { data } = await supabase.from("checklists").select("task_id, checklist_items(is_completed, is_na)");
+      return data || [];
+    },
+  });
+
+  const isChecklistComplete = useCallback((taskId: string) => {
+    if (!allChecklists) return true; // no checklists = no block
+    const taskChecklists = allChecklists.filter((cl: any) => cl.task_id === taskId);
+    if (taskChecklists.length === 0) return true;
+    for (const cl of taskChecklists) {
+      const items = (cl as any).checklist_items || [];
+      if (items.length === 0) continue;
+      const allDone = items.every((i: any) => i.is_completed || i.is_na);
+      if (!allDone) return false;
+    }
+    return true;
+  }, [allChecklists]);
+
   const getAssignee = useCallback((taskId: string) => {
     const a = assignments.find((a: any) => a.task_id === taskId && a.role === "primary");
     if (!a) return null;
-    // Try profiles prop first, then allProfiles (from own query), then embedded profile data
     return profiles.find((p: any) => p.id === a.user_id)
       || (allProfiles || []).find((p: any) => p.id === a.user_id)
       || (a.profiles ? { id: a.user_id, full_name: a.profiles.full_name } : null);
@@ -90,9 +116,37 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
     return null;
   };
 
+  const validateAndMove = (taskId: string, newStatus: string) => {
+    const task = tasks.find((t: any) => t.id === taskId);
+    if (!task) return;
+
+    // Rule: in_progress -> review requires complete checklist
+    if (task.status === "in_progress" && newStatus === "review") {
+      if (!isChecklistComplete(taskId)) {
+        setChecklistBlockOpen(true);
+        return;
+      }
+    }
+
+    // Rule: client_review only from review
+    if (newStatus === "client_review" && task.status !== "review") {
+      toast.error("Zadanie może trafić do akceptacji klienta tylko ze statusu Weryfikacja");
+      return;
+    }
+
+    // Rule: review -> client_review requires responsibility confirmation
+    if (task.status === "review" && newStatus === "client_review") {
+      setPendingMove({ taskId, newStatus });
+      setResponsibilityOpen(true);
+      return;
+    }
+
+    onStatusChange(taskId, newStatus);
+  };
+
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
-    onStatusChange(result.draggableId, result.destination.droppableId);
+    validateAndMove(result.draggableId, result.destination.droppableId);
   };
 
   const handleAssign = async (taskId: string, userId: string) => {
@@ -100,17 +154,12 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
       toast.success("Przypisano (demo)");
       return;
     }
-
-    // Remove existing primary assignment
     await supabase.from("task_assignments").delete().eq("task_id", taskId).eq("role", "primary" as any);
-
-    // Insert new primary assignment
     const { error } = await supabase.from("task_assignments").insert({
       task_id: taskId,
       user_id: userId,
       role: "primary" as any,
     });
-
     if (error) {
       toast.error("Błąd przypisania");
       return;
@@ -120,138 +169,148 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
   };
 
   return (
-    <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="flex gap-3 h-[calc(100vh-16rem)] overflow-x-auto pb-4">
-        {KANBAN_COLUMNS.map((col) => {
-          const columnTasks = tasks.filter((t: any) => t.status === col.key);
-          const isEmpty = columnTasks.length === 0;
-          return (
-            <div key={col.key} className="flex-shrink-0 w-72 flex flex-col">
-              <div className={`flex flex-col flex-1 rounded-xl border border-dashed ${isEmpty ? "border-muted-foreground/20" : "border-destructive/30"} bg-card/50`}>
-                <div className="px-4 pt-3 pb-2">
-                  <h3 className="text-xs font-extrabold tracking-wider text-foreground">{col.label}</h3>
-                  <span className="text-[11px] text-muted-foreground">
-                    {columnTasks.length} {columnTasks.length === 1 ? "zadanie" : columnTasks.length < 5 ? "zadania" : "zadań"}
-                  </span>
-                </div>
+    <>
+      <ChecklistBlockModal open={checklistBlockOpen} onOpenChange={setChecklistBlockOpen} />
+      <ResponsibilityModal
+        open={responsibilityOpen}
+        onOpenChange={setResponsibilityOpen}
+        onConfirm={() => {
+          if (pendingMove) {
+            onStatusChange(pendingMove.taskId, pendingMove.newStatus);
+            setPendingMove(null);
+          }
+        }}
+      />
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="flex gap-3 h-[calc(100vh-16rem)] overflow-x-auto pb-4">
+          {KANBAN_COLUMNS.map((col) => {
+            const columnTasks = tasks.filter((t: any) => t.status === col.key);
+            const isEmpty = columnTasks.length === 0;
+            return (
+              <div key={col.key} className="flex-shrink-0 w-72 flex flex-col">
+                <div className={`flex flex-col flex-1 rounded-xl border border-dashed ${isEmpty ? "border-muted-foreground/20" : "border-destructive/30"} bg-card/50`}>
+                  <div className="px-4 pt-3 pb-2">
+                    <h3 className="text-xs font-extrabold tracking-wider text-foreground">{col.label}</h3>
+                    <span className="text-[11px] text-muted-foreground">
+                      {columnTasks.length} {columnTasks.length === 1 ? "zadanie" : columnTasks.length < 5 ? "zadania" : "zadań"}
+                    </span>
+                  </div>
 
-                <Droppable droppableId={col.key}>
-                  {(provided, snapshot) => (
-                    <ScrollArea className="flex-1">
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        className={`px-2.5 pb-2.5 space-y-2.5 min-h-[120px] transition-colors ${snapshot.isDraggingOver ? "bg-destructive/5" : ""}`}
-                      >
-                        {columnTasks.map((task: any, index: number) => {
-                          const assignee = getAssignee(task.id);
-                          const client = getClient(task.client_id);
-                          const priority = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
-                          const waitingTime = (col.key === "client_review" || col.key === "corrections" || col.key === "review")
-                            ? getWaitingTime(task.updated_at || task.created_at) : null;
+                  <Droppable droppableId={col.key}>
+                    {(provided, snapshot) => (
+                      <ScrollArea className="flex-1">
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                          className={`px-2.5 pb-2.5 space-y-2.5 min-h-[120px] transition-colors ${snapshot.isDraggingOver ? "bg-destructive/5" : ""}`}
+                        >
+                          {columnTasks.map((task: any, index: number) => {
+                            const assignee = getAssignee(task.id);
+                            const client = getClient(task.client_id);
+                            const priority = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
+                            const waitingTime = (col.key === "client_review" || col.key === "corrections" || col.key === "review")
+                              ? getWaitingTime(task.updated_at || task.created_at) : null;
 
-                          return (
-                            <Draggable key={task.id} draggableId={task.id} index={index}>
-                              {(provided, snapshot) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                  className={`rounded-lg border bg-card shadow-sm transition-shadow ${snapshot.isDragging ? "shadow-lg ring-2 ring-destructive/20" : "hover:shadow-md"}`}
-                                >
-                                  <Link to={`/tasks/${task.id}`} className="block p-3">
-                                    {/* Top: ID + Priority */}
-                                    <div className="flex items-center justify-between mb-2">
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="text-[11px] font-mono text-muted-foreground font-medium">{getTaskIndex(task.id)}</span>
-                                        <HelpCircle className="h-3 w-3 text-muted-foreground/50" />
+                            return (
+                              <Draggable key={task.id} draggableId={task.id} index={index}>
+                                {(provided, snapshot) => (
+                                  <div
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    {...provided.dragHandleProps}
+                                    className={`rounded-lg border bg-card shadow-sm transition-shadow ${task.not_understood ? "ring-2 ring-amber-500/50 border-amber-500/30" : ""} ${task.correction_severity === "critical" ? "ring-2 ring-destructive/50" : ""} ${snapshot.isDragging ? "shadow-lg ring-2 ring-destructive/20" : "hover:shadow-md"}`}
+                                  >
+                                    <Link to={`/tasks/${task.id}`} className="block p-3">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-[11px] font-mono text-muted-foreground font-medium">{getTaskIndex(task.id)}</span>
+                                          {task.not_understood && (
+                                            <Badge className="text-[9px] h-4 bg-amber-500 text-white">❓ NIEJASNE</Badge>
+                                          )}
+                                        </div>
+                                        <Badge
+                                          variant="outline"
+                                          className={`text-[10px] h-5 px-2 font-bold border ${priority.border} ${priority.bg} ${priority.text} rounded-md`}
+                                        >
+                                          {priority.label}
+                                        </Badge>
                                       </div>
-                                      <Badge
-                                        variant="outline"
-                                        className={`text-[10px] h-5 px-2 font-bold border ${priority.border} ${priority.bg} ${priority.text} rounded-md`}
-                                      >
-                                        {priority.label}
-                                      </Badge>
+
+                                      <p className="text-sm font-bold text-foreground leading-snug mb-0.5 line-clamp-2">{task.title}</p>
+
+                                      {client && (
+                                        <p className="text-xs text-muted-foreground mb-3 truncate">{client.name}</p>
+                                      )}
+
+                                      {task.correction_severity && (
+                                        <Badge className={`text-[9px] h-4 mb-2 ${task.correction_severity === "critical" ? "bg-destructive text-destructive-foreground" : "bg-amber-500/15 text-amber-700 border-amber-500/30"}`}>
+                                          {task.correction_severity === "critical" ? "POPRAWKI KRYTYCZNE" : "MAŁE POPRAWKI"}
+                                        </Badge>
+                                      )}
+
+                                      {waitingTime && (
+                                        <div className="flex items-center gap-1 text-[10px] text-destructive-foreground font-semibold mb-2 bg-destructive rounded px-2 py-1 w-fit">
+                                          <Clock className="h-3 w-3" />
+                                          {waitingTime}
+                                        </div>
+                                      )}
+
+                                      <div className="flex items-center justify-between mt-1">
+                                        <div></div>
+                                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                          {task.estimated_time > 0 && task.logged_time > 0 && (
+                                            <span className="flex items-center gap-0.5">
+                                              <Clock className="h-3 w-3" />
+                                              {(task.logged_time / 60).toFixed(1)}h
+                                            </span>
+                                          )}
+                                          {task.due_date && (
+                                            <span className={`font-medium ${new Date(task.due_date) < new Date() ? "text-destructive" : ""}`}>
+                                              {new Date(task.due_date).toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit" })}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </Link>
+
+                                    <div className="px-3 pb-2 -mt-2">
+                                      <AssignPopover
+                                        taskId={task.id}
+                                        assignee={assignee}
+                                        allProfiles={allProfiles || []}
+                                        getInitials={getInitials}
+                                        getAvatarColor={getAvatarColor}
+                                        onAssign={handleAssign}
+                                      />
                                     </div>
-
-                                    <p className="text-sm font-bold text-foreground leading-snug mb-0.5 line-clamp-2">{task.title}</p>
-
-                                    {client && (
-                                      <p className="text-xs text-muted-foreground mb-3 truncate">{client.name}</p>
-                                    )}
-
-                                    {waitingTime && (
-                                      <div className="flex items-center gap-1 text-[10px] text-destructive-foreground font-semibold mb-2 bg-destructive rounded px-2 py-1 w-fit">
-                                        <Clock className="h-3 w-3" />
-                                        {waitingTime}
-                                      </div>
-                                    )}
-
-                                    {/* Bottom: Assignee + Date */}
-                                    <div className="flex items-center justify-between mt-1">
-                                      <div>{/* placeholder for popover below */}</div>
-                                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                                        {task.estimated_time > 0 && task.logged_time > 0 && (
-                                          <span className="flex items-center gap-0.5">
-                                            <Clock className="h-3 w-3" />
-                                            {(task.logged_time / 60).toFixed(1)}h
-                                          </span>
-                                        )}
-                                        {task.due_date && (
-                                          <span className={`font-medium ${new Date(task.due_date) < new Date() ? "text-destructive" : ""}`}>
-                                            {new Date(task.due_date).toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit" })}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </Link>
-
-                                  {/* Assign popover - outside the Link to prevent navigation */}
-                                  <div className="px-3 pb-2 -mt-2">
-                                    <AssignPopover
-                                      taskId={task.id}
-                                      assignee={assignee}
-                                      allProfiles={allProfiles || []}
-                                      getInitials={getInitials}
-                                      getAvatarColor={getAvatarColor}
-                                      onAssign={handleAssign}
-                                    />
                                   </div>
-                                </div>
-                              )}
-                            </Draggable>
-                          );
-                        })}
-                        {provided.placeholder}
-                        {isEmpty && (
-                          <p className="text-xs text-muted-foreground text-center py-8">Pusto</p>
-                        )}
-                      </div>
-                    </ScrollArea>
-                  )}
-                </Droppable>
+                                )}
+                              </Draggable>
+                            );
+                          })}
+                          {provided.placeholder}
+                          {isEmpty && (
+                            <p className="text-xs text-muted-foreground text-center py-8">Pusto</p>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    )}
+                  </Droppable>
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
-    </DragDropContext>
+            );
+          })}
+        </div>
+      </DragDropContext>
+    </>
   );
 }
 
 function AssignPopover({
-  taskId,
-  assignee,
-  allProfiles,
-  getInitials,
-  getAvatarColor,
-  onAssign,
+  taskId, assignee, allProfiles, getInitials, getAvatarColor, onAssign,
 }: {
-  taskId: string;
-  assignee: any;
-  allProfiles: any[];
-  getInitials: (name: string) => string;
-  getAvatarColor: (id: string) => string;
+  taskId: string; assignee: any; allProfiles: any[];
+  getInitials: (name: string) => string; getAvatarColor: (id: string) => string;
   onAssign: (taskId: string, userId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
