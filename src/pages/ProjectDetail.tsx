@@ -184,8 +184,8 @@ export default function ProjectDetail() {
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div className="space-y-3">
-          <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground -ml-2" onClick={() => navigate("/projects")}>
-            <ArrowLeft className="h-4 w-4" /> Wróć do projektów
+          <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground -ml-2" onClick={() => navigate(isClient ? "/client-dashboard" : "/projects")}>
+            <ArrowLeft className="h-4 w-4" /> {isClient ? "Wróć do dashboardu" : "Wróć do projektów"}
           </Button>
 
           <div className="flex items-start gap-3 flex-wrap">
