@@ -1052,6 +1052,8 @@ export type Database = {
           bug_reason: string | null
           bug_severity: string | null
           client_id: string | null
+          client_review_accepted_by: string | null
+          correction_severity: string | null
           created_at: string | null
           created_by: string | null
           description: string | null
@@ -1060,6 +1062,8 @@ export type Database = {
           id: string
           is_client_visible: boolean | null
           logged_time: number | null
+          not_understood: boolean | null
+          not_understood_at: string | null
           parent_task_id: string | null
           priority: Database["public"]["Enums"]["task_priority"] | null
           project_id: string | null
@@ -1067,6 +1071,7 @@ export type Database = {
           title: string
           type: string | null
           updated_at: string | null
+          verification_start_time: string | null
         }
         Insert: {
           brief_deliverable?: string | null
@@ -1079,6 +1084,8 @@ export type Database = {
           bug_reason?: string | null
           bug_severity?: string | null
           client_id?: string | null
+          client_review_accepted_by?: string | null
+          correction_severity?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -1087,6 +1094,8 @@ export type Database = {
           id?: string
           is_client_visible?: boolean | null
           logged_time?: number | null
+          not_understood?: boolean | null
+          not_understood_at?: string | null
           parent_task_id?: string | null
           priority?: Database["public"]["Enums"]["task_priority"] | null
           project_id?: string | null
@@ -1094,6 +1103,7 @@ export type Database = {
           title: string
           type?: string | null
           updated_at?: string | null
+          verification_start_time?: string | null
         }
         Update: {
           brief_deliverable?: string | null
@@ -1106,6 +1116,8 @@ export type Database = {
           bug_reason?: string | null
           bug_severity?: string | null
           client_id?: string | null
+          client_review_accepted_by?: string | null
+          correction_severity?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -1114,6 +1126,8 @@ export type Database = {
           id?: string
           is_client_visible?: boolean | null
           logged_time?: number | null
+          not_understood?: boolean | null
+          not_understood_at?: string | null
           parent_task_id?: string | null
           priority?: Database["public"]["Enums"]["task_priority"] | null
           project_id?: string | null
@@ -1121,6 +1135,7 @@ export type Database = {
           title?: string
           type?: string | null
           updated_at?: string | null
+          verification_start_time?: string | null
         }
         Relationships: [
           {
@@ -1264,6 +1279,9 @@ export type Database = {
         | "client_review"
         | "done"
         | "cancelled"
+        | "client_verified"
+        | "closed"
+        | "waiting_for_client"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1418,6 +1436,9 @@ export const Constants = {
         "client_review",
         "done",
         "cancelled",
+        "client_verified",
+        "closed",
+        "waiting_for_client",
       ],
     },
   },
