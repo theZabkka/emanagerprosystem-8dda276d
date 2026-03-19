@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { NotUnderstoodModal, ChecklistBlockModal, ResponsibilityModal } from "@/components/tasks/WorkflowModals";
 import { useRole } from "@/hooks/useRole";
+import { StatusTimeline } from "@/components/tasks/StatusTimeline";
 
 const statusLabels: Record<string, string> = {
   new: "NOWE", todo: "DO ZROBIENIA", in_progress: "W REALIZACJI", review: "WERYFIKACJA",
