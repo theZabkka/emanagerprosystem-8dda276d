@@ -320,7 +320,7 @@ export default function TaskDetail() {
       const idx = demoTasksState.findIndex(t => t.id === id);
       if (idx >= 0) demoTasksState[idx] = { ...demoTasksState[idx], ...updates };
       // Close previous open period
-      demoStatusHistoryState.forEach(h => {
+      demoStatusHistoryState.forEach((h: any) => {
         if (h.task_id === id && !h.status_exited_at) {
           h.status_exited_at = now;
           h.duration_seconds = Math.floor((new Date(now).getTime() - new Date(h.status_entered_at || h.created_at).getTime()) / 1000);
@@ -330,7 +330,7 @@ export default function TaskDetail() {
         id: `demo-sh-${Date.now()}`, task_id: id!, old_status: oldStatus, new_status: newStatus,
         changed_by: demoUserId, created_at: now, status_entered_at: now, status_exited_at: null, duration_seconds: null, note: null,
         profiles: { full_name: mockProfiles.find(p => p.id === demoUserId)?.full_name || "Demo" },
-      });
+      } as any);
       queryClient.invalidateQueries({ queryKey: ["task", id, isDemo] });
       queryClient.invalidateQueries({ queryKey: ["status-history", id, isDemo] });
       toast.success(`Status zmieniony na ${statusLabels[newStatus]}`);
