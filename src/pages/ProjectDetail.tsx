@@ -167,7 +167,7 @@ export default function ProjectDetail() {
       <AppLayout title="Projekt">
         <div className="flex flex-col items-center justify-center h-64 gap-4">
           <p className="text-muted-foreground">Nie znaleziono projektu</p>
-          <Button variant="outline" onClick={() => navigate(isClient ? "/client-dashboard" : "/projects")}>{isClient ? "Wróć do panelu klienta" : "Wróć do listy"}</Button>
+          <Button variant="outline" onClick={() => navigate(isClient ? "/dashboard" : "/projects")}>{isClient ? "Wróć do panelu klienta" : "Wróć do listy"}</Button>
         </div>
       </AppLayout>
     );
@@ -184,7 +184,7 @@ export default function ProjectDetail() {
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div className="space-y-3">
-          <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground -ml-2" onClick={() => navigate(isClient ? "/client-dashboard" : "/projects")}>
+          <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground -ml-2" onClick={() => navigate(isClient ? "/dashboard" : "/projects")}>
             <ArrowLeft className="h-4 w-4" /> {isClient ? "Wróć do dashboardu" : "Wróć do projektów"}
           </Button>
 
