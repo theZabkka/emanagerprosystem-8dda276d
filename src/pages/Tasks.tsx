@@ -48,7 +48,7 @@ export default function Tasks() {
       let query = supabase
         .from("tasks")
         .select("*, clients(name), projects(name), task_assignments(user_id, role, profiles:user_id(full_name))")
-        .not("status", "eq", "closed")
+        .eq("is_archived", false)
         .order("created_at", { ascending: false });
       if (statusFilter !== "all") query = query.eq("status", statusFilter as any);
       if (priorityFilter !== "all") query = query.eq("priority", priorityFilter as any);
