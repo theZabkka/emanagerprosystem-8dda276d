@@ -233,6 +233,21 @@ export default function TaskDetail() {
     enabled: !!id,
   });
 
+  // Corrections
+  const { data: corrections } = useQuery({
+    queryKey: ["task-corrections", id, isDemo],
+    queryFn: async () => {
+      if (isDemo) return [];
+      const { data } = await supabase
+        .from("task_corrections")
+        .select("*, profiles:created_by(full_name)")
+        .eq("task_id", id!)
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
   // Real-time
   useEffect(() => {
     if (!id || isDemo) return;
