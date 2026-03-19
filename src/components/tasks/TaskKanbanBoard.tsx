@@ -22,6 +22,7 @@ const KANBAN_COLUMNS = [
   { key: "corrections", label: "POPRAWKI" },
   { key: "client_review", label: "DO AKCEPTACJI KLIENTA" },
   { key: "client_verified", label: "ZWERYFIKOWANE" },
+  { key: "closed", label: "ZAMKNIĘTE" },
 ] as const;
 
 const PRIORITY_CONFIG: Record<string, { label: string; border: string; bg: string; text: string }> = {
