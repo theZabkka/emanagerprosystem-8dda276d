@@ -175,7 +175,7 @@ export default function ProjectDetail() {
 
   const tabs = [
     { key: "tasks" as const, label: "Zadania", icon: ListChecks, count: totalTasks },
-    { key: "budget" as const, label: "Budżet", icon: Briefcase },
+    ...(!isClient ? [{ key: "budget" as const, label: "Budżet", icon: Briefcase }] : []),
     { key: "brief" as const, label: "Brief", icon: FileText },
   ];
 
