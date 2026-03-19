@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { useDataSource } from "@/hooks/useDataSource";
-import { Button } from "@/components/ui/button";
 import { AlertTriangle, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -16,18 +15,25 @@ export function CoordinatorFreezeOverlay() {
   const { isDemo } = useDataSource();
   const [frozenTasks, setFrozenTasks] = useState<any[]>([]);
 
+  // Fetch tasks currently in review with their status_entered_at from history
   const { data: reviewTasks } = useQuery({
     queryKey: ["review-tasks-freeze", isDemo],
     queryFn: async () => {
       if (isDemo) return [];
+      // Get open status history entries for review status (status_exited_at IS NULL)
       const { data } = await supabase
-        .from("tasks")
-        .select("id, title, verification_start_time, client_id, clients:client_id(name)")
-        .eq("status", "review" as any)
-        .not("verification_start_time", "is", null);
-      return data || [];
+        .from("task_status_history")
+        .select("task_id, status_entered_at, tasks:task_id(id, title, client_id, clients:client_id(name))")
+        .eq("new_status", "review")
+        .is("status_exited_at", null);
+      return (data || []).map((h: any) => ({
+        id: h.tasks?.id,
+        title: h.tasks?.title,
+        status_entered_at: h.status_entered_at,
+        clients: h.tasks?.clients,
+      })).filter((t: any) => t.id);
     },
-    refetchInterval: 30000, // check every 30s
+    refetchInterval: 30000,
     enabled: !!user && (currentRole === "koordynator" || currentRole === "boss"),
   });
 
@@ -35,16 +41,14 @@ export function CoordinatorFreezeOverlay() {
     if (!reviewTasks) { setFrozenTasks([]); return; }
     const now = Date.now();
     const overdue = reviewTasks.filter((t: any) => {
-      if (!t.verification_start_time) return false;
-      const elapsed = now - new Date(t.verification_start_time).getTime();
+      if (!t.status_entered_at) return false;
+      const elapsed = now - new Date(t.status_entered_at).getTime();
       return elapsed >= FREEZE_THRESHOLD_MS;
     });
     setFrozenTasks(overdue);
   }, [reviewTasks]);
 
   if (frozenTasks.length === 0 || currentRole === "klient") return null;
-
-  // Only freeze koordynator, boss sees a warning but not frozen
   if (currentRole !== "koordynator") return null;
 
   return (
@@ -63,7 +67,7 @@ export function CoordinatorFreezeOverlay() {
         <div className="space-y-2 text-left">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Zaległe zadania:</p>
           {frozenTasks.map((t: any) => {
-            const elapsed = Math.floor((Date.now() - new Date(t.verification_start_time).getTime()) / 60000);
+            const elapsed = Math.floor((Date.now() - new Date(t.status_entered_at).getTime()) / 60000);
             return (
               <Link
                 key={t.id}
@@ -73,7 +77,7 @@ export function CoordinatorFreezeOverlay() {
                 <Clock className="h-4 w-4 text-destructive flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{t.title}</p>
-                  <p className="text-xs text-muted-foreground">{(t.clients as any)?.name}</p>
+                  <p className="text-xs text-muted-foreground">{t.clients?.name}</p>
                 </div>
                 <span className="text-xs font-bold text-destructive">{elapsed} min</span>
               </Link>

@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { NotUnderstoodModal, ChecklistBlockModal, ResponsibilityModal } from "@/components/tasks/WorkflowModals";
 import { useRole } from "@/hooks/useRole";
+import { StatusTimeline } from "@/components/tasks/StatusTimeline";
 
 const statusLabels: Record<string, string> = {
   new: "NOWE", todo: "DO ZROBIENIA", in_progress: "W REALIZACJI", review: "WERYFIKACJA",
@@ -311,26 +312,37 @@ export default function TaskDetail() {
   async function executeStatusChange(newStatus: string) {
     if (!task) return;
     const oldStatus = task.status;
-    const updates: any = { status: newStatus as any, updated_at: new Date().toISOString() };
-    if (newStatus === "review") updates.verification_start_time = new Date().toISOString();
-    if (newStatus !== "review") updates.verification_start_time = null;
 
     if (isDemo) {
+      const now = new Date().toISOString();
+      const updates: any = { status: newStatus, updated_at: now };
+      if (newStatus === "review") updates.verification_start_time = now;
+      if (newStatus !== "review") updates.verification_start_time = null;
       const idx = demoTasksState.findIndex(t => t.id === id);
       if (idx >= 0) demoTasksState[idx] = { ...demoTasksState[idx], ...updates };
+      // Close previous open period
+      demoStatusHistoryState.forEach((h: any) => {
+        if (h.task_id === id && !h.status_exited_at) {
+          h.status_exited_at = now;
+          h.duration_seconds = Math.floor((new Date(now).getTime() - new Date(h.status_entered_at || h.created_at).getTime()) / 1000);
+        }
+      });
       demoStatusHistoryState.unshift({
         id: `demo-sh-${Date.now()}`, task_id: id!, old_status: oldStatus, new_status: newStatus,
-        changed_by: demoUserId, created_at: new Date().toISOString(),
+        changed_by: demoUserId, created_at: now, status_entered_at: now, status_exited_at: null, duration_seconds: null, note: null,
         profiles: { full_name: mockProfiles.find(p => p.id === demoUserId)?.full_name || "Demo" },
-      });
+      } as any);
       queryClient.invalidateQueries({ queryKey: ["task", id, isDemo] });
       queryClient.invalidateQueries({ queryKey: ["status-history", id, isDemo] });
       toast.success(`Status zmieniony na ${statusLabels[newStatus]}`);
       return;
     }
-    const { error } = await supabase.from("tasks").update(updates).eq("id", task.id);
+    const { error } = await supabase.rpc("change_task_status", {
+      _task_id: task.id,
+      _new_status: newStatus as any,
+      _changed_by: user?.id!,
+    });
     if (error) { toast.error(error.message); return; }
-    await supabase.from("task_status_history").insert({ task_id: task.id, old_status: oldStatus, new_status: newStatus, changed_by: user?.id });
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     queryClient.invalidateQueries({ queryKey: ["status-history", id] });
     toast.success(`Status zmieniony na ${statusLabels[newStatus]}`);
@@ -378,8 +390,10 @@ export default function TaskDetail() {
   // Client accept task
   async function handleClientAccept() {
     if (!task) return;
-    await supabase.from("tasks").update({ status: "client_verified" as any, updated_at: new Date().toISOString() }).eq("id", task.id);
-    await supabase.from("task_status_history").insert({ task_id: task.id, old_status: task.status, new_status: "client_verified", changed_by: user?.id });
+    const { error } = await supabase.rpc("change_task_status", {
+      _task_id: task.id, _new_status: "client_verified" as any, _changed_by: user?.id!,
+    });
+    if (error) { toast.error(error.message); return; }
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     queryClient.invalidateQueries({ queryKey: ["status-history", id] });
     toast.success("Zadanie zaakceptowane!");
@@ -388,20 +402,15 @@ export default function TaskDetail() {
   // Client reject task (request corrections)
   async function handleClientReject() {
     if (!task || !correctionText.trim()) { toast.error("Opisz co wymaga poprawki"); return; }
-    // Insert correction record
     await supabase.from("task_corrections").insert({
-      task_id: task.id,
-      created_by: user?.id,
-      severity: correctionSeverity,
-      description: correctionText,
+      task_id: task.id, created_by: user?.id, severity: correctionSeverity, description: correctionText,
     });
-    // Update task status to corrections
-    await supabase.from("tasks").update({
-      status: "corrections" as any,
-      correction_severity: correctionSeverity,
-      updated_at: new Date().toISOString(),
-    } as any).eq("id", task.id);
-    await supabase.from("task_status_history").insert({ task_id: task.id, old_status: task.status, new_status: "corrections", changed_by: user?.id });
+    // Update task status + correction severity directly, then use RPC for status transition
+    await supabase.from("tasks").update({ correction_severity: correctionSeverity } as any).eq("id", task.id);
+    const { error } = await supabase.rpc("change_task_status", {
+      _task_id: task.id, _new_status: "corrections" as any, _changed_by: user?.id!,
+    });
+    if (error) { toast.error(error.message); return; }
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     queryClient.invalidateQueries({ queryKey: ["task-corrections", id] });
     queryClient.invalidateQueries({ queryKey: ["status-history", id] });
@@ -1375,44 +1384,13 @@ export default function TaskDetail() {
 
           {/* Status history - hidden in preview and for clients */}
           {!isPreviewMode && !isClient && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold flex items-center gap-1.5"><History className="h-4 w-4" />Historia statusów</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {statusHistory && statusHistory.length > 0 ? (
-                <div className="space-y-3">
-                  {statusHistory.map((h: any, i: number) => (
-                    <div key={h.id} className="flex items-start gap-3 relative">
-                      {i < (statusHistory.length - 1) && <div className="absolute left-[11px] top-6 w-px h-full bg-border" />}
-                      <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <CheckCircle2 className="h-3 w-3 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-1.5 text-sm">
-                          <Badge className={`text-[9px] ${statusColors[h.old_status] || "bg-muted"}`}>{statusLabels[h.old_status] || h.old_status || "—"}</Badge>
-                          <span className="text-muted-foreground">→</span>
-                          <Badge className={`text-[9px] ${statusColors[h.new_status] || "bg-muted"}`}>{statusLabels[h.new_status] || h.new_status}</Badge>
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <Avatar className="h-4 w-4">
-                            <AvatarFallback className="text-[8px] bg-primary/10 text-primary font-bold">
-                              {(h.profiles?.full_name || (isDemo ? mockProfiles.find(p => p.id === h.changed_by)?.full_name : "?") || "?").split(" ").map((n: string) => n[0]).join("")}
-                            </AvatarFallback>
-                          </Avatar>
-                          <p className="text-xs text-muted-foreground">
-                            {h.profiles?.full_name || (isDemo ? mockProfiles.find(p => p.id === h.changed_by)?.full_name : "?")} • {new Date(h.created_at).toLocaleString("pl-PL")}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Brak historii statusów.</p>
-              )}
-            </CardContent>
-          </Card>)}
+            <StatusTimeline
+              statusHistory={statusHistory || []}
+              currentStatus={task?.status || "new"}
+              isDemo={isDemo}
+              demoProfiles={mockProfiles}
+            />
+          )}
         </div>
       </div>
 
