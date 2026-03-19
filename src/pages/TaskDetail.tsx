@@ -97,6 +97,7 @@ export default function TaskDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { isDemo } = useDataSource();
+  const { isClient, currentRole } = useRole();
   const queryClient = useQueryClient();
   const [commentText, setCommentText] = useState("");
   const [commentType, setCommentType] = useState("internal");
