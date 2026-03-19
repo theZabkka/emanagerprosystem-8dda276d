@@ -338,7 +338,7 @@ export default function TaskDetail() {
     }
     const { error } = await supabase.rpc("change_task_status", {
       _task_id: task.id,
-      _new_status: newStatus,
+      _new_status: newStatus as any,
       _changed_by: user?.id!,
     });
     if (error) { toast.error(error.message); return; }
