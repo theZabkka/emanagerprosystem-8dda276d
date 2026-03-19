@@ -1240,6 +1240,24 @@ export default function TaskDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Workflow Modals */}
+      <NotUnderstoodModal
+        open={notUnderstoodOpen}
+        onOpenChange={setNotUnderstoodOpen}
+        onConfirm={handleNotUnderstood}
+      />
+      <ChecklistBlockModal open={checklistBlockOpen} onOpenChange={setChecklistBlockOpen} />
+      <ResponsibilityModal
+        open={responsibilityOpen}
+        onOpenChange={setResponsibilityOpen}
+        onConfirm={() => {
+          if (pendingStatus) {
+            executeStatusChange(pendingStatus);
+            setPendingStatus(null);
+          }
+        }}
+      />
     </AppLayout>
   );
 }
