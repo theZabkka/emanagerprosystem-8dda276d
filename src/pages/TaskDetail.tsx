@@ -1093,12 +1093,12 @@ export default function TaskDetail() {
             </CardContent>
           </Card>)}
 
-          {/* Comments */}
+          {/* Comments - clients only see requires_client_reply comments */}
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold">Komentarze</CardTitle>
-                {!isPreviewMode && (
+                {!isPreviewMode && !isClient && (
                 <div className="flex gap-1">
                   {["all", "internal", "client"].map(f => (
                     <Button key={f} variant={commentFilter === f ? "default" : "outline"} size="sm" className="text-[10px] h-6 px-2"
@@ -1113,43 +1113,64 @@ export default function TaskDetail() {
             <CardContent className="space-y-3">
               <div className="space-y-3">
                 {(() => {
-                  const displayComments = isPreviewMode
-                    ? filteredComments.filter((c: any) => c.type !== "internal")
-                    : filteredComments;
+                  let displayComments = filteredComments;
+                  if (isClient) {
+                    displayComments = (comments || []).filter((c: any) => c.requires_client_reply === true);
+                  } else if (isPreviewMode) {
+                    displayComments = filteredComments.filter((c: any) => c.type !== "internal");
+                  }
                   return displayComments.length > 0 ? displayComments.map((c: any) => (
-                  <div key={c.id} className="flex gap-3">
-                    <Avatar className="h-7 w-7 mt-0.5">
-                      <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-bold">
-                        {(c.profiles?.full_name || (isDemo ? mockProfiles.find(p => p.id === c.user_id)?.full_name : "?") || "?").split(" ").map((n: string) => n[0]).join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{c.profiles?.full_name || (isDemo ? mockProfiles.find(p => p.id === c.user_id)?.full_name : "?")}</span>
-                        <Badge variant={c.type === "client" ? "default" : "outline"} className="text-[9px] h-4">
-                          {c.type === "client" ? "Klient" : "Wewnętrzny"}
-                        </Badge>
-                        <span className="text-[10px] text-muted-foreground">{new Date(c.created_at).toLocaleString("pl-PL")}</span>
+                  <div key={c.id} className="space-y-2">
+                    <div className="flex gap-3">
+                      <Avatar className="h-7 w-7 mt-0.5">
+                        <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-bold">
+                          {(c.profiles?.full_name || (isDemo ? mockProfiles.find(p => p.id === c.user_id)?.full_name : "?") || "?").split(" ").map((n: string) => n[0]).join("")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium">{c.profiles?.full_name || (isDemo ? mockProfiles.find(p => p.id === c.user_id)?.full_name : "?")}</span>
+                          {!isClient && (
+                          <Badge variant={c.type === "client" ? "default" : "outline"} className="text-[9px] h-4">
+                            {c.type === "client" ? "Klient" : "Wewnętrzny"}
+                          </Badge>
+                          )}
+                          {c.requires_client_reply && !isClient && <Badge className="text-[9px] h-4 bg-amber-500 text-white">Wymaga odpowiedzi klienta</Badge>}
+                          <span className="text-[10px] text-muted-foreground">{new Date(c.created_at).toLocaleString("pl-PL")}</span>
+                        </div>
+                        <p className="text-sm mt-0.5">{c.content}</p>
+                        {/* Client reply */}
+                        {c.client_reply && (
+                          <div className="mt-2 bg-primary/5 border border-primary/20 rounded-md px-3 py-2">
+                            <p className="text-[10px] font-semibold text-primary uppercase mb-1">Odpowiedź klienta</p>
+                            <p className="text-sm">{c.client_reply}</p>
+                          </div>
+                        )}
+                        {/* Client reply input */}
+                        {isClient && c.requires_client_reply && !c.client_reply && (
+                          <ClientReplyInput commentId={c.id} taskId={id!} />
+                        )}
                       </div>
-                      <p className="text-sm mt-0.5">{c.content}</p>
                     </div>
                   </div>
                 )) : (
-                  <p className="text-sm text-muted-foreground">Brak komentarzy.</p>
+                  <p className="text-sm text-muted-foreground">{isClient ? "Brak pytań wymagających odpowiedzi." : "Brak komentarzy."}</p>
                 );
                 })()}
               </div>
-              {!isPreviewMode && (
+              {!isPreviewMode && !isClient && (
               <>
               <Separator />
               <div className="flex gap-2 items-end">
                 <div className="flex-1 space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="internal-comment" checked={commentType === "internal"} onCheckedChange={(v) => setCommentType(v ? "internal" : "client")} />
-                    <Label htmlFor="internal-comment" className="text-xs flex items-center gap-1 cursor-pointer">
-                      <Lock className="h-3 w-3 text-amber-500" />
-                      Komentarz wewnętrzny
-                    </Label>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Checkbox id="internal-comment" checked={commentType === "internal"} onCheckedChange={(v) => setCommentType(v ? "internal" : "client")} />
+                      <Label htmlFor="internal-comment" className="text-xs flex items-center gap-1 cursor-pointer">
+                        <Lock className="h-3 w-3 text-amber-500" />
+                        Wewnętrzny
+                      </Label>
+                    </div>
                   </div>
                   <Textarea value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Napisz komentarz..."
                     onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); addComment(); } }} className="min-h-[50px] text-sm" />
@@ -1161,8 +1182,8 @@ export default function TaskDetail() {
             </CardContent>
           </Card>
 
-          {/* Status history - hidden in preview */}
-          {!isPreviewMode && (
+          {/* Status history - hidden in preview and for clients */}
+          {!isPreviewMode && !isClient && (
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold flex items-center gap-1.5"><History className="h-4 w-4" />Historia statusów</CardTitle>
