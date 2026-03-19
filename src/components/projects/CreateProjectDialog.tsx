@@ -60,11 +60,15 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }: C
     defaultBriefQuestions.map(q => ({ question: q, answer: "" }))
   );
 
-  const { data: clients } = useQuery({
-    queryKey: ["create-project-clients", isDemo],
+  const { data: clientProfiles } = useQuery({
+    queryKey: ["create-project-client-profiles", isDemo],
     queryFn: async () => {
-      if (isDemo) return mockClients;
-      const { data } = await supabase.from("clients").select("id, name").order("name");
+      if (isDemo) return mockProfiles.filter(p => p.role === "klient");
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, full_name, client_id, avatar_url")
+        .eq("role", "klient")
+        .order("full_name");
       return data || [];
     },
   });
