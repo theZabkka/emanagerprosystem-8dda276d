@@ -16,7 +16,7 @@ import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 
 function enrichDemoTasks(statusFilter: string, priorityFilter: string) {
   let tasks = mockTasks
-    .filter(t => t.status !== "closed")
+    .filter(t => !t.is_archived)
     .map(t => {
     const assignments = mockTaskAssignments
       .filter(a => a.task_id === t.id)

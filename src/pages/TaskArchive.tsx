@@ -39,8 +39,8 @@ export default function TaskArchive() {
       }
       const { data, error } = await supabase
         .from("tasks")
-        .select("id, title, client_id, project_id, updated_at, due_date, clients(name), projects(name), task_assignments(user_id, role, profiles:user_id(full_name))")
-        .eq("status", "closed" as any)
+        .select("id, title, client_id, project_id, updated_at, due_date, status, clients(name), projects(name), task_assignments(user_id, role, profiles:user_id(full_name))")
+        .eq("is_archived", true)
         .order("updated_at", { ascending: false });
       if (error) throw error;
       return (data || []).map((t: any) => ({
