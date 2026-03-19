@@ -52,12 +52,16 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [briefOpen, setBriefOpen] = useState(false);
 
-  // Fetch clients
+  // Fetch client users (profiles with role 'klient')
   const { data: clients } = useQuery({
     queryKey: ["create-task-clients", isDemo],
     queryFn: async () => {
-      if (isDemo) return mockClients;
-      const { data } = await supabase.from("clients").select("id, name").order("name");
+      if (isDemo) return mockProfiles.filter(p => p.role === "klient");
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, full_name, client_id, avatar_url")
+        .eq("role", "klient")
+        .order("full_name");
       return data || [];
     },
   });
