@@ -681,19 +681,19 @@ export default function TaskDetail() {
 
         {/* Action buttons row */}
         <div className="flex flex-wrap items-center gap-2">
-          {!isPreviewMode ? (
+          {!isClient && !isPreviewMode ? (
             <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsPreviewMode(true)}><Eye className="h-3 w-3" />Zobacz jako klient</Button>
-          ) : (
+          ) : !isClient && isPreviewMode ? (
             <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsPreviewMode(false)}><Eye className="h-3 w-3" />Wróć do widoku pełnego</Button>
-          )}
-          {!isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><FileText className="h-3 w-3" />Zastosuj szablon</Button>}
-          {!isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><Zap className="h-3 w-3" />Uruchom automatyzację</Button>}
-          {!isPreviewMode && (task.status === "in_progress" || task.status === "todo") && !(task as any).not_understood && (
+          ) : null}
+          {!isClient && !isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><FileText className="h-3 w-3" />Zastosuj szablon</Button>}
+          {!isClient && !isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><Zap className="h-3 w-3" />Uruchom automatyzację</Button>}
+          {!isClient && !isPreviewMode && (task.status === "in_progress" || task.status === "todo") && !(task as any).not_understood && (
             <Button variant="outline" size="sm" className="text-xs gap-1.5 border-amber-500/50 text-amber-600 hover:bg-amber-500/10" onClick={() => setNotUnderstoodOpen(true)}>
               <HelpCircle className="h-3 w-3" />Nie rozumiem polecenia
             </Button>
           )}
-          {!isPreviewMode && <Button size="sm" className="text-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground"><MessageCircle className="h-3 w-3" />Czat zadania</Button>}
+          {!isClient && !isPreviewMode && <Button size="sm" className="text-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground"><MessageCircle className="h-3 w-3" />Czat zadania</Button>}
         </div>
 
         {/* Not understood banner */}
