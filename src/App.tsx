@@ -37,6 +37,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Permissions = lazy(() => import("./pages/Permissions"));
 const ClientIdeas = lazy(() => import("./pages/ClientIdeas"));
 const StaffIdeas = lazy(() => import("./pages/StaffIdeas"));
+const TaskArchive = lazy(() => import("./pages/TaskArchive"));
 
 const queryClient = new QueryClient();
 
@@ -94,6 +95,7 @@ const App = () => (
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/my-day" element={<ProtectedRoute><MyDay /></ProtectedRoute>} />
             <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+            <Route path="/tasks/archive" element={<ProtectedRoute><TaskArchive /></ProtectedRoute>} />
             <Route path="/tasks/:id" element={<ProtectedRoute><TaskDetail /></ProtectedRoute>} />
             <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
             <Route path="/clients/:id" element={<ProtectedRoute><ClientDetail /></ProtectedRoute>} />

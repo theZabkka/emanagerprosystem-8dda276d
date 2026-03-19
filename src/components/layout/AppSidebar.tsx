@@ -1,6 +1,6 @@
 import {
   Sun, LayoutDashboard, Target,
-  CheckSquare, FolderKanban, Columns3, Users2, RotateCcw,
+  CheckSquare, FolderKanban, Columns3, Users2, RotateCcw, Archive,
   Building2, FileText, Briefcase, TrendingUp, Lightbulb, MessageCircle, Zap,
   MessagesSquare, Inbox, TicketCheck,
   Users, Calendar as CalendarIcon, Video, PalmtreeIcon, Monitor,
@@ -35,6 +35,7 @@ const sections = [
     label: "PRACA",
     items: [
       { title: "Zadania", url: "/tasks", icon: CheckSquare },
+      { title: "Archiwum", url: "/tasks/archive", icon: Archive },
       { title: "Projekty", url: "/projects", icon: FolderKanban },
       { title: "Tablica operacyjna", url: "/operational", icon: Columns3 },
       { title: "Tablica zespołu", url: "/team-board", icon: Users2 },
