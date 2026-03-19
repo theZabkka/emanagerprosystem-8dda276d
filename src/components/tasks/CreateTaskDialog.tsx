@@ -89,6 +89,15 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
     return allProjects.filter((p: any) => p.client_id === form.client_id);
   }, [allProjects, form.client_id]);
 
+  // Filter clients by selected project (reverse filtering)
+  const filteredClients = useMemo(() => {
+    if (!clients) return [];
+    if (!form.project_id) return clients;
+    const project = (allProjects || []).find((p: any) => p.id === form.project_id);
+    if (project?.client_id) return clients.filter((c: any) => c.id === project.client_id);
+    return clients;
+  }, [clients, allProjects, form.project_id]);
+
   const update = (field: string, value: any) => setForm(prev => ({ ...prev, [field]: value }));
 
   const toggleUser = (userId: string) => {
@@ -197,19 +206,28 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
               <Label>Klient</Label>
               <Select value={form.client_id} onValueChange={v => {
                 update("client_id", v === "__none" ? "" : v);
-                // Reset project if client changes
                 if (v === "__none" || v !== form.client_id) update("project_id", "");
               }}>
                 <SelectTrigger><SelectValue placeholder="Wybierz klienta..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none">— Brak —</SelectItem>
-                  {(clients || []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  {(filteredClients || []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
               <Label>Projekt</Label>
-              <Select value={form.project_id} onValueChange={v => update("project_id", v === "__none" ? "" : v)}>
+              <Select value={form.project_id} onValueChange={v => {
+                const val = v === "__none" ? "" : v;
+                update("project_id", val);
+                // Auto-set client from project
+                if (val) {
+                  const project = (allProjects || []).find((p: any) => p.id === val);
+                  if (project?.client_id && !form.client_id) {
+                    update("client_id", project.client_id);
+                  }
+                }
+              }}>
                 <SelectTrigger><SelectValue placeholder="Wybierz projekt..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none">— Brak —</SelectItem>
