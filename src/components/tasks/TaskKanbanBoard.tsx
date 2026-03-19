@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Clock, HelpCircle, UserPlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Clock, HelpCircle, UserPlus, Archive } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useDataSource } from "@/hooks/useDataSource";
@@ -21,6 +22,7 @@ const KANBAN_COLUMNS = [
   { key: "corrections", label: "POPRAWKI" },
   { key: "client_review", label: "DO AKCEPTACJI KLIENTA" },
   { key: "client_verified", label: "ZWERYFIKOWANE" },
+  { key: "closed", label: "ZAMKNIĘTE" },
 ] as const;
 
 const PRIORITY_CONFIG: Record<string, { label: string; border: string; bg: string; text: string }> = {
@@ -40,10 +42,11 @@ interface TaskKanbanBoardProps {
   assignments: any[];
   clients: any[];
   onStatusChange: (taskId: string, newStatus: string) => void;
+  onArchive?: (taskId: string) => void;
   onRefresh?: () => void;
 }
 
-export default function TaskKanbanBoard({ tasks, profiles, assignments, clients, onStatusChange, onRefresh }: TaskKanbanBoardProps) {
+export default function TaskKanbanBoard({ tasks, profiles, assignments, clients, onStatusChange, onArchive, onRefresh }: TaskKanbanBoardProps) {
   const { isDemo } = useDataSource();
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
   const [responsibilityOpen, setResponsibilityOpen] = useState(false);
@@ -185,7 +188,7 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex gap-3 h-[calc(100vh-16rem)] overflow-x-auto pb-4">
           {KANBAN_COLUMNS.map((col) => {
-            const columnTasks = tasks.filter((t: any) => t.status === col.key);
+            const columnTasks = tasks.filter((t: any) => t.status === col.key && !t.is_archived);
             const isEmpty = columnTasks.length === 0;
             return (
               <div key={col.key} className="flex-shrink-0 w-72 flex flex-col">
@@ -274,7 +277,7 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
                                       </div>
                                     </Link>
 
-                                    <div className="px-3 pb-2 -mt-2">
+                                    <div className="px-3 pb-2 -mt-2 flex items-center justify-between">
                                       <AssignPopover
                                         taskId={task.id}
                                         assignee={assignee}
@@ -283,6 +286,18 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
                                         getAvatarColor={getAvatarColor}
                                         onAssign={handleAssign}
                                       />
+                                      {col.key === "closed" && onArchive && (
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-7 text-[10px] gap-1 text-muted-foreground hover:text-primary"
+                                          onPointerDown={(e) => e.stopPropagation()}
+                                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onArchive(task.id); }}
+                                        >
+                                          <Archive className="h-3 w-3" />
+                                          Archiwizuj
+                                        </Button>
+                                      )}
                                     </div>
                                   </div>
                                 )}

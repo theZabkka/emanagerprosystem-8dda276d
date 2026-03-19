@@ -1115,6 +1115,7 @@ export type Database = {
           due_date: string | null
           estimated_time: number | null
           id: string
+          is_archived: boolean
           is_client_visible: boolean | null
           is_video_task: boolean | null
           logged_time: number | null
@@ -1149,6 +1150,7 @@ export type Database = {
           due_date?: string | null
           estimated_time?: number | null
           id?: string
+          is_archived?: boolean
           is_client_visible?: boolean | null
           is_video_task?: boolean | null
           logged_time?: number | null
@@ -1183,6 +1185,7 @@ export type Database = {
           due_date?: string | null
           estimated_time?: number | null
           id?: string
+          is_archived?: boolean
           is_client_visible?: boolean | null
           is_video_task?: boolean | null
           logged_time?: number | null
