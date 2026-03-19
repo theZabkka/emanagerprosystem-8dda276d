@@ -129,9 +129,9 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
       }
     }
 
-    // Rule: client_review only from review
-    if (newStatus === "client_review" && task.status !== "review") {
-      toast.error("Zadanie może trafić do akceptacji klienta tylko ze statusu Weryfikacja");
+    // Rule: client_review only from review or corrections
+    if (newStatus === "client_review" && task.status !== "review" && task.status !== "corrections") {
+      toast.error("Zadanie może trafić do akceptacji klienta tylko ze statusu Weryfikacja lub Poprawki");
       return;
     }
 
