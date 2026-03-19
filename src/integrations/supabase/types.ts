@@ -1083,25 +1083,37 @@ export type Database = {
         Row: {
           changed_by: string | null
           created_at: string | null
+          duration_seconds: number | null
           id: string
           new_status: string
+          note: string | null
           old_status: string | null
+          status_entered_at: string | null
+          status_exited_at: string | null
           task_id: string
         }
         Insert: {
           changed_by?: string | null
           created_at?: string | null
+          duration_seconds?: number | null
           id?: string
           new_status: string
+          note?: string | null
           old_status?: string | null
+          status_entered_at?: string | null
+          status_exited_at?: string | null
           task_id: string
         }
         Update: {
           changed_by?: string | null
           created_at?: string | null
+          duration_seconds?: number | null
           id?: string
           new_status?: string
+          note?: string | null
           old_status?: string | null
+          status_entered_at?: string | null
+          status_exited_at?: string | null
           task_id?: string
         }
         Relationships: [
@@ -1326,6 +1338,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      change_task_status: {
+        Args: {
+          _changed_by: string
+          _new_status: Database["public"]["Enums"]["task_status"]
+          _note?: string
+          _task_id: string
+        }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
