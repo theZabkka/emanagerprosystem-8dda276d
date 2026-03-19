@@ -46,7 +46,7 @@ interface TaskKanbanBoardProps {
   onRefresh?: () => void;
 }
 
-export default function TaskKanbanBoard({ tasks, profiles, assignments, clients, onStatusChange, onRefresh }: TaskKanbanBoardProps) {
+export default function TaskKanbanBoard({ tasks, profiles, assignments, clients, onStatusChange, onArchive, onRefresh }: TaskKanbanBoardProps) {
   const { isDemo } = useDataSource();
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
   const [responsibilityOpen, setResponsibilityOpen] = useState(false);
