@@ -69,20 +69,38 @@ export default function Tasks() {
     const hasAssignment = isDemo
       ? mockTaskAssignments.some(a => a.task_id === t.id && a.role === "primary")
       : t.task_assignments?.some((a: any) => a.role === "primary");
-    return !hasAssignment && t.status !== "done" && t.status !== "cancelled";
+    return !hasAssignment && t.status !== "done" && t.status !== "cancelled" && t.status !== "closed";
   }).length;
   const reviewCount = allTasks.filter((t: any) => t.status === "review").length;
   const clientReviewCount = allTasks.filter((t: any) => t.status === "client_review").length;
+  const notUnderstoodCount = allTasks.filter((t: any) => t.not_understood).length;
 
   async function handleStatusChange(taskId: string, newStatus: string) {
     if (isDemo) {
       queryClient.setQueryData(["tasks", statusFilter, priorityFilter, isDemo], (old: any[]) =>
-        old?.map(t => t.id === taskId ? { ...t, status: newStatus, updated_at: new Date().toISOString() } : t)
+        old?.map(t => {
+          if (t.id !== taskId) return t;
+          const updates: any = { status: newStatus, updated_at: new Date().toISOString() };
+          if (newStatus === "review") updates.verification_start_time = new Date().toISOString();
+          if (newStatus !== "review") updates.verification_start_time = null;
+          return { ...t, ...updates };
+        })
       );
       toast.success("Status zaktualizowany (demo)");
       return;
     }
-    const { error } = await supabase.from("tasks").update({ status: newStatus as any, updated_at: new Date().toISOString() }).eq("id", taskId);
+
+    const updates: any = { status: newStatus as any, updated_at: new Date().toISOString() };
+    // Set verification_start_time when entering review
+    if (newStatus === "review") {
+      updates.verification_start_time = new Date().toISOString();
+    }
+    // Clear when leaving review
+    if (newStatus !== "review") {
+      updates.verification_start_time = null;
+    }
+
+    const { error } = await supabase.from("tasks").update(updates).eq("id", taskId);
     if (error) { toast.error("Błąd aktualizacji statusu"); return; }
     toast.success("Status zaktualizowany");
     refetch();
@@ -95,6 +113,7 @@ export default function Tasks() {
           unassignedCount={unassignedCount}
           reviewCount={reviewCount}
           clientReviewCount={clientReviewCount}
+          notUnderstoodCount={notUnderstoodCount}
           onFilterStatus={setStatusFilter}
         />
 

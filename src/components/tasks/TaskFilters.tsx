@@ -46,7 +46,10 @@ export function TaskFilters({
               <SelectItem value="review">Weryfikacja</SelectItem>
               <SelectItem value="corrections">Poprawki</SelectItem>
               <SelectItem value="client_review">Akceptacja klienta</SelectItem>
+              <SelectItem value="client_verified">Zweryfikowane przez klienta</SelectItem>
+              <SelectItem value="waiting_for_client">W oczekiwaniu na klienta</SelectItem>
               <SelectItem value="done">Gotowe</SelectItem>
+              <SelectItem value="closed">Zamknięte</SelectItem>
               <SelectItem value="cancelled">Anulowane</SelectItem>
             </SelectContent>
           </Select>
