@@ -600,6 +600,20 @@ export default function TaskDetail() {
     toast.success("Materiał usunięty");
   }
 
+  async function toggleMaterialVisibility(materialId: string, visible: boolean) {
+    if (isDemo) {
+      const idx = demoMaterialsState.findIndex(m => m.id === materialId);
+      if (idx >= 0) demoMaterialsState[idx] = { ...demoMaterialsState[idx], is_visible_to_client: visible };
+      queryClient.invalidateQueries({ queryKey: ["materials", id, isDemo] });
+      toast.success(visible ? "Materiał widoczny dla klienta" : "Materiał ukryty przed klientem");
+      return;
+    }
+    const { error } = await supabase.from("task_materials").update({ is_visible_to_client: visible } as any).eq("id", materialId);
+    if (error) { toast.error(error.message); return; }
+    queryClient.invalidateQueries({ queryKey: ["materials", id] });
+    toast.success(visible ? "Materiał widoczny dla klienta" : "Materiał ukryty przed klientem");
+  }
+
   // 7. Time logging
   async function logTime(minutes: number) {
     if (minutes <= 0) return;
@@ -1066,7 +1080,16 @@ export default function TaskDetail() {
                           {isDemo ? mockProfiles.find(p => p.id === m.uploaded_by)?.full_name : m.profiles?.full_name} • {new Date(m.created_at).toLocaleDateString("pl-PL")}
                         </span>
                       </div>
-                      {m.is_visible_to_client && !isPreviewMode && !isClient && <Badge variant="outline" className="text-[9px] h-4">Klient</Badge>}
+                      {!isPreviewMode && !isClient && (
+                        <label className="flex items-center gap-1.5 cursor-pointer shrink-0" title={m.is_visible_to_client ? "Widoczne dla klienta" : "Ukryte przed klientem"}>
+                          <Checkbox
+                            checked={!!m.is_visible_to_client}
+                            onCheckedChange={(checked) => toggleMaterialVisibility(m.id, !!checked)}
+                            className="h-3.5 w-3.5"
+                          />
+                          <Eye className={`h-3.5 w-3.5 ${m.is_visible_to_client ? "text-emerald-600" : "text-muted-foreground/40"}`} />
+                        </label>
+                      )}
                       {!isPreviewMode && !isClient && (
                       <button onClick={() => deleteMaterial(m.id)}
                         className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive/80 transition-opacity">
