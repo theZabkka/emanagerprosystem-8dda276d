@@ -119,6 +119,9 @@ export default function TaskDetail() {
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
   const [responsibilityOpen, setResponsibilityOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  const [clientReviewOpen, setClientReviewOpen] = useState(false);
+  const [correctionSeverity, setCorrectionSeverity] = useState<"normal" | "critical">("normal");
+  const [correctionText, setCorrectionText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset demo state on mount
