@@ -1,3 +1,16 @@
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Hash, Plus, Send, Search, Smile, Paperclip, X } from "lucide-react";
+
 const EMOJI_LIST = ["👍", "❤️", "😂", "🎉", "🔥", "👀", "✅", "💯"];
 
 type Channel = { id: string; name: string; type: string; is_direct: boolean; created_at: string };
