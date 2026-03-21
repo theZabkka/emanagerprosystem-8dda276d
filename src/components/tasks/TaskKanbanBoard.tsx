@@ -206,20 +206,19 @@ export default function TaskKanbanBoard({
         tasks.filter((t: any) => t.status === destination.droppableId && !t.is_archived),
         "manual", "asc", positions
       );
+      const posMap = buildPosMap(destColumnTasks);
       const destIndex = destination.index;
       let newPosition: number;
 
       if (destColumnTasks.length === 0) {
         newPosition = 1000;
       } else if (destIndex === 0) {
-        const firstPos = positions[destColumnTasks[0]?.id] ?? 1000;
-        newPosition = firstPos - 1000;
+        newPosition = posMap[destColumnTasks[0].id] - 1000;
       } else if (destIndex >= destColumnTasks.length) {
-        const lastPos = positions[destColumnTasks[destColumnTasks.length - 1]?.id] ?? (destColumnTasks.length * 1000);
-        newPosition = lastPos + 1000;
+        newPosition = posMap[destColumnTasks[destColumnTasks.length - 1].id] + 1000;
       } else {
-        const prevPos = positions[destColumnTasks[destIndex - 1]?.id] ?? ((destIndex - 1) * 1000);
-        const nextPos = positions[destColumnTasks[destIndex]?.id] ?? (destIndex * 1000);
+        const prevPos = posMap[destColumnTasks[destIndex - 1].id];
+        const nextPos = posMap[destColumnTasks[destIndex].id];
         newPosition = (prevPos + nextPos) / 2;
       }
 
