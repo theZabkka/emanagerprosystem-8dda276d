@@ -28,6 +28,7 @@ const praktykantBlocked = new Set(["Cele i OKR","Tablica operacyjna","Tablica ze
 
 export const mockPermissions: { role_name: string; module_name: string; can_view: boolean }[] = [];
 for (const mod of ALL_MODULES) {
+  mockPermissions.push({ role_name: "superadmin", module_name: mod, can_view: true });
   mockPermissions.push({ role_name: "boss", module_name: mod, can_view: true });
   mockPermissions.push({ role_name: "koordynator", module_name: mod, can_view: mod !== "Analityka zespołu" && mod !== "Ustawienia" });
   mockPermissions.push({ role_name: "specjalista", module_name: mod, can_view: !specjalistaBlocked.has(mod) });
