@@ -1,6 +1,7 @@
 // Demo / Mock data for unverified users or demo mode
 
 export const mockProfiles = [
+  { id: "demo-user-sa", email: "superadmin@local.test", full_name: "Super Admin", role: "superadmin", avatar_url: null, department: "Zarząd", status: "active" },
   { id: "demo-user-1", email: "jan.kowalski@demo.pl", full_name: "Jan Kowalski", role: "boss", avatar_url: null, department: "Zarząd", status: "active" },
   { id: "demo-user-2", email: "anna.nowak@demo.pl", full_name: "Anna Nowak", role: "koordynator", avatar_url: null, department: "Marketing", status: "active" },
   { id: "demo-user-3", email: "piotr.wisniewski@demo.pl", full_name: "Piotr Wiśniewski", role: "specjalista", avatar_url: null, department: "Design", status: "active" },
