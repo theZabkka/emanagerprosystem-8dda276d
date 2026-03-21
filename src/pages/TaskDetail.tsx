@@ -90,8 +90,8 @@ export default function TaskDetail() {
   const [correctionText, setCorrectionText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Reset demo state on mount
- = useQuery({
+  // ─── Queries ─────────────────────────────────────────────────────
+  const { data: task, isLoading } = useQuery({
     queryKey: ["task", id],
     queryFn: async () => {
 

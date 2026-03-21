@@ -171,7 +171,14 @@ export default function Messenger() {
 
   const sendMutation = useMutation({
     mutationFn: async ({ content, attachmentUrl, attachmentType, attachmentName }: { content: string; attachmentUrl?: string; attachmentType?: string; attachmentName?: string }) => {
- as any);
+      await supabase.from("messages").insert({
+        channel_id: activeChannel,
+        sender_id: user!.id,
+        content,
+        attachment_url: attachmentUrl || null,
+        attachment_type: attachmentType || null,
+        attachment_name: attachmentName || null,
+      } as any);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["messages", activeChannel] });
