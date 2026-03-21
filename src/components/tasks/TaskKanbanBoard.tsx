@@ -279,7 +279,7 @@ export default function TaskKanbanBoard({
                         <div
                           ref={provided.innerRef}
                           {...provided.droppableProps}
-                          className={`px-2.5 pb-2.5 space-y-2.5 min-h-[120px] transition-colors ${snapshot.isDraggingOver ? "bg-destructive/5" : ""}`}
+                          className={`px-2 pb-2 space-y-1.5 min-h-[120px] transition-colors ${snapshot.isDraggingOver ? "bg-destructive/5" : ""}`}
                         >
                           {columnTasks.map((task: any, index: number) => {
                             const assignee = getAssignee(task.id);
