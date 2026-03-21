@@ -186,7 +186,7 @@ export function CoordinatorFreezeOverlay() {
                             <SelectTrigger className="h-9">
                               <SelectValue placeholder="Wybierz pracownika..." />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="z-[200]">
                               {staffProfiles.map((p: any) => (
                                 <SelectItem key={p.id} value={p.id}>
                                   {p.full_name || p.email || "Bez nazwy"} ({p.role})
