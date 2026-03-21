@@ -485,6 +485,7 @@ Nagłówek: karta z danymi klienta, onboarding progress, publiczny link statusu,
 
 #### Tablica Zespołu (`/team-board`)
 - Kolumny per osoba + kolumna "Nieprzypisane".
+- **Wyświetla wyłącznie pracowników** (role: boss, koordynator, specjalista, praktykant, superadmin) — klienci i użytkownicy z rolą 'user'/'klient' są wykluczeni.
 - Drag & drop między osobami (zmiana primary assignment).
 - Filtry: wyszukiwanie, priorytet.
 
