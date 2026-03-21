@@ -149,22 +149,28 @@ export default function TeamBoard() {
       const destIdx = result.destination.index;
       if (srcIdx === destIdx) return;
 
-      // Calculate fractional position
+      // Build effective positions: use saved position or stable index-based fallback
+      const positions = userPositions || {};
+      const effectivePositions: Record<string, number> = {};
+      columnTasks.forEach((t, i) => {
+        effectivePositions[t.id] = positions[t.id] ?? (i * 1000);
+      });
+
+      // Calculate fractional position between neighbors
       const reordered = [...columnTasks];
       const [moved] = reordered.splice(srcIdx, 1);
       reordered.splice(destIdx, 0, moved);
 
-      const positions = userPositions || {};
       let newPos: number;
       if (destIdx === 0) {
-        const nextPos = positions[reordered[1]?.id] ?? 1;
-        newPos = nextPos - 1;
+        const nextPos = effectivePositions[reordered[1]?.id] ?? 1000;
+        newPos = nextPos - 1000;
       } else if (destIdx >= reordered.length - 1) {
-        const prevPos = positions[reordered[reordered.length - 2]?.id] ?? reordered.length - 1;
-        newPos = prevPos + 1;
+        const prevPos = effectivePositions[reordered[reordered.length - 2]?.id] ?? (reordered.length - 2) * 1000;
+        newPos = prevPos + 1000;
       } else {
-        const prevPos = positions[reordered[destIdx - 1]?.id] ?? destIdx - 1;
-        const nextPos = positions[reordered[destIdx + 1]?.id] ?? destIdx + 1;
+        const prevPos = effectivePositions[reordered[destIdx - 1]?.id] ?? (destIdx - 1) * 1000;
+        const nextPos = effectivePositions[reordered[destIdx + 1]?.id] ?? (destIdx + 1) * 1000;
         newPos = (prevPos + nextPos) / 2;
       }
 
