@@ -245,6 +245,18 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
 
           <Separator />
 
+          {/* NIP lookup - create client by NIP */}
+          <div className="space-y-1.5">
+            <Label>Klient po NIP (opcjonalnie)</Label>
+            <div className="flex gap-2">
+              <Input value={nipInput} onChange={e => setNipInput(e.target.value)} placeholder="Wpisz NIP firmy..." className="flex-1" />
+              <Button type="button" variant="outline" size="sm" onClick={handleNipLookup} disabled={nipLoading || !nipInput.trim()} className="shrink-0 h-10 px-3 gap-1.5">
+                {nipLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                Znajdź
+              </Button>
+            </div>
+          </div>
+
           {/* Relational: Client + Project */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
@@ -267,7 +279,6 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
               <Select value={form.project_id} onValueChange={v => {
                 const val = v === "__none" ? "" : v;
                 update("project_id", val);
-                // Auto-set client from project
                 if (val) {
                   const project = (allProjects || []).find((p: any) => p.id === val);
                   if (project?.client_id && !form.client_id) {
