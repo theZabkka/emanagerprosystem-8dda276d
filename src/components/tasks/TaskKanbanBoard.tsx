@@ -191,6 +191,7 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
           {KANBAN_COLUMNS.map((col) => {
             const columnTasksRaw = tasks.filter((t: any) => t.status === col.key && !t.is_archived);
             const columnTasks = sortTasks(columnTasksRaw, sortField, sortDirection);
+            const isEmpty = columnTasks.length === 0;
             return (
               <div key={col.key} className="flex-shrink-0 w-72 flex flex-col">
                 <div className={`flex flex-col flex-1 rounded-xl border border-dashed ${isEmpty ? "border-muted-foreground/20" : "border-destructive/30"} bg-card/50`}>
