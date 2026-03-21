@@ -5,6 +5,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataSource } from "@/hooks/useDataSource";
+import { useStaffMembers } from "@/hooks/useStaffMembers";
 import {
   mockTasks, mockClients, mockProjects, mockTaskAssignments, mockProfiles,
   mockSubtasks, mockComments, mockTimeLogs, mockChecklists, mockChecklistItems,
