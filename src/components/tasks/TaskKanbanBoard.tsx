@@ -154,6 +154,11 @@ export default function TaskKanbanBoard({
     onStatusChange(taskId, newStatus);
   };
 
+  // Helper: get effective position for a task in sorted column order
+  const getPos = useCallback((taskId: string, index: number) => {
+    return positions[taskId] ?? (index * 1000);
+  }, [positions]);
+
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
 
@@ -161,33 +166,29 @@ export default function TaskKanbanBoard({
 
     // Same column reorder (only in manual mode)
     if (source.droppableId === destination.droppableId) {
-      if (sortField !== "manual" || !onReorder) return; // Block reorder in non-manual mode
+      if (sortField !== "manual" || !onReorder) return;
 
       const columnTasks = sortTasks(
         tasks.filter((t: any) => t.status === source.droppableId && !t.is_archived),
         "manual", "asc", positions
       );
 
+      // Build effective positions array (index-based fallback for unsaved)
+      const withoutDragged = columnTasks.filter((t: any) => t.id !== draggableId);
       const destIndex = destination.index;
       let newPosition: number;
 
-      if (columnTasks.length <= 1) {
+      if (withoutDragged.length === 0) {
         newPosition = 1000;
       } else if (destIndex === 0) {
-        // Before first item
-        const firstPos = positions[columnTasks[0]?.id] ?? 1000;
+        const firstPos = getPos(withoutDragged[0]?.id, 0);
         newPosition = firstPos - 1000;
-      } else if (destIndex >= columnTasks.length - 1) {
-        // After last item
-        const lastPos = positions[columnTasks[columnTasks.length - 1]?.id] ?? (columnTasks.length * 1000);
+      } else if (destIndex >= withoutDragged.length) {
+        const lastPos = getPos(withoutDragged[withoutDragged.length - 1]?.id, withoutDragged.length - 1);
         newPosition = lastPos + 1000;
       } else {
-        // Between two items - filter out the dragged item to get correct neighbors
-        const withoutDragged = columnTasks.filter((t: any) => t.id !== draggableId);
-        const prevTask = withoutDragged[destIndex - 1];
-        const nextTask = withoutDragged[destIndex];
-        const prevPos = positions[prevTask?.id] ?? ((destIndex - 1) * 1000);
-        const nextPos = positions[nextTask?.id] ?? ((destIndex) * 1000);
+        const prevPos = getPos(withoutDragged[destIndex - 1]?.id, destIndex - 1);
+        const nextPos = getPos(withoutDragged[destIndex]?.id, destIndex);
         newPosition = (prevPos + nextPos) / 2;
       }
 
