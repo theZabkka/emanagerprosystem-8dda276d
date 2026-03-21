@@ -9,7 +9,10 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Hash, Plus, Send, Search, Smile, Paperclip, X } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Hash, Plus, Send, Search, Smile, Paperclip, X, Circle, MessageCircle, SmilePlus, FileText, Download } from "lucide-react";
+import { format } from "date-fns";
+import { pl } from "date-fns/locale";
 
 const EMOJI_LIST = ["👍", "❤️", "😂", "🎉", "🔥", "👀", "✅", "💯"];
 
