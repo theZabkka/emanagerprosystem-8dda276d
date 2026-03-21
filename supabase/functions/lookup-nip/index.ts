@@ -144,11 +144,14 @@ Deno.serve(async (req) => {
       street = parts[0];
     }
 
+    // For sole proprietors, MF name = owner name; use it as contact_person too
+    const mfName = subject.name || "";
+
     return new Response(
       JSON.stringify({
         source: "mf",
-        name: subject.name || "",
-        contact_person: "",
+        name: mfName,
+        contact_person: mfName,
         nip,
         street,
         postal_code,
