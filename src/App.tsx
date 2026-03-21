@@ -115,6 +115,7 @@ const App = () => (
             <Route path="/settings/permissions" element={<ProtectedRoute><Permissions /></ProtectedRoute>} />
             <Route path="/client-ideas" element={<ProtectedRoute><ClientIdeas /></ProtectedRoute>} />
             <Route path="/staff-ideas" element={<ProtectedRoute><StaffIdeas /></ProtectedRoute>} />
+            <Route path="/docs" element={<ProtectedRoute><Documentation /></ProtectedRoute>} />
             {stubRoutes.map((r) => (
               <Route key={r.path} path={r.path} element={<ProtectedRoute><StubPage title={r.title} /></ProtectedRoute>} />
             ))}
