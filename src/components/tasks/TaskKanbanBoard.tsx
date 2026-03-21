@@ -45,9 +45,11 @@ interface TaskKanbanBoardProps {
   onStatusChange: (taskId: string, newStatus: string) => void;
   onArchive?: (taskId: string) => void;
   onRefresh?: () => void;
+  sortField?: SortField;
+  sortDirection?: SortDirection;
 }
 
-export default function TaskKanbanBoard({ tasks, profiles, assignments, clients, onStatusChange, onArchive, onRefresh }: TaskKanbanBoardProps) {
+export default function TaskKanbanBoard({ tasks, profiles, assignments, clients, onStatusChange, onArchive, onRefresh, sortField = "created_at", sortDirection = "desc" }: TaskKanbanBoardProps) {
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
   const [responsibilityOpen, setResponsibilityOpen] = useState(false);
   const [pendingMove, setPendingMove] = useState<{ taskId: string; newStatus: string } | null>(null);
