@@ -90,12 +90,25 @@ export default function TeamBoard() {
     const oldUserId = result.source.droppableId === "unassigned" ? null : result.source.droppableId;
     if (newUserId === oldUserId) return;
 
+    // Optimistic update — instantly move card
+    const previousAssignments = queryClient.getQueryData<any[]>(["tb-assignments"]);
+    queryClient.setQueryData<any[]>(["tb-assignments"], (old) => {
+      const filtered = (old || []).filter((a) => !(a.task_id === taskId && a.role === "primary"));
+      if (newUserId) {
+        filtered.push({ task_id: taskId, user_id: newUserId, role: "primary" });
+      }
+      return filtered;
+    });
 
-    // Remove old primary
+    // Server update in background
     await supabase.from("task_assignments").delete().eq("task_id", taskId).eq("role", "primary" as any);
-    // Add new if not unassigned
     if (newUserId) {
-      await supabase.from("task_assignments").insert({ task_id: taskId, user_id: newUserId, role: "primary" as any });
+      const { error } = await supabase.from("task_assignments").insert({ task_id: taskId, user_id: newUserId, role: "primary" as any });
+      if (error) {
+        queryClient.setQueryData(["tb-assignments"], previousAssignments);
+        toast.error("Nie udało się przypisać zadania.");
+        return;
+      }
     }
     toast.success("Zadanie przypisane");
     queryClient.invalidateQueries({ queryKey: ["tb-assignments"] });

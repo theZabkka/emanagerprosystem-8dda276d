@@ -391,6 +391,7 @@ Wszystkie strony ładowane są leniwie (`React.lazy`). Chronione przez `Protecte
 - **Widok Lista:** Tabela zadań.
 - **Filtry:** Wyszukiwanie, priorytet, typ (parent/subtask/standalone).
 - **Sortowanie w Kanbanie:** Dropdown "Sortuj po" z opcjami: Data utworzenia (`created_at`), Zmiana statusu (`status_updated_at`), Termin/Deadline (`due_date`), Priorytet (`priority`). Przycisk przełączania kierunku ASC/DESC. Sortowanie aplikowane per-kolumna. Priorytety sortowane logicznie (critical=4, high=3, medium=2, low=1). Zadania bez deadline'u zawsze na końcu listy. Logika w `src/lib/taskSorting.ts`.
+- **Optimistic UI Updates:** Operacje Drag & Drop (zmiana statusu w Kanbanie, przypisywanie w TeamBoard) używają wzorca "Optimistic UI Updates" — lokalny stan Reacta (TanStack Query cache) jest aktualizowany natychmiast po upuszczeniu karty, **bez czekania na odpowiedź serwera**. Zapytanie do Supabase (`change_task_status` RPC) wykonuje się w tle. W razie błędu (brak internetu, RLS) następuje automatyczny rollback do poprzedniego stanu + czerwony toast "Nie udało się zapisać zmiany statusu." Eliminuje to migotanie (flickering) kart przy operacjach drag & drop.
 - **Alerty:** Nieprzypisane, do weryfikacji, do akceptacji klienta, niezrozumiałe.
 - **Tworzenie:** Dialog z polami: tytuł, opis, priorytet, typ, klient, projekt, data, czas, brief, przypisane osoby.
 - **Walidacja workflow (Kanban):**
