@@ -117,6 +117,8 @@ export default function Tasks() {
             onStatusChange={handleStatusChange}
             onArchive={handleArchive}
             onRefresh={() => refetch()}
+            sortField={sortField}
+            sortDirection={sortDirection}
           />
         ) : (
           <TaskListView tasks={filteredTasks} isLoading={isLoading} />
