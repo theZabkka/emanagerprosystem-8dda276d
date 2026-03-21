@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { useDataSource } from "@/hooks/useDataSource";
-import { mockProjects, mockClients, mockProfiles } from "@/lib/mockData";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
@@ -26,7 +24,6 @@ function getDemoProjects() {
 }
 
 export default function Projects() {
-  const { isDemo } = useDataSource();
   const navigate = useNavigate();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 

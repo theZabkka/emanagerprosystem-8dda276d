@@ -3,8 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { useDataSource } from "@/hooks/useDataSource";
-import { mockTasks, mockClients, mockProjects, mockProfiles, mockTaskAssignments } from "@/lib/mockData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +11,6 @@ import { Archive, ExternalLink } from "lucide-react";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 
 export default function TaskArchive() {
-  const { isDemo } = useDataSource();
   const [clientFilter, setClientFilter] = useState("all");
   const [projectFilter, setProjectFilter] = useState("all");
 

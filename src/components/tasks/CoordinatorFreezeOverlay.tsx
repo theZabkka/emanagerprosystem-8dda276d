@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
-import { useDataSource } from "@/hooks/useDataSource";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { AlertTriangle, Clock, UserPlus, Check, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,6 @@ const FREEZE_THRESHOLD_MS = 60 * 60 * 1000; // 60 min
 export function CoordinatorFreezeOverlay() {
   const { user } = useAuth();
   const { currentRole } = useRole();
-  const { isDemo } = useDataSource();
   const queryClient = useQueryClient();
   const [frozenTasks, setFrozenTasks] = useState<any[]>([]);
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);

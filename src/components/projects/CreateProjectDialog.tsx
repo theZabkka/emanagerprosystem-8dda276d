@@ -16,8 +16,6 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
-import { useDataSource } from "@/hooks/useDataSource";
-import { mockClients, mockProfiles } from "@/lib/mockData";
 import { toast } from "sonner";
 
 const statusOptions = [
@@ -53,7 +51,6 @@ const initialForm = {
 };
 
 export default function CreateProjectDialog({ open, onOpenChange, onCreated }: CreateProjectDialogProps) {
-  const { isDemo } = useDataSource();
   const [form, setForm] = useState(initialForm);
   const [briefOpen, setBriefOpen] = useState(false);
   const [briefItems, setBriefItems] = useState<BriefItem[]>(

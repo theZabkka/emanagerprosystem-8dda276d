@@ -2,8 +2,6 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { useDataSource } from "@/hooks/useDataSource";
-import { mockTasks, mockClients, mockProjects, mockTaskAssignments, mockProfiles } from "@/lib/mockData";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import TaskKanbanBoard from "@/components/tasks/TaskKanbanBoard";
@@ -31,7 +29,6 @@ function enrichDemoTasks(priorityFilter: string) {
 
 export default function Tasks() {
   const { user } = useAuth();
-  const { isDemo } = useDataSource();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");

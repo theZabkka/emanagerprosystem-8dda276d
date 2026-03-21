@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { useDataSource } from "@/hooks/useDataSource";
 import { supabase } from "@/integrations/supabase/client";
 import {
   mockClients, mockProjects, mockTasks, mockTaskAssignments, mockProfiles, mockPipelineDeals,
@@ -100,7 +99,6 @@ let demoSocialState = [...mockClientSocialAccounts];
 
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
-  const { isDemo } = useDataSource();
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("tasks");

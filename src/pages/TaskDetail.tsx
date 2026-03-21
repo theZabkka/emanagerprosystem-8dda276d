@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataSource } from "@/hooks/useDataSource";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
 import {
   mockTasks, mockClients, mockProjects, mockTaskAssignments, mockProfiles,
@@ -98,7 +97,6 @@ function resetDemoState() {
 export default function TaskDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const { isDemo } = useDataSource();
   const { isClient, currentRole } = useRole();
   const queryClient = useQueryClient();
   const [commentText, setCommentText] = useState("");

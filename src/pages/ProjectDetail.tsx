@@ -3,8 +3,6 @@ import { useRole } from "@/hooks/useRole";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { useDataSource } from "@/hooks/useDataSource";
-import { mockProjects, mockClients, mockProfiles, mockTasks, mockTaskAssignments } from "@/lib/mockData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,7 +43,6 @@ type BriefQuestion = { question: string; answer: string };
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isDemo } = useDataSource();
   const { isClient } = useRole();
   const [activeTab, setActiveTab] = useState<"tasks" | "budget" | "brief">("tasks");
   const [editingBrief, setEditingBrief] = useState(false);

@@ -17,8 +17,6 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
-import { useDataSource } from "@/hooks/useDataSource";
-import { mockClients, mockProjects, mockProfiles } from "@/lib/mockData";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -48,7 +46,6 @@ const initialForm = {
 
 export default function CreateTaskDialog({ open, onOpenChange, onCreated }: CreateTaskDialogProps) {
   const { user } = useAuth();
-  const { isDemo } = useDataSource();
   const [form, setForm] = useState(initialForm);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [briefOpen, setBriefOpen] = useState(false);

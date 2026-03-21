@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Clock, HelpCircle, UserPlus, Archive } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useDataSource } from "@/hooks/useDataSource";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { toast } from "sonner";
 import { ChecklistBlockModal, ResponsibilityModal } from "./WorkflowModals";
@@ -47,7 +46,6 @@ interface TaskKanbanBoardProps {
 }
 
 export default function TaskKanbanBoard({ tasks, profiles, assignments, clients, onStatusChange, onArchive, onRefresh }: TaskKanbanBoardProps) {
-  const { isDemo } = useDataSource();
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
   const [responsibilityOpen, setResponsibilityOpen] = useState(false);
   const [pendingMove, setPendingMove] = useState<{ taskId: string; newStatus: string } | null>(null);

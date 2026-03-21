@@ -3,8 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { useDataSource } from "@/hooks/useDataSource";
-import { mockProfiles, mockTasks, mockTaskAssignments, mockClients } from "@/lib/mockData";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -32,7 +30,6 @@ const priorityColors: Record<string, string> = {
 const AVATAR_COLORS = ["bg-green-600", "bg-blue-600", "bg-purple-600", "bg-orange-600", "bg-pink-600", "bg-teal-600"];
 
 export default function TeamBoard() {
-  const { isDemo } = useDataSource();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("all");

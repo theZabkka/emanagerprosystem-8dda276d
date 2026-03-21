@@ -9,8 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { useDataSource } from "@/hooks/useDataSource";
-import { mockTasks } from "@/lib/mockData";
 import { ClientReviewModal } from "@/components/tasks/WorkflowModals";
 import { toast } from "sonner";
 
@@ -19,7 +17,6 @@ export default function ClientDashboard() {
   const { profile, user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isDemo } = useDataSource();
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 

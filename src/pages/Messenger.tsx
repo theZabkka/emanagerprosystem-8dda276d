@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataSource } from "@/hooks/useDataSource";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +44,6 @@ type Profile = { id: string; full_name: string | null; avatar_url: string | null
 
 export default function Messenger() {
   const { user, profile } = useAuth();
-  const { isDemo } = useDataSource();
   const queryClient = useQueryClient();
   const [activeChannel, setActiveChannel] = useState<string | null>(null);
   const [messageText, setMessageText] = useState("");

@@ -2,8 +2,6 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { useDataSource } from "@/hooks/useDataSource";
-import { mockTasks } from "@/lib/mockData";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +21,6 @@ const PRIORITY_COLORS: Record<string, string> = {
 };
 
 export default function TeamCalendar() {
-  const { isDemo } = useDataSource();
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const { data: tasks = [] } = useQuery({

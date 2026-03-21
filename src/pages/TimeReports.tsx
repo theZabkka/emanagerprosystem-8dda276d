@@ -2,8 +2,6 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { useDataSource } from "@/hooks/useDataSource";
-import { mockTimeLogs, mockProfiles, mockTasks, mockClients } from "@/lib/mockData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,7 +17,6 @@ import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { pl } from "date-fns/locale";
 
 export default function TimeReports() {
-  const { isDemo } = useDataSource();
   const [period, setPeriod] = useState("this-month");
 
   const dateRange = useMemo(() => {

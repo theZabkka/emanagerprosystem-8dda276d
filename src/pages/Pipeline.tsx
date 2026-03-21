@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { useDataSource } from "@/hooks/useDataSource";
-import { mockPipelineDeals, mockClients, mockProfiles } from "@/lib/mockData";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,7 +31,6 @@ function getDemoDeals() {
 }
 
 export default function Pipeline() {
-  const { isDemo } = useDataSource();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [form, setForm] = useState({ title: "", value: "", stage: "potential", client_id: "" });
 

@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { useDataSource } from "@/hooks/useDataSource";
-import { mockTasks, mockClients } from "@/lib/mockData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -27,7 +25,6 @@ const PRIORITY_COLORS: Record<string, string> = {
 };
 
 export default function OperationalBoard() {
-  const { isDemo } = useDataSource();
   const { data: tasks = [] } = useQuery({
     queryKey: ["board-tasks", isDemo],
     queryFn: async () => {
