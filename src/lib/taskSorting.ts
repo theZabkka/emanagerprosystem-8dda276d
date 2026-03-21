@@ -35,12 +35,10 @@ export function sortTasks(
       if (da === null) return 1;
       if (db === null) return -1;
       cmp = da - db;
-    } else if (field === "manual") {
-      // No positions provided, fallback to created_at
-      const va = a.created_at ? new Date(a.created_at).getTime() : 0;
-      const vb = b.created_at ? new Date(b.created_at).getTime() : 0;
-      cmp = va - vb;
     } else {
+      // created_at or status_updated_at
+      const va = a[field] ? new Date(a[field]).getTime() : 0;
+      const vb = b[field] ? new Date(b[field]).getTime() : 0;
       const va = a[field] ? new Date(a[field]).getTime() : 0;
       const vb = b[field] ? new Date(b[field]).getTime() : 0;
       cmp = va - vb;
