@@ -74,7 +74,7 @@ const stubRoutes = [
   { path: "/team-analytics", title: "Analityka zespołu" },
   { path: "/recurring-tasks", title: "Zadania cykliczne" },
   { path: "/suggestions", title: "Sugestie" },
-  { path: "/docs", title: "Dokumentacja" },
+  
   { path: "/project-guide", title: "Instrukcja projektu" },
 ];
 
