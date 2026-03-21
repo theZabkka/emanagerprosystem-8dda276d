@@ -409,17 +409,26 @@ function AssignPopover({
           type="button"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
-          className="flex items-center gap-1.5 hover:bg-accent rounded-md px-1.5 py-1 transition-colors"
+          className="flex items-center hover:bg-accent rounded px-1 py-0.5 transition-colors"
         >
           {assignee ? (
-            <Avatar className="h-7 w-7">
-              <AvatarFallback className={`text-[10px] text-white font-bold ${getAvatarColor(assignee.id)}`}>
-                {getInitials(assignee.full_name || "?")}
-              </AvatarFallback>
-            </Avatar>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Avatar className="h-5 w-5">
+                    <AvatarFallback className={`text-[8px] text-white font-bold ${getAvatarColor(assignee.id)}`}>
+                      {getInitials(assignee.full_name || "?")}
+                    </AvatarFallback>
+                  </Avatar>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  {assignee.full_name}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           ) : (
-            <span className="inline-flex items-center rounded-full border border-transparent bg-destructive px-2.5 py-0.5 text-[9px] font-bold text-destructive-foreground gap-1">
-              <UserPlus className="h-3 w-3" />
+            <span className="inline-flex items-center rounded-full border border-transparent bg-destructive px-2 py-0.5 text-[8px] font-bold text-destructive-foreground gap-0.5">
+              <UserPlus className="h-2.5 w-2.5" />
               PRZYPISZ
             </span>
           )}
@@ -441,8 +450,8 @@ function AssignPopover({
               onClick={() => { onAssign(taskId, p.id); setOpen(false); }}
               className="flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm hover:bg-accent transition-colors text-left"
             >
-              <Avatar className="h-6 w-6">
-                <AvatarFallback className={`text-[9px] text-white font-bold ${getAvatarColor(p.id)}`}>
+              <Avatar className="h-5 w-5">
+                <AvatarFallback className={`text-[8px] text-white font-bold ${getAvatarColor(p.id)}`}>
                   {getInitials(p.full_name || "?")}
                 </AvatarFallback>
               </Avatar>
