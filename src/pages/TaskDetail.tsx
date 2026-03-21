@@ -514,7 +514,7 @@ export default function TaskDetail() {
   async function handleDeadlineChange(newDate: Date | undefined) {
     if (!task) return;
     const { error } = await supabase.from("tasks").update({
-      due_date: newDate ? newDate.toISOString().split("T")[0] : null,
+      due_date: newDate ? `${newDate.getFullYear()}-${String(newDate.getMonth() + 1).padStart(2, '0')}-${String(newDate.getDate()).padStart(2, '0')}` : null,
       updated_at: new Date().toISOString(),
     } as any).eq("id", task.id);
     if (error) { toast.error("Błąd aktualizacji terminu"); return; }
