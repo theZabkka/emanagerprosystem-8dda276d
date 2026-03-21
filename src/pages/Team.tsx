@@ -12,11 +12,17 @@ import { useState } from "react";
 export default function Team() {
   const [search, setSearch] = useState("");
 
+  const STAFF_ROLES = ["superadmin", "boss", "koordynator", "specjalista", "praktykant"];
+
   const { data: profiles = [] } = useQuery({
     queryKey: ["team-members"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, full_name, email, role, department, status, avatar_url, created_at").order("full_name");
-      return data || [];
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, role, department, status, avatar_url, created_at")
+        .in("role", STAFF_ROLES)
+        .order("full_name");
+      return (data || []).filter(p => p.status !== "inactive");
     },
   });
 
