@@ -432,11 +432,12 @@ export default function TaskKanbanBoard({
 }
 
 function AssignPopover({
-  taskId, assignee, allProfiles, getInitials, getAvatarColor, onAssign,
+  taskId, assignee, allProfiles, getInitials, getAvatarColor, onAssign, showAvatarInTrigger = true,
 }: {
   taskId: string; assignee: any; allProfiles: any[];
   getInitials: (name: string) => string; getAvatarColor: (id: string) => string;
   onAssign: (taskId: string, userId: string) => void;
+  showAvatarInTrigger?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -447,9 +448,13 @@ function AssignPopover({
           type="button"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
-          className="flex items-center hover:bg-accent rounded px-1 py-0.5 transition-colors"
+          className="flex items-center hover:bg-accent rounded px-0.5 py-0.5 transition-colors"
         >
-          {assignee ? (
+          {!showAvatarInTrigger ? (
+            <span className="inline-flex items-center justify-center h-4 w-4 rounded-full border border-dashed border-muted-foreground/40 text-muted-foreground hover:border-primary hover:text-primary">
+              <UserPlus className="h-2 w-2" />
+            </span>
+          ) : assignee ? (
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
