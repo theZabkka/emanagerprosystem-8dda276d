@@ -300,35 +300,41 @@ export default function TaskKanbanBoard({
                                     className={`rounded-lg border shadow-sm transition-shadow ${isUnassigned ? "bg-destructive/15 animate-pulse border-destructive/50 ring-2 ring-destructive/30" : "bg-card"} ${task.not_understood ? "ring-2 ring-amber-500/50 border-amber-500/30" : ""} ${task.correction_severity === "critical" ? "ring-2 ring-destructive/50" : ""} ${snapshot.isDragging ? "shadow-lg ring-2 ring-destructive/20" : "hover:shadow-md"}`}
                                   >
                                     <Link to={`/tasks/${task.id}`} className="block px-2 pt-1.5 pb-1">
-                                      {/* Row 1: Priority + Deadline + flags */}
-                                      <div className="flex items-center gap-1 mb-1">
-                                        <Badge
-                                          variant="outline"
-                                          className={`text-[8px] h-3.5 px-1 font-bold border ${priority.border} ${priority.bg} ${priority.text} rounded`}
-                                        >
-                                          {priority.label}
-                                        </Badge>
-                                        {task.due_date && (
-                                          <span className={`text-[9px] font-semibold ${new Date(task.due_date) < new Date() ? "text-destructive" : "text-muted-foreground"}`}>
-                                            · {new Date(task.due_date).toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit" })}
-                                          </span>
-                                        )}
-                                        {task.not_understood && (
-                                          <Badge className="text-[7px] h-3 px-0.5 bg-warning text-warning-foreground">❓</Badge>
-                                        )}
-                                        {task.correction_severity && (
-                                          <Badge className={`text-[7px] h-3 px-0.5 ${task.correction_severity === "critical" ? "bg-destructive text-destructive-foreground" : "bg-warning/15 text-warning border-warning/30"}`}>
-                                            {task.correction_severity === "critical" ? "KRYT" : "POPR"}
+                                      {/* Row 1: Title (left) + Priority+Date (right) */}
+                                      <div className="flex items-start gap-1.5">
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-[11px] font-bold text-foreground leading-tight break-words">{task.title}</p>
+                                          {client && (
+                                            <p className="text-[9px] text-muted-foreground truncate mt-0.5">{client.name}</p>
+                                          )}
+                                        </div>
+                                        <div className="flex flex-col items-end gap-0.5 flex-shrink-0 pt-px">
+                                          <Badge
+                                            variant="outline"
+                                            className={`text-[8px] h-3.5 px-1 font-bold border ${priority.border} ${priority.bg} ${priority.text} rounded whitespace-nowrap`}
+                                          >
+                                            {priority.label}
                                           </Badge>
-                                        )}
+                                          {task.due_date && (
+                                            <span className={`text-[9px] font-semibold whitespace-nowrap ${new Date(task.due_date) < new Date() ? "text-destructive" : "text-muted-foreground"}`}>
+                                              {new Date(task.due_date).toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit" })}
+                                            </span>
+                                          )}
+                                        </div>
                                       </div>
 
-                                      {/* Row 2: Title */}
-                                      <p className="text-[11px] font-bold text-foreground leading-tight line-clamp-2">{task.title}</p>
-
-                                      {/* Row 3: Client / Project (compact) */}
-                                      {client && (
-                                        <p className="text-[9px] text-muted-foreground truncate mt-0.5">{client.name}</p>
+                                      {/* Flags row */}
+                                      {(task.not_understood || task.correction_severity) && (
+                                        <div className="flex items-center gap-1 mt-0.5">
+                                          {task.not_understood && (
+                                            <Badge className="text-[7px] h-3 px-0.5 bg-warning text-warning-foreground">❓</Badge>
+                                          )}
+                                          {task.correction_severity && (
+                                            <Badge className={`text-[7px] h-3 px-0.5 ${task.correction_severity === "critical" ? "bg-destructive text-destructive-foreground" : "bg-warning/15 text-warning border-warning/30"}`}>
+                                              {task.correction_severity === "critical" ? "KRYT" : "POPR"}
+                                            </Badge>
+                                          )}
+                                        </div>
                                       )}
 
                                       {waitingTime && (
