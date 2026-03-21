@@ -135,7 +135,7 @@ export default function TaskDetail() {
   const { data: comments } = useQuery({
     queryKey: ["comments", id],
     queryFn: async () => {
-      const { data } = await supabase.from("comments").select("*, profiles:user_id(full_name)").eq("task_id", id!).order("created_at", { ascending: false });
+      const { data } = await supabase.from("comments").select("*, profiles:user_id(full_name, role)").eq("task_id", id!).order("created_at", { ascending: false });
       return data || [];
     },
     enabled: !!id,
