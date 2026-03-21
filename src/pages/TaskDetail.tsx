@@ -339,11 +339,6 @@ export default function TaskDetail() {
 
   // 3. Assignments
   async function addAssignment(userId: string, role: string = "collaborator") {
-      demoAssignmentsState.push({ task_id: id!, user_id: userId, role: role as any });
-      queryClient.invalidateQueries({ queryKey: ["task-assignments", id] });
-      toast.success("Osoba przypisana");
-      return;
-    }
     const { error } = await supabase.from("task_assignments").insert({ task_id: id!, user_id: userId, role: role as any });
     if (error) { toast.error(error.message); return; }
     queryClient.invalidateQueries({ queryKey: ["task-assignments", id] });
