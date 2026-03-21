@@ -10,7 +10,7 @@ import { Clock, HelpCircle, UserPlus, Archive } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useDataSource } from "@/hooks/useDataSource";
-import { mockProfiles } from "@/lib/mockData";
+import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { toast } from "sonner";
 import { ChecklistBlockModal, ResponsibilityModal } from "./WorkflowModals";
 
