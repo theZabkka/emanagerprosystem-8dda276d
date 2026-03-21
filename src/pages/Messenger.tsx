@@ -34,6 +34,7 @@ type Profile = { id: string; full_name: string | null; avatar_url: string | null
 export default function Messenger() {
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
+  const currentUserId = user?.id;
   const [activeChannel, setActiveChannel] = useState<string | null>(null);
   const [messageText, setMessageText] = useState("");
   const [typingUsers, setTypingUsers] = useState<Record<string, string>>({});
