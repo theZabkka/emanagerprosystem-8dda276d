@@ -556,6 +556,9 @@ export default function TaskDetail() {
   if (isLoading) return <AppLayout title="Zadanie"><div className="p-8 text-muted-foreground">Ładowanie...</div></AppLayout>;
   if (!task) return <AppLayout title="Zadanie"><div className="p-8 text-muted-foreground">Nie znaleziono zadania.</div></AppLayout>;
 
+  // Show assignment overlay for unassigned tasks (staff only, not client)
+  const showAssignOverlay = hasNoAssignment && !isClient && !isPreviewMode;
+
   return (
     <AppLayout title={task.title}>
       <div className="max-w-5xl mx-auto space-y-5">
