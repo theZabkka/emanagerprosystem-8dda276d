@@ -299,57 +299,48 @@ export default function TaskKanbanBoard({
                                     {...provided.dragHandleProps}
                                     className={`rounded-lg border shadow-sm transition-shadow ${isUnassigned ? "bg-destructive/15 animate-pulse border-destructive/50 ring-2 ring-destructive/30" : "bg-card"} ${task.not_understood ? "ring-2 ring-amber-500/50 border-amber-500/30" : ""} ${task.correction_severity === "critical" ? "ring-2 ring-destructive/50" : ""} ${snapshot.isDragging ? "shadow-lg ring-2 ring-destructive/20" : "hover:shadow-md"}`}
                                   >
-                                    <Link to={`/tasks/${task.id}`} className="block p-2.5">
-                                      <div className="flex items-center justify-between mb-1.5">
-                                        <div className="flex items-center gap-1">
-                                          <span className="text-[10px] font-mono text-muted-foreground font-medium">{getTaskIndex(task.id)}</span>
-                                          {task.not_understood && (
-                                            <Badge className="text-[8px] h-3.5 px-1 bg-amber-500 text-white">❓</Badge>
-                                          )}
-                                        </div>
+                                    <Link to={`/tasks/${task.id}`} className="block px-2 pt-1.5 pb-1">
+                                      {/* Row 1: Priority + Deadline + flags */}
+                                      <div className="flex items-center gap-1 mb-1">
                                         <Badge
                                           variant="outline"
-                                          className={`text-[9px] h-4 px-1.5 font-bold border ${priority.border} ${priority.bg} ${priority.text} rounded-md`}
+                                          className={`text-[8px] h-3.5 px-1 font-bold border ${priority.border} ${priority.bg} ${priority.text} rounded`}
                                         >
                                           {priority.label}
                                         </Badge>
+                                        {task.due_date && (
+                                          <span className={`text-[9px] font-semibold ${new Date(task.due_date) < new Date() ? "text-destructive" : "text-muted-foreground"}`}>
+                                            · {new Date(task.due_date).toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit" })}
+                                          </span>
+                                        )}
+                                        {task.not_understood && (
+                                          <Badge className="text-[7px] h-3 px-0.5 bg-warning text-warning-foreground">❓</Badge>
+                                        )}
+                                        {task.correction_severity && (
+                                          <Badge className={`text-[7px] h-3 px-0.5 ${task.correction_severity === "critical" ? "bg-destructive text-destructive-foreground" : "bg-warning/15 text-warning border-warning/30"}`}>
+                                            {task.correction_severity === "critical" ? "KRYT" : "POPR"}
+                                          </Badge>
+                                        )}
                                       </div>
 
-                                      <p className="text-xs font-bold text-foreground leading-snug mb-0.5 line-clamp-2">{task.title}</p>
+                                      {/* Row 2: Title */}
+                                      <p className="text-[11px] font-bold text-foreground leading-tight line-clamp-2">{task.title}</p>
 
+                                      {/* Row 3: Client / Project (compact) */}
                                       {client && (
-                                        <p className="text-[10px] text-muted-foreground mb-1.5 truncate">{client.name}</p>
-                                      )}
-
-                                      {task.correction_severity && (
-                                        <Badge className={`text-[8px] h-3.5 mb-1 ${task.correction_severity === "critical" ? "bg-destructive text-destructive-foreground" : "bg-amber-500/15 text-amber-700 border-amber-500/30"}`}>
-                                          {task.correction_severity === "critical" ? "KRYTYCZNE" : "POPRAWKI"}
-                                        </Badge>
+                                        <p className="text-[9px] text-muted-foreground truncate mt-0.5">{client.name}</p>
                                       )}
 
                                       {waitingTime && (
-                                        <div className="flex items-center gap-1 text-[9px] text-destructive-foreground font-semibold mb-1 bg-destructive rounded px-1.5 py-0.5 w-fit">
-                                          <Clock className="h-2.5 w-2.5" />
+                                        <div className="flex items-center gap-0.5 text-[8px] text-destructive-foreground font-semibold mt-1 bg-destructive rounded px-1 py-0.5 w-fit">
+                                          <Clock className="h-2 w-2" />
                                           {waitingTime}
                                         </div>
                                       )}
-
-                                      <div className="flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground">
-                                        {task.estimated_time > 0 && task.logged_time > 0 && (
-                                          <span className="flex items-center gap-0.5">
-                                            <Clock className="h-2.5 w-2.5" />
-                                            {(task.logged_time / 60).toFixed(1)}h
-                                          </span>
-                                        )}
-                                        {task.due_date && (
-                                          <span className={`font-medium ${new Date(task.due_date) < new Date() ? "text-destructive" : ""}`}>
-                                            {new Date(task.due_date).toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit" })}
-                                          </span>
-                                        )}
-                                      </div>
                                     </Link>
 
-                                    <div className="px-2.5 pb-2 -mt-1 flex items-center justify-between">
+                                    {/* Bottom row: Avatar + actions */}
+                                    <div className="px-2 pb-1.5 flex items-center justify-between">
                                       <AssignPopover
                                         taskId={task.id}
                                         assignee={assignee}
@@ -358,22 +349,30 @@ export default function TaskKanbanBoard({
                                         getAvatarColor={getAvatarColor}
                                         onAssign={handleAssign}
                                       />
-                                      {col.key === "closed" && onArchive && (
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          className="h-6 text-[9px] gap-1 text-muted-foreground hover:text-primary px-1.5"
-                                          onPointerDown={(e) => e.stopPropagation()}
-                                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onArchive(task.id); }}
-                                        >
-                                          <Archive className="h-2.5 w-2.5" />
-                                          Archiwizuj
-                                        </Button>
-                                      )}
+                                      <div className="flex items-center gap-1">
+                                        {task.estimated_time > 0 && task.logged_time > 0 && (
+                                          <span className="flex items-center gap-0.5 text-[9px] text-muted-foreground">
+                                            <Clock className="h-2 w-2" />
+                                            {(task.logged_time / 60).toFixed(1)}h
+                                          </span>
+                                        )}
+                                        {col.key === "closed" && onArchive && (
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 text-[8px] gap-0.5 text-muted-foreground hover:text-primary px-1"
+                                            onPointerDown={(e) => e.stopPropagation()}
+                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onArchive(task.id); }}
+                                          >
+                                            <Archive className="h-2 w-2" />
+                                            Archiwizuj
+                                          </Button>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
-                                )}
-                              </Draggable>
+                                 )}
+                               </Draggable>
                             );
                           })}
                           {provided.placeholder}
