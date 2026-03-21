@@ -66,15 +66,7 @@ export default function ProjectDetail() {
   const { data: tasks } = useQuery({
     queryKey: ["project-tasks", id],
     queryFn: async () => {
-      if () {
-        return mockTasks
-          .filter(t => t.project_id === id)
-          .map(t => {
-            const assignment = mockTaskAssignments.find(a => a.task_id === t.id && a.role === "primary");
-            const assignee = assignment ? mockProfiles.find(p => p.id === assignment.user_id) : null;
-            return { ...t, assignee_name: assignee?.full_name || null };
-          });
-      }
+
       const { data } = await supabase
         .from("tasks")
         .select("*, task_assignments(user_id, role, profiles:user_id(full_name))")

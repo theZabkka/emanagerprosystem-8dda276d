@@ -18,22 +18,7 @@ export default function TaskArchive() {
   const { data: tasks, isLoading } = useQuery({
     queryKey: ["archived-tasks"],
     queryFn: async () => {
-      if () {
-        return mockTasks
-          .filter(t => t.is_archived)
-          .map(t => {
-            const client = mockClients.find(c => c.id === t.client_id);
-            const project = mockProjects.find(p => p.id === t.project_id);
-            const primaryAssignment = mockTaskAssignments.find(a => a.task_id === t.id && a.role === "primary");
-            const assignee = primaryAssignment ? mockProfiles.find(p => p.id === primaryAssignment.user_id) : null;
-            return {
-              ...t,
-              client_name: client?.name || null,
-              project_name: project?.name || null,
-              assignee_name: assignee?.full_name || null,
-            };
-          });
-      }
+
       const { data, error } = await supabase
         .from("tasks")
         .select("id, title, client_id, project_id, updated_at, due_date, status, clients(name), projects(name), task_assignments(user_id, role, profiles:user_id(full_name))")

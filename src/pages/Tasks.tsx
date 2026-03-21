@@ -61,19 +61,7 @@ export default function Tasks() {
   };
 
   async function handleStatusChange(taskId: string, newStatus: string) {
-    if () {
-      queryClient.setQueryData(["tasks", priorityFilter], (old: any[]) =>
-        old?.map(t => {
-          if (t.id !== taskId) return t;
-          const updates: any = { status: newStatus, updated_at: new Date().toISOString() };
-          if (newStatus === "review") updates.verification_start_time = new Date().toISOString();
-          if (newStatus !== "review") updates.verification_start_time = null;
-          return { ...t, ...updates };
-        })
-      );
-      toast.success("Status zaktualizowany (demo)");
-      return;
-    }
+
 
     const { error } = await supabase.rpc("change_task_status", {
       _task_id: taskId,

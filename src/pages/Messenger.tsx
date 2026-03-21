@@ -96,14 +96,7 @@ export default function Messenger() {
     queryKey: ["messages", activeChannel],
     queryFn: async () => {
       if (!activeChannel) return [];
-      if () {
-        return mockMessages
-          .filter(m => m.channel_id === activeChannel)
-          .map(m => {
-            const sender = mockProfiles.find(p => p.id === m.sender_id);
-            return { ...m, profiles: sender ? { full_name: sender.full_name, avatar_url: sender.avatar_url } : null };
-          });
-      }
+
       const { data } = await supabase
         .from("messages")
         .select("*")
@@ -178,15 +171,7 @@ export default function Messenger() {
 
   const sendMutation = useMutation({
     mutationFn: async ({ content, attachmentUrl, attachmentType, attachmentName }: { content: string; attachmentUrl?: string; attachmentType?: string; attachmentName?: string }) => {
-      if () return; // no-op in demo
-      await supabase.from("messages").insert({
-        channel_id: activeChannel,
-        sender_id: user!.id,
-        content,
-        attachment_url: attachmentUrl || null,
-        attachment_type: attachmentType || null,
-        attachment_name: attachmentName || null,
-      } as any);
+ as any);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["messages", activeChannel] });

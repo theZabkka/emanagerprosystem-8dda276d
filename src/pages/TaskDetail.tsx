@@ -91,18 +91,10 @@ export default function TaskDetail() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset demo state on mount
-  useEffect(() => { if () resetDemoState(); }, []);
-  // ─── Queries ─────────────────────────────────────────────────────
-  const { data: task, isLoading } = useQuery({
+ = useQuery({
     queryKey: ["task", id],
     queryFn: async () => {
-      if () {
-        const t = demoTasksState.find(t => t.id === id);
-        if (!t) return null;
-        const client = mockClients.find(c => c.id === t.client_id);
-        const project = mockProjects.find(p => p.id === t.project_id);
-        return { ...t, clients: client ? { name: client.name } : null, projects: project ? { name: project.name } : null };
-      }
+
       const { data, error } = await supabase.from("tasks").select("*, clients(name), projects(name)").eq("id", id!).single();
       if (error) throw error;
       return data;
@@ -257,30 +249,7 @@ export default function TaskDetail() {
     if (!task) return;
     const oldStatus = task.status;
 
-    if () {
-      const now = new Date().toISOString();
-      const updates: any = { status: newStatus, updated_at: now };
-      if (newStatus === "review") updates.verification_start_time = now;
-      if (newStatus !== "review") updates.verification_start_time = null;
-      const idx = demoTasksState.findIndex(t => t.id === id);
-      if (idx >= 0) demoTasksState[idx] = { ...demoTasksState[idx], ...updates };
-      // Close previous open period
-      demoStatusHistoryState.forEach((h: any) => {
-        if (h.task_id === id && !h.status_exited_at) {
-          h.status_exited_at = now;
-          h.duration_seconds = Math.floor((new Date(now).getTime() - new Date(h.status_entered_at || h.created_at).getTime()) / 1000);
-        }
-      });
-      demoStatusHistoryState.unshift({
-        id: `demo-sh-${Date.now()}`, task_id: id!, old_status: oldStatus, new_status: newStatus,
-        changed_by: user?.id, created_at: now, status_entered_at: now, status_exited_at: null, duration_seconds: null, note: null,
-        profiles: { full_name: mockProfiles.find(p => p.id === user?.id)?.full_name || "Demo" },
-      } as any);
-      queryClient.invalidateQueries({ queryKey: ["task", id] });
-      queryClient.invalidateQueries({ queryKey: ["status-history", id] });
-      toast.success(`Status zmieniony na ${statusLabels[newStatus]}`);
-      return;
-    }
+
     const { error } = await supabase.rpc("change_task_status", {
       _task_id: task.id,
       _new_status: newStatus as any,
@@ -390,16 +359,7 @@ export default function TaskDetail() {
   // 4. Subtasks
   async function addSubtask() {
     if (!newSubtask.trim()) return;
-    if () {
-      demoSubtasksState.push({
-        id: `demo-sub-${Date.now()}`, task_id: id!, title: newSubtask, is_completed: false,
-        assigned_to: null, created_at: new Date().toISOString(),
-      });
-      queryClient.invalidateQueries({ queryKey: ["subtasks", id] });
-      setNewSubtask("");
-      toast.success("Podzadanie dodane");
-      return;
-    }
+
     const { error } = await supabase.from("subtasks").insert({ task_id: id!, title: newSubtask });
     if (error) { toast.error(error.message); return; }
     setNewSubtask("");
@@ -415,15 +375,7 @@ export default function TaskDetail() {
   // 5. Checklists
   async function addChecklist() {
     if (!newChecklistName.trim()) return;
-    if () {
-      demoChecklistsState.push({
-        id: `demo-cl-${Date.now()}`, task_id: id!, title: newChecklistName, created_at: new Date().toISOString(),
-      });
-      queryClient.invalidateQueries({ queryKey: ["checklists", id] });
-      setNewChecklistName("");
-      toast.success("Lista kontrolna dodana");
-      return;
-    }
+
     const { error } = await supabase.from("checklists").insert({ task_id: id!, title: newChecklistName });
     if (error) { toast.error(error.message); return; }
     setNewChecklistName("");
@@ -434,15 +386,7 @@ export default function TaskDetail() {
   async function addChecklistItem(checklistId: string) {
     const text = newChecklistItemTexts[checklistId]?.trim();
     if (!text) return;
-    if () {
-      demoChecklistItemsState.push({
-        id: `demo-cli-${Date.now()}`, checklist_id: checklistId, title: text,
-        is_completed: false, is_na: false, evidence_url: null, created_at: new Date().toISOString(),
-      });
-      queryClient.invalidateQueries({ queryKey: ["checklists", id] });
-      setNewChecklistItemTexts(prev => ({ ...prev, [checklistId]: "" }));
-      return;
-    }
+
     await supabase.from("checklist_items").insert({ checklist_id: checklistId, title: text });
     queryClient.invalidateQueries({ queryKey: ["checklists", id] });
     setNewChecklistItemTexts(prev => ({ ...prev, [checklistId]: "" }));
@@ -455,15 +399,7 @@ export default function TaskDetail() {
 
   // 6. Materials
   async function uploadFile(file: File) {
-    if () {
-      demoMaterialsState.push({
-        id: `demo-mat-${Date.now()}`, task_id: id!, name: file.name, type: "file",
-        url: null, is_visible_to_client: false, uploaded_by: user?.id, created_at: new Date().toISOString(),
-      });
-      queryClient.invalidateQueries({ queryKey: ["materials", id] });
-      toast.success("Plik dodany (demo)");
-      return;
-    }
+
     if (!user) return;
     const filePath = `${id}/${Date.now()}-${file.name}`;
     const { error: uploadError } = await supabase.storage.from("task_materials").upload(filePath, file);
@@ -478,16 +414,7 @@ export default function TaskDetail() {
 
   async function addLinkMaterial() {
     if (!linkName.trim() || !linkUrl.trim()) return;
-    if () {
-      demoMaterialsState.push({
-        id: `demo-mat-${Date.now()}`, task_id: id!, name: linkName, type: "link",
-        url: linkUrl, is_visible_to_client: false, uploaded_by: user?.id, created_at: new Date().toISOString(),
-      });
-      queryClient.invalidateQueries({ queryKey: ["materials", id] });
-      setLinkDialogOpen(false); setLinkName(""); setLinkUrl("");
-      toast.success("Link dodany");
-      return;
-    }
+
     if (!user) return;
     await supabase.from("task_materials").insert({
       task_id: id!, name: linkName, type: "link", url: linkUrl, uploaded_by: user.id,
@@ -513,15 +440,7 @@ export default function TaskDetail() {
   // 7. Time logging
   async function logTime(minutes: number) {
     if (minutes <= 0) return;
-    if () {
-      demoTimeLogsState.unshift({
-        id: `demo-tl-${Date.now()}`, task_id: id!, user_id: user?.id, duration: minutes,
-        description: null, phase: null, created_at: new Date().toISOString(),
-      });
-      queryClient.invalidateQueries({ queryKey: ["time-logs", id] });
-      toast.success(`Zalogowano ${minutes} min`);
-      return;
-    }
+
     if (!user) return;
     const { error } = await supabase.from("time_logs").insert({ task_id: id!, user_id: user.id, duration: minutes });
     if (error) { toast.error(error.message); return; }
@@ -547,17 +466,7 @@ export default function TaskDetail() {
   // 8. Comments
   async function addComment() {
     if (!commentText.trim()) return;
-    if () {
-      demoCommentsState.unshift({
-        id: `demo-com-${Date.now()}`, task_id: id!, user_id: user?.id, content: commentText,
-        type: commentType, created_at: new Date().toISOString(),
-        profiles: { full_name: mockProfiles.find(p => p.id === user?.id)?.full_name || "Demo" },
-      });
-      queryClient.invalidateQueries({ queryKey: ["comments", id] });
-      setCommentText("");
-      toast.success("Komentarz dodany");
-      return;
-    }
+
     if (!user) return;
     const { error } = await supabase.from("comments").insert({ task_id: id!, user_id: user.id, content: commentText, type: commentType });
     if (error) { toast.error(error.message); return; }
