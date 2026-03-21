@@ -228,56 +228,53 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
                                     {...provided.dragHandleProps}
                                     className={`rounded-lg border shadow-sm transition-shadow ${isUnassigned ? "bg-destructive/15 animate-pulse border-destructive/50 ring-2 ring-destructive/30" : "bg-card"} ${task.not_understood ? "ring-2 ring-amber-500/50 border-amber-500/30" : ""} ${task.correction_severity === "critical" ? "ring-2 ring-destructive/50" : ""} ${snapshot.isDragging ? "shadow-lg ring-2 ring-destructive/20" : "hover:shadow-md"}`}
                                   >
-                                    <Link to={`/tasks/${task.id}`} className="block p-3">
-                                      <div className="flex items-center justify-between mb-2">
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="text-[11px] font-mono text-muted-foreground font-medium">{getTaskIndex(task.id)}</span>
+                                    <Link to={`/tasks/${task.id}`} className="block p-2.5">
+                                      <div className="flex items-center justify-between mb-1.5">
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-[10px] font-mono text-muted-foreground font-medium">{getTaskIndex(task.id)}</span>
                                           {task.not_understood && (
-                                            <Badge className="text-[9px] h-4 bg-amber-500 text-white">❓ NIEJASNE</Badge>
+                                            <Badge className="text-[8px] h-3.5 px-1 bg-amber-500 text-white">❓</Badge>
                                           )}
                                         </div>
                                         <Badge
                                           variant="outline"
-                                          className={`text-[10px] h-5 px-2 font-bold border ${priority.border} ${priority.bg} ${priority.text} rounded-md`}
+                                          className={`text-[9px] h-4 px-1.5 font-bold border ${priority.border} ${priority.bg} ${priority.text} rounded-md`}
                                         >
                                           {priority.label}
                                         </Badge>
                                       </div>
 
-                                      <p className="text-sm font-bold text-foreground leading-snug mb-0.5 line-clamp-2">{task.title}</p>
+                                      <p className="text-xs font-bold text-foreground leading-snug mb-0.5 line-clamp-2">{task.title}</p>
 
                                       {client && (
-                                        <p className="text-xs text-muted-foreground mb-3 truncate">{client.name}</p>
+                                        <p className="text-[10px] text-muted-foreground mb-1.5 truncate">{client.name}</p>
                                       )}
 
                                       {task.correction_severity && (
-                                        <Badge className={`text-[9px] h-4 mb-2 ${task.correction_severity === "critical" ? "bg-destructive text-destructive-foreground" : "bg-amber-500/15 text-amber-700 border-amber-500/30"}`}>
-                                          {task.correction_severity === "critical" ? "POPRAWKI KRYTYCZNE" : "MAŁE POPRAWKI"}
+                                        <Badge className={`text-[8px] h-3.5 mb-1 ${task.correction_severity === "critical" ? "bg-destructive text-destructive-foreground" : "bg-amber-500/15 text-amber-700 border-amber-500/30"}`}>
+                                          {task.correction_severity === "critical" ? "KRYTYCZNE" : "POPRAWKI"}
                                         </Badge>
                                       )}
 
                                       {waitingTime && (
-                                        <div className="flex items-center gap-1 text-[10px] text-destructive-foreground font-semibold mb-2 bg-destructive rounded px-2 py-1 w-fit">
-                                          <Clock className="h-3 w-3" />
+                                        <div className="flex items-center gap-1 text-[9px] text-destructive-foreground font-semibold mb-1 bg-destructive rounded px-1.5 py-0.5 w-fit">
+                                          <Clock className="h-2.5 w-2.5" />
                                           {waitingTime}
                                         </div>
                                       )}
 
-                                      <div className="flex items-center justify-between mt-1">
-                                        <div></div>
-                                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                                          {task.estimated_time > 0 && task.logged_time > 0 && (
-                                            <span className="flex items-center gap-0.5">
-                                              <Clock className="h-3 w-3" />
-                                              {(task.logged_time / 60).toFixed(1)}h
-                                            </span>
-                                          )}
-                                          {task.due_date && (
-                                            <span className={`font-medium ${new Date(task.due_date) < new Date() ? "text-destructive" : ""}`}>
-                                              {new Date(task.due_date).toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit" })}
-                                            </span>
-                                          )}
-                                        </div>
+                                      <div className="flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground">
+                                        {task.estimated_time > 0 && task.logged_time > 0 && (
+                                          <span className="flex items-center gap-0.5">
+                                            <Clock className="h-2.5 w-2.5" />
+                                            {(task.logged_time / 60).toFixed(1)}h
+                                          </span>
+                                        )}
+                                        {task.due_date && (
+                                          <span className={`font-medium ${new Date(task.due_date) < new Date() ? "text-destructive" : ""}`}>
+                                            {new Date(task.due_date).toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit" })}
+                                          </span>
+                                        )}
                                       </div>
                                     </Link>
 
