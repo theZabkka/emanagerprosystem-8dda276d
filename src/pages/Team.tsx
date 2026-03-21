@@ -86,7 +86,17 @@ export default function Team() {
             <Input placeholder="Szukaj członka zespołu..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
           <Badge variant="secondary"><Users className="h-3 w-3 mr-1" />{filtered.length} osób</Badge>
+          <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
+            <UserPlus className="h-4 w-4" />
+            Dodaj pracownika
+          </Button>
         </div>
+
+        <CreateStaffDialog
+          open={isCreateOpen}
+          onOpenChange={setIsCreateOpen}
+          onCreated={() => queryClient.invalidateQueries({ queryKey: ["team-members"] })}
+        />
 
         <Card>
           <CardContent className="p-0">
