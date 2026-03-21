@@ -19,6 +19,7 @@ import { pl } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useDataSource } from "@/hooks/useDataSource";
 import { mockClients, mockProjects, mockProfiles } from "@/lib/mockData";
+import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -76,15 +77,8 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
     },
   });
 
-  // Fetch profiles
-  const { data: profiles } = useQuery({
-    queryKey: ["create-task-profiles", isDemo],
-    queryFn: async () => {
-      if (isDemo) return mockProfiles;
-      const { data } = await supabase.from("profiles").select("id, full_name, avatar_url").order("full_name");
-      return data || [];
-    },
-  });
+  // Fetch staff profiles (shared hook)
+  const { data: profiles, isLoading: loadingProfiles } = useStaffMembers();
 
   // Filter projects by selected client profile's client_id
   const filteredProjects = useMemo(() => {

@@ -10,7 +10,7 @@ import { Clock, HelpCircle, UserPlus, Archive } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useDataSource } from "@/hooks/useDataSource";
-import { mockProfiles } from "@/lib/mockData";
+import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { toast } from "sonner";
 import { ChecklistBlockModal, ResponsibilityModal } from "./WorkflowModals";
 
@@ -52,14 +52,7 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
   const [responsibilityOpen, setResponsibilityOpen] = useState(false);
   const [pendingMove, setPendingMove] = useState<{ taskId: string; newStatus: string } | null>(null);
 
-  const { data: allProfiles } = useQuery({
-    queryKey: ["kanban-profiles", isDemo],
-    queryFn: async () => {
-      if (isDemo) return mockProfiles;
-      const { data } = await supabase.from("profiles").select("id, full_name, avatar_url").order("full_name");
-      return data || [];
-    },
-  });
+  const { data: allProfiles } = useStaffMembers();
 
   // Fetch checklists for checklist validation
   const { data: allChecklists } = useQuery({

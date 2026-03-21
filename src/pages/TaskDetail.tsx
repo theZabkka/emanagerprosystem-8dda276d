@@ -5,6 +5,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataSource } from "@/hooks/useDataSource";
+import { useStaffMembers } from "@/hooks/useStaffMembers";
 import {
   mockTasks, mockClients, mockProjects, mockTaskAssignments, mockProfiles,
   mockSubtasks, mockComments, mockTimeLogs, mockChecklists, mockChecklistItems,
@@ -163,14 +164,7 @@ export default function TaskDetail() {
     enabled: !!id,
   });
 
-  const { data: allProfiles } = useQuery({
-    queryKey: ["all-profiles", isDemo],
-    queryFn: async () => {
-      if (isDemo) return mockProfiles;
-      const { data } = await supabase.from("profiles").select("*");
-      return data || [];
-    },
-  });
+  const { data: allProfiles } = useStaffMembers();
 
   const { data: subtasks } = useQuery({
     queryKey: ["subtasks", id, isDemo],
