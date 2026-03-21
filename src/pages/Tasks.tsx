@@ -63,18 +63,37 @@ export default function Tasks() {
     // For review/client_review we could scroll or highlight but no filter action
   };
 
-  async function handleStatusChange(taskId: string, newStatus: string) {
+  const handleStatusChange = useCallback(async (taskId: string, newStatus: string) => {
+    const queryKey = ["tasks", priorityFilter];
+    const previousTasks = queryClient.getQueryData<any[]>(queryKey);
 
+    // Optimistic update — instantly move card to new column
+    queryClient.setQueryData<any[]>(queryKey, (old) =>
+      (old || []).map((t) =>
+        t.id === taskId
+          ? { ...t, status: newStatus, status_updated_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+          : t
+      )
+    );
 
     const { error } = await supabase.rpc("change_task_status", {
       _task_id: taskId,
       _new_status: newStatus as any,
       _changed_by: user?.id!,
     });
-    if (error) { toast.error("Błąd aktualizacji statusu"); return; }
+
+    if (error) {
+      // Rollback to previous state
+      queryClient.setQueryData(queryKey, previousTasks);
+      toast.error("Nie udało się zapisać zmiany statusu.");
+      return;
+    }
+
     toast.success("Status zaktualizowany");
+    // Background refetch to sync server state without visual flicker
+    queryClient.invalidateQueries({ queryKey, refetchType: "none" });
     refetch();
-  }
+  }, [priorityFilter, queryClient, user?.id, refetch]);
 
   async function handleArchive(taskId: string) {
     const { error } = await supabase.from("tasks").update({ is_archived: true, updated_at: new Date().toISOString() } as any).eq("id", taskId);
