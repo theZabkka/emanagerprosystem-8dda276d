@@ -26,7 +26,7 @@ interface TaskFiltersProps {
 
 const sortOptions: { value: SortField; label: string }[] = [
   { value: "created_at", label: "Data utworzenia" },
-  { value: "status_updated_at", label: "Zmiana statusu" },
+  { value: "status_updated_at", label: "Czas w statusie" },
   { value: "due_date", label: "Termin / Deadline" },
   { value: "priority", label: "Priorytet" },
 ];
