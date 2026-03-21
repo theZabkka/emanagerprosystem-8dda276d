@@ -13,12 +13,12 @@ export function sortTasks(
   direction: SortDirection,
   positions?: Record<string, number>
 ): any[] {
-  if (field === "manual" && positions) {
-    return [...tasks].sort((a, b) => {
-      const pa = positions[a.id] ?? Number.MAX_SAFE_INTEGER;
-      const pb = positions[b.id] ?? Number.MAX_SAFE_INTEGER;
-      return pa - pb;
-    });
+  if (field === "manual") {
+    // Sort by saved position; tasks without a position keep their relative order at the end
+    const withPos = tasks.filter(t => positions && positions[t.id] !== undefined);
+    const withoutPos = tasks.filter(t => !positions || positions[t.id] === undefined);
+    withPos.sort((a, b) => (positions![a.id]) - (positions![b.id]));
+    return [...withPos, ...withoutPos];
   }
 
   return [...tasks].sort((a, b) => {
@@ -35,11 +35,6 @@ export function sortTasks(
       if (da === null) return 1;
       if (db === null) return -1;
       cmp = da - db;
-    } else if (field === "manual") {
-      // No positions provided, fallback to created_at
-      const va = a.created_at ? new Date(a.created_at).getTime() : 0;
-      const vb = b.created_at ? new Date(b.created_at).getTime() : 0;
-      cmp = va - vb;
     } else {
       const va = a[field] ? new Date(a[field]).getTime() : 0;
       const vb = b[field] ? new Date(b[field]).getTime() : 0;
