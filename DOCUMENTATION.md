@@ -241,6 +241,38 @@ Zgłoszenia poprawek z informacją o severity.
 | `activity_log` | Log aktywności systemu |
 | `user_task_positions` | Personalizowana kolejność zadań per użytkownik (Trello-style manual sorting). Kolumny: `user_id` (FK→profiles), `task_id` (FK→tasks), `position` (REAL). UNIQUE(user_id, task_id). RLS: użytkownik CRUD tylko swoich rekordów. |
 
+### 2.6 Tabele operacji wewnętrznych
+
+#### `internal_tasks`
+Zadania wewnętrzne biurowe (zakupy, innowacje, usterki) — odseparowane od zadań klienckich.
+
+| Kolumna | Typ | Opis |
+|---|---|---|
+| `id` | uuid (PK) | |
+| `title` | text | Tytuł zgłoszenia |
+| `description` | text | Opis szczegółowy |
+| `type` | text | Typ: Zakupy, Innowacja, Usterka, Inne |
+| `status` | text | Status Kanban: Do zrobienia, W trakcie, Zrealizowane, Odrzucone |
+| `created_by` | uuid (FK → profiles) | Autor zgłoszenia |
+| `created_at` | timestamptz | Data utworzenia |
+| `completed_at` | timestamptz | Data realizacji |
+
+**RLS:** SELECT dla authenticated. INSERT (created_by = auth.uid()). UPDATE dla staff lub autora. DELETE dla staff.
+
+#### `internal_task_ratings`
+Oceny pomysłów/zgłoszeń wewnętrznych (1-5 gwiazdek). Constraint UNIQUE(task_id, user_id) — jeden głos per osoba.
+
+| Kolumna | Typ | Opis |
+|---|---|---|
+| `id` | uuid (PK) | |
+| `task_id` | uuid (FK → internal_tasks) | |
+| `user_id` | uuid (FK → profiles) | |
+| `rating` | integer (1-5) | Ocena |
+
+**Logika ocen:** Średnia obliczana z wszystkich głosów. Oceniać mogą tylko role: boss, koordynator, specjalista. Praktykanci i klienci widzą średnią bez możliwości głosowania. Operacja upsert (jeden głos per user per task).
+
+**RLS:** SELECT dla authenticated. INSERT/UPDATE dla właściciela (user_id = auth.uid()).
+
 ---
 
 ## 3. Funkcje Bazodanowe (RPC)
