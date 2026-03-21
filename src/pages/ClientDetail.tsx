@@ -1,4 +1,9 @@
+import { useState, useMemo, useRef } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,8 +103,6 @@ export default function ClientDetail() {
   const [newIdeaDesc, setNewIdeaDesc] = useState("");
   const [newLinkName, setNewLinkName] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState("");
-  const [_demoTick, setDemoTick] = useState(0);
-  const forceDemoUpdate = () => setDemoTick(t => t + 1);
 
   // ─── Fetch client ──────────────────────────────────────────────
   const { data: client, isLoading: loadingClient } = useQuery({
@@ -165,7 +168,7 @@ export default function ClientDetail() {
 
   // ─── Fetch offers ─────────────────────────────────────────────
   const { data: offers } = useQuery({
-    queryKey: ["client-offers", id, _demoTick],
+    queryKey: ["client-offers", id],
     queryFn: async () => {
       const { data } = await supabase.from("client_offers").select("*").eq("client_id", id!).order("created_at", { ascending: false });
       return data || [];
@@ -175,7 +178,7 @@ export default function ClientDetail() {
 
   // ─── Fetch ideas ──────────────────────────────────────────────
   const { data: ideas } = useQuery({
-    queryKey: ["client-ideas", id, _demoTick],
+    queryKey: ["client-ideas", id],
     queryFn: async () => {
       const { data } = await supabase.from("client_ideas").select("*").eq("client_id", id!).order("created_at", { ascending: false });
       return data || [];
@@ -185,7 +188,7 @@ export default function ClientDetail() {
 
   // ─── Fetch conversations ──────────────────────────────────────
   const { data: conversations } = useQuery({
-    queryKey: ["client-conversations", id, _demoTick],
+    queryKey: ["client-conversations", id],
     queryFn: async () => {
       const { data } = await supabase.from("client_conversations").select("*").eq("client_id", id!).order("created_at", { ascending: false });
       return data || [];
@@ -195,7 +198,7 @@ export default function ClientDetail() {
 
   // ─── Fetch files ──────────────────────────────────────────────
   const { data: files } = useQuery({
-    queryKey: ["client-files", id, _demoTick],
+    queryKey: ["client-files", id],
     queryFn: async () => {
       const { data } = await supabase.from("client_files").select("*").eq("client_id", id!).order("created_at", { ascending: false });
       return data || [];
@@ -205,7 +208,7 @@ export default function ClientDetail() {
 
   // ─── Fetch invoice data ───────────────────────────────────────
   const { data: invoiceData } = useQuery({
-    queryKey: ["client-invoice", id, _demoTick],
+    queryKey: ["client-invoice", id],
     queryFn: async () => {
       const { data } = await supabase.from("client_invoice_data").select("*").eq("client_id", id!).maybeSingle();
       return data || null;
@@ -215,7 +218,7 @@ export default function ClientDetail() {
 
   // ─── Fetch contracts ──────────────────────────────────────────
   const { data: contracts } = useQuery({
-    queryKey: ["client-contracts", id, _demoTick],
+    queryKey: ["client-contracts", id],
     queryFn: async () => {
       const { data } = await supabase.from("client_contracts").select("*").eq("client_id", id!).order("created_at", { ascending: false });
       return data || [];
@@ -225,7 +228,7 @@ export default function ClientDetail() {
 
   // ─── Fetch orders ─────────────────────────────────────────────
   const { data: orders } = useQuery({
-    queryKey: ["client-orders", id, _demoTick],
+    queryKey: ["client-orders", id],
     queryFn: async () => {
       const { data } = await supabase.from("client_orders").select("*").eq("client_id", id!).order("created_at", { ascending: false });
       return data || [];
@@ -235,7 +238,7 @@ export default function ClientDetail() {
 
   // ─── Fetch social accounts ────────────────────────────────────
   const { data: socialAccounts } = useQuery({
-    queryKey: ["client-social", id, _demoTick],
+    queryKey: ["client-social", id],
     queryFn: async () => {
       const { data } = await supabase.from("client_social_accounts").select("*").eq("client_id", id!);
       return data || [];
@@ -271,21 +274,14 @@ export default function ClientDetail() {
   };
 
   const saveInvoiceData = async () => {
-    if () {
-      const existing = demoInvoiceDataState.findIndex(i => i.client_id === id);
-      const entry = { id: `demo-inv-${Date.now()}`, client_id: id!, ...invoiceForm, updated_at: new Date().toISOString() };
-      if (existing >= 0) demoInvoiceDataState[existing] = entry;
-      else demoInvoiceDataState.push(entry);
-      forceDemoUpdate();
-    } else {
-      const { data: existing } = await supabase.from("client_invoice_data").select("id").eq("client_id", id!).maybeSingle();
+const { data: existing } = await supabase.from("client_invoice_data").select("id").eq("client_id", id!).maybeSingle();
       if (existing) {
         await supabase.from("client_invoice_data").update({ ...invoiceForm, updated_at: new Date().toISOString() }).eq("client_id", id!);
       } else {
         await supabase.from("client_invoice_data").insert({ client_id: id!, ...invoiceForm });
       }
       queryClient.invalidateQueries({ queryKey: ["client-invoice"] });
-    }
+
     setShowInvoiceEdit(false);
     toast.success("Dane do faktury zapisane");
   };
@@ -371,40 +367,27 @@ export default function ClientDetail() {
   // ─── Actions ──────────────────────────────────────────────────
   const handleAddIdea = async () => {
     if (!newIdeaTitle.trim()) return;
-    if () {
-      demoIdeasState.push({ id: `demo-idea-${Date.now()}`, client_id: id!, title: newIdeaTitle, description: newIdeaDesc, status: "new", votes: 0, created_at: new Date().toISOString(), created_by: "demo-user-1" });
-      forceDemoUpdate();
-    } else {
-      await supabase.from("client_ideas").insert({ client_id: id!, title: newIdeaTitle, description: newIdeaDesc, created_by: user?.id });
+await supabase.from("client_ideas").insert({ client_id: id!, title: newIdeaTitle, description: newIdeaDesc, created_by: user?.id });
       queryClient.invalidateQueries({ queryKey: ["client-ideas"] });
-    }
+
     setNewIdeaTitle(""); setNewIdeaDesc(""); setShowIdeaDialog(false);
     toast.success("Pomysł dodany");
   };
 
   const handleVoteIdea = async (ideaId: string) => {
-    if () {
-      const idea = demoIdeasState.find(i => i.id === ideaId);
-      if (idea) idea.votes = (idea.votes || 0) + 1;
-      forceDemoUpdate();
-    } else {
-      const idea = (ideas || []).find((i: any) => i.id === ideaId);
+const idea = (ideas || []).find((i: any) => i.id === ideaId);
       if (idea) {
         await supabase.from("client_ideas").update({ votes: ((idea as any).votes || 0) + 1 }).eq("id", ideaId);
         queryClient.invalidateQueries({ queryKey: ["client-ideas"] });
       }
-    }
+
   };
 
   const handleAddLink = async () => {
     if (!newLinkName.trim() || !newLinkUrl.trim()) return;
-    if () {
-      demoFilesState.push({ id: `demo-file-${Date.now()}`, client_id: id!, name: newLinkName, size: 0, url: newLinkUrl, uploaded_by: "demo-user-1", created_at: new Date().toISOString() });
-      forceDemoUpdate();
-    } else {
-      await supabase.from("client_files").insert({ client_id: id!, name: newLinkName, url: newLinkUrl, size: 0, uploaded_by: user?.id });
+await supabase.from("client_files").insert({ client_id: id!, name: newLinkName, url: newLinkUrl, size: 0, uploaded_by: user?.id });
       queryClient.invalidateQueries({ queryKey: ["client-files"] });
-    }
+
     setNewLinkName(""); setNewLinkUrl(""); setShowLinkDialog(false);
     toast.success("Link dodany");
   };
@@ -412,12 +395,7 @@ export default function ClientDetail() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if () {
-      demoFilesState.push({ id: `demo-file-${Date.now()}`, client_id: id!, name: file.name, size: file.size, url: null, uploaded_by: "demo-user-1", created_at: new Date().toISOString() });
-      forceDemoUpdate();
-      toast.success("Plik dodany (demo)");
-      return;
-    }
+
     const path = `${id}/${Date.now()}-${file.name}`;
     const { error: uploadErr } = await supabase.storage.from("task_materials").upload(path, file);
     if (uploadErr) { toast.error("Błąd uploadu"); return; }
@@ -428,13 +406,9 @@ export default function ClientDetail() {
   };
 
   const handleDeleteFile = async (fileId: string) => {
-    if () {
-      demoFilesState = demoFilesState.filter(f => f.id !== fileId);
-      forceDemoUpdate();
-    } else {
-      await supabase.from("client_files").delete().eq("id", fileId);
+await supabase.from("client_files").delete().eq("id", fileId);
       queryClient.invalidateQueries({ queryKey: ["client-files"] });
-    }
+
     toast.success("Plik usunięty");
   };
 

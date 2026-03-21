@@ -81,7 +81,7 @@ function LiveTimer({ enteredAt }: { enteredAt: string }) {
   );
 }
 
-export function StatusTimeline({ statusHistory, currentStatus, demoProfiles }: StatusTimelineProps) {
+export function StatusTimeline({ statusHistory, currentStatus }: StatusTimelineProps) {
   // Sort chronologically (oldest first) for timeline display
   const sorted = [...statusHistory].sort(
     (a, b) => new Date(a.status_entered_at || a.created_at).getTime() - new Date(b.status_entered_at || b.created_at).getTime()
@@ -101,12 +101,7 @@ export function StatusTimeline({ statusHistory, currentStatus, demoProfiles }: S
   });
 
   const getPersonName = (h: StatusHistoryEntry) => {
-    if (h.profiles?.full_name) return h.profiles.full_name;
-    if (false) {
-      const p = demoProfiles.find((p: any) => p.id === h.changed_by);
-      return p?.full_name || "?";
-    }
-    return "?";
+    return h.profiles?.full_name || "?";
   };
 
   const getInitials = (name: string) =>

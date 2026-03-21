@@ -15,16 +15,7 @@ export default function MyDay() {
   const { data: myTasks = [] } = useQuery({
     queryKey: ["my-day-tasks", user?.id],
     queryFn: async () => {
-      if () {
-        // In demo, show tasks assigned to demo-user-3 (designer with most tasks)
-        const assignedIds = mockTaskAssignments.filter(a => a.user_id === "demo-user-3").map(a => a.task_id);
-        return mockTasks
-          .filter(t => assignedIds.includes(t.id) && t.status !== "done" && (t.status as string) !== "cancelled")
-          .map(t => ({
-            ...t,
-            clients: mockClients.find(c => c.id === t.client_id) ? { name: mockClients.find(c => c.id === t.client_id)!.name } : null,
-          }));
-      }
+
       if (!user) return [];
       const { data: assignments } = await supabase
         .from("task_assignments")
@@ -47,16 +38,7 @@ export default function MyDay() {
   const { data: todayLogs = [] } = useQuery({
     queryKey: ["my-day-logs", user?.id, today],
     queryFn: async () => {
-      if () {
-        return mockTimeLogs
-          .filter(l => l.user_id === "demo-user-3")
-          .slice(0, 4)
-          .map(l => ({
-            duration: l.duration,
-            description: l.description,
-            tasks: { title: mockTasks.find(t => t.id === l.task_id)?.title || "" },
-          }));
-      }
+
       if (!user) return [];
       const { data } = await supabase
         .from("time_logs")

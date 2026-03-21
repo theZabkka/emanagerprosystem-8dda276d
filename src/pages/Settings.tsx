@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Database, Eye, Bell, Briefcase, Users, Shield, Bot, Settings2, Clock, LayoutList, RotateCcw } from "lucide-react";
+import { Eye, Bell, Briefcase, Users, Shield, Bot, Settings2, Clock, LayoutList, RotateCcw } from "lucide-react";
 
 function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
   return (
@@ -108,33 +108,6 @@ export default function Settings() {
 
         <Card>
           <CardContent className="p-6">
-            {/* Data Source */}
-            <SectionHeader icon={Database} title="Źródło danych" />
-            <SettingRow
-              label="Źródło danych"
-              description="Dane demo: fikcyjne przykładowe dane na froncie. Dane z bazy (Supabase): prawdziwe dane."
-            >
-              <Select value={dataSource} onValueChange={(v) => {
-                setDataSource(v as "demo" | "database");
-                toast.success(v === "demo" ? "Przełączono na dane demo" : "Przełączono na dane z bazy danych");
-              }}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="demo">🎭 Dane demo (mock)</SelectItem>
-                  <SelectItem value="database">🗄️ Dane z bazy (Supabase)</SelectItem>
-                </SelectContent>
-              </Select>
-            </SettingRow>
-            <p className="text-xs text-muted-foreground py-2">
-              {dataSource === "demo"
-                ? "Używasz fikcyjnych danych testowych. Zmiany nie są zapisywane w bazie danych."
-                : "Połączono z bazą Supabase. Dane są na bieżąco synchronizowane."}
-            </p>
-
-            <Separator className="my-2" />
-
             {/* Appearance */}
             <SectionHeader icon={Eye} title="Wygląd i interfejs" />
             <SettingRow label="Motyw kolorystyczny" description="Jasny, ciemny lub automatyczny">

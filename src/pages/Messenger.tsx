@@ -1,3 +1,19 @@
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Hash, Plus, Send, Search, Smile, Paperclip, X, Circle, MessageCircle, SmilePlus, FileText, Download } from "lucide-react";
+import { format } from "date-fns";
+import { pl } from "date-fns/locale";
+
 const EMOJI_LIST = ["👍", "❤️", "😂", "🎉", "🔥", "👀", "✅", "💯"];
 
 type Channel = { id: string; name: string; type: string; is_direct: boolean; created_at: string };
@@ -18,6 +34,7 @@ type Profile = { id: string; full_name: string | null; avatar_url: string | null
 export default function Messenger() {
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
+  const currentUserId = user?.id;
   const [activeChannel, setActiveChannel] = useState<string | null>(null);
   const [messageText, setMessageText] = useState("");
   const [typingUsers, setTypingUsers] = useState<Record<string, string>>({});
@@ -96,14 +113,7 @@ export default function Messenger() {
     queryKey: ["messages", activeChannel],
     queryFn: async () => {
       if (!activeChannel) return [];
-      if () {
-        return mockMessages
-          .filter(m => m.channel_id === activeChannel)
-          .map(m => {
-            const sender = mockProfiles.find(p => p.id === m.sender_id);
-            return { ...m, profiles: sender ? { full_name: sender.full_name, avatar_url: sender.avatar_url } : null };
-          });
-      }
+
       const { data } = await supabase
         .from("messages")
         .select("*")
@@ -178,7 +188,6 @@ export default function Messenger() {
 
   const sendMutation = useMutation({
     mutationFn: async ({ content, attachmentUrl, attachmentType, attachmentName }: { content: string; attachmentUrl?: string; attachmentType?: string; attachmentName?: string }) => {
-      if () return; // no-op in demo
       await supabase.from("messages").insert({
         channel_id: activeChannel,
         sender_id: user!.id,
