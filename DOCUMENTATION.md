@@ -143,6 +143,7 @@ Zadania — główna encja systemu.
 | `is_video_task` | boolean | Czy zadanie wideo |
 | `not_understood` | boolean | Flaga "nie rozumiem" |
 | `not_understood_at` | timestamptz | Kiedy zgłoszono |
+| `status_updated_at` | timestamptz | Automatycznie ustawiany na `now()` przy każdej zmianie statusu (przez `change_task_status()`) |
 | `verification_start_time` | timestamptz | Automatycznie ustawiany na `now()` gdy status → review |
 | `accepted_responsibility_by` | uuid | Kto zaakceptował odpowiedzialność |
 | `client_review_accepted_by` | text | Kto zaakceptował po stronie klienta |
@@ -389,6 +390,7 @@ Wszystkie strony ładowane są leniwie (`React.lazy`). Chronione przez `Protecte
 - **Widok Kanban** (domyślny): 8 kolumn statusów (todo → closed). Drag & drop zmiana statusu.
 - **Widok Lista:** Tabela zadań.
 - **Filtry:** Wyszukiwanie, priorytet, typ (parent/subtask/standalone).
+- **Sortowanie w Kanbanie:** Dropdown "Sortuj po" z opcjami: Data utworzenia (`created_at`), Zmiana statusu (`status_updated_at`), Termin/Deadline (`due_date`), Priorytet (`priority`). Przycisk przełączania kierunku ASC/DESC. Sortowanie aplikowane per-kolumna. Priorytety sortowane logicznie (critical=4, high=3, medium=2, low=1). Zadania bez deadline'u zawsze na końcu listy. Logika w `src/lib/taskSorting.ts`.
 - **Alerty:** Nieprzypisane, do weryfikacji, do akceptacji klienta, niezrozumiałe.
 - **Tworzenie:** Dialog z polami: tytuł, opis, priorytet, typ, klient, projekt, data, czas, brief, przypisane osoby.
 - **Walidacja workflow (Kanban):**

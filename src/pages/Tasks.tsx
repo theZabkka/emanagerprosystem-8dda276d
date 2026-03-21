@@ -8,9 +8,10 @@ import TaskKanbanBoard from "@/components/tasks/TaskKanbanBoard";
 import TaskListView from "@/components/tasks/TaskListView";
 import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";
 import { TaskAlertBanners } from "@/components/tasks/TaskAlertBanners";
-import { TaskFilters } from "@/components/tasks/TaskFilters";
+import { TaskFilters, type SortField, type SortDirection } from "@/components/tasks/TaskFilters";
 import { KanbanSkeleton } from "@/components/skeletons/KanbanSkeleton";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
+import { sortTasks } from "@/lib/taskSorting";
 
 export default function Tasks() {
   const { user } = useAuth();
@@ -20,6 +21,8 @@ export default function Tasks() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   const { data: tasks, isLoading, refetch } = useQuery({
     queryKey: ["tasks", priorityFilter],
@@ -97,6 +100,8 @@ export default function Tasks() {
           typeFilter={typeFilter} onTypeChange={setTypeFilter}
           viewMode={viewMode} onViewModeChange={setViewMode}
           onCreateClick={() => setIsCreateOpen(true)}
+          sortField={sortField} onSortFieldChange={setSortField}
+          sortDirection={sortDirection} onSortDirectionToggle={() => setSortDirection(d => d === "asc" ? "desc" : "asc")}
         />
 
         <CreateTaskDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} onCreated={() => refetch()} />
@@ -112,6 +117,8 @@ export default function Tasks() {
             onStatusChange={handleStatusChange}
             onArchive={handleArchive}
             onRefresh={() => refetch()}
+            sortField={sortField}
+            sortDirection={sortDirection}
           />
         ) : (
           <TaskListView tasks={filteredTasks} isLoading={isLoading} />

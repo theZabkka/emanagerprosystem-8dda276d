@@ -1,5 +1,7 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useMemo } from "react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
+import type { SortField, SortDirection } from "@/components/tasks/TaskFilters";
+import { sortTasks } from "@/lib/taskSorting";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -43,9 +45,11 @@ interface TaskKanbanBoardProps {
   onStatusChange: (taskId: string, newStatus: string) => void;
   onArchive?: (taskId: string) => void;
   onRefresh?: () => void;
+  sortField?: SortField;
+  sortDirection?: SortDirection;
 }
 
-export default function TaskKanbanBoard({ tasks, profiles, assignments, clients, onStatusChange, onArchive, onRefresh }: TaskKanbanBoardProps) {
+export default function TaskKanbanBoard({ tasks, profiles, assignments, clients, onStatusChange, onArchive, onRefresh, sortField = "created_at", sortDirection = "desc" }: TaskKanbanBoardProps) {
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
   const [responsibilityOpen, setResponsibilityOpen] = useState(false);
   const [pendingMove, setPendingMove] = useState<{ taskId: string; newStatus: string } | null>(null);
@@ -185,7 +189,8 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex gap-3 h-[calc(100vh-16rem)] overflow-x-auto pb-4">
           {KANBAN_COLUMNS.map((col) => {
-            const columnTasks = tasks.filter((t: any) => t.status === col.key && !t.is_archived);
+            const columnTasksRaw = tasks.filter((t: any) => t.status === col.key && !t.is_archived);
+            const columnTasks = sortTasks(columnTasksRaw, sortField, sortDirection);
             const isEmpty = columnTasks.length === 0;
             return (
               <div key={col.key} className="flex-shrink-0 w-72 flex flex-col">
