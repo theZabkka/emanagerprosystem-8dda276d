@@ -1,16 +1,20 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Users, CheckSquare, Clock, AlertTriangle } from "lucide-react";
+import { Search, Users, CheckSquare, Clock, AlertTriangle, UserPlus } from "lucide-react";
 import { useState } from "react";
+import CreateStaffDialog from "@/components/team/CreateStaffDialog";
 
 export default function Team() {
   const [search, setSearch] = useState("");
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const STAFF_ROLES = ["superadmin", "boss", "koordynator", "specjalista", "praktykant"];
 
