@@ -168,7 +168,7 @@ export default function ClientDetail() {
 
   // ─── Fetch offers ─────────────────────────────────────────────
   const { data: offers } = useQuery({
-    queryKey: ["client-offers", id, _demoTick],
+    queryKey: ["client-offers", id],
     queryFn: async () => {
       const { data } = await supabase.from("client_offers").select("*").eq("client_id", id!).order("created_at", { ascending: false });
       return data || [];
@@ -178,7 +178,7 @@ export default function ClientDetail() {
 
   // ─── Fetch ideas ──────────────────────────────────────────────
   const { data: ideas } = useQuery({
-    queryKey: ["client-ideas", id, _demoTick],
+    queryKey: ["client-ideas", id],
     queryFn: async () => {
       const { data } = await supabase.from("client_ideas").select("*").eq("client_id", id!).order("created_at", { ascending: false });
       return data || [];
@@ -188,7 +188,7 @@ export default function ClientDetail() {
 
   // ─── Fetch conversations ──────────────────────────────────────
   const { data: conversations } = useQuery({
-    queryKey: ["client-conversations", id, _demoTick],
+    queryKey: ["client-conversations", id],
     queryFn: async () => {
       const { data } = await supabase.from("client_conversations").select("*").eq("client_id", id!).order("created_at", { ascending: false });
       return data || [];
@@ -198,7 +198,7 @@ export default function ClientDetail() {
 
   // ─── Fetch files ──────────────────────────────────────────────
   const { data: files } = useQuery({
-    queryKey: ["client-files", id, _demoTick],
+    queryKey: ["client-files", id],
     queryFn: async () => {
       const { data } = await supabase.from("client_files").select("*").eq("client_id", id!).order("created_at", { ascending: false });
       return data || [];
@@ -208,7 +208,7 @@ export default function ClientDetail() {
 
   // ─── Fetch invoice data ───────────────────────────────────────
   const { data: invoiceData } = useQuery({
-    queryKey: ["client-invoice", id, _demoTick],
+    queryKey: ["client-invoice", id],
     queryFn: async () => {
       const { data } = await supabase.from("client_invoice_data").select("*").eq("client_id", id!).maybeSingle();
       return data || null;
@@ -218,7 +218,7 @@ export default function ClientDetail() {
 
   // ─── Fetch contracts ──────────────────────────────────────────
   const { data: contracts } = useQuery({
-    queryKey: ["client-contracts", id, _demoTick],
+    queryKey: ["client-contracts", id],
     queryFn: async () => {
       const { data } = await supabase.from("client_contracts").select("*").eq("client_id", id!).order("created_at", { ascending: false });
       return data || [];
@@ -228,7 +228,7 @@ export default function ClientDetail() {
 
   // ─── Fetch orders ─────────────────────────────────────────────
   const { data: orders } = useQuery({
-    queryKey: ["client-orders", id, _demoTick],
+    queryKey: ["client-orders", id],
     queryFn: async () => {
       const { data } = await supabase.from("client_orders").select("*").eq("client_id", id!).order("created_at", { ascending: false });
       return data || [];
@@ -238,7 +238,7 @@ export default function ClientDetail() {
 
   // ─── Fetch social accounts ────────────────────────────────────
   const { data: socialAccounts } = useQuery({
-    queryKey: ["client-social", id, _demoTick],
+    queryKey: ["client-social", id],
     queryFn: async () => {
       const { data } = await supabase.from("client_social_accounts").select("*").eq("client_id", id!);
       return data || [];

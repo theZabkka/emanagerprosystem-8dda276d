@@ -101,12 +101,7 @@ export function StatusTimeline({ statusHistory, currentStatus }: StatusTimelineP
   });
 
   const getPersonName = (h: StatusHistoryEntry) => {
-    if (h.profiles?.full_name) return h.profiles.full_name;
-    if (false) {
-      const p = demoProfiles.find((p: any) => p.id === h.changed_by);
-      return p?.full_name || "?";
-    }
-    return "?";
+    return h.profiles?.full_name || "?";
   };
 
   const getInitials = (name: string) =>
