@@ -29,7 +29,7 @@ export default function Permissions() {
   };
 
   const handleToggle = async (role: AppRoleName, module: string) => {
-    if (role === "boss") return;
+    if (role === "superadmin" || role === "boss") return;
     const current = getPermValue(role, module);
     const newVal = !current;
 

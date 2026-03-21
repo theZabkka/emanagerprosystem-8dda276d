@@ -103,9 +103,11 @@ export function CoordinatorFreezeOverlay() {
   }
 
   if (frozenTasks.length === 0 || currentRole === "klient") return null;
+  // superadmin is never blocked by freeze overlay
+  if (currentRole === "superadmin") return null;
   if (currentRole !== "koordynator" && currentRole !== "boss") return null;
 
-  const canAssign = currentRole === "boss" || currentRole === "koordynator";
+  const canAssign = currentRole === "superadmin" || currentRole === "boss" || currentRole === "koordynator";
 
   return (
     <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex items-center justify-center p-4">
