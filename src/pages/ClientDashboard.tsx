@@ -69,6 +69,26 @@ export default function ClientDashboard() {
     enabled: !!clientId,
   });
 
+  // Fetch orphaned tasks (no project, client_review status)
+  const { data: orphanedTasks } = useQuery({
+    queryKey: ["client-orphaned-tasks", clientId, isDemo],
+    queryFn: async () => {
+      if (isDemo) {
+        return mockTasks.filter(t => t.client_id === clientId && !t.project_id && t.status === "client_review");
+      }
+      if (!clientId) return [];
+      const { data } = await supabase
+        .from("tasks")
+        .select("id, title, description, due_date, type")
+        .eq("client_id", clientId)
+        .eq("status", "client_review" as any)
+        .is("project_id", null)
+        .order("due_date", { ascending: true });
+      return data || [];
+    },
+    enabled: !!clientId,
+  });
+
   // Fetch archived (completed) tasks - client sees all finished tasks in their projects
   const { data: archivedTasks } = useQuery({
     queryKey: ["client-archived-tasks", clientId],
