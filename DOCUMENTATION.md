@@ -387,13 +387,13 @@ Wszystkie strony ładowane są leniwie (`React.lazy`). Chronione przez `Protecte
 - Dane z: `task_assignments` → `tasks` + `time_logs`.
 
 #### Zadania (`/tasks`)
-- **Widok Kanban** (domyślny): 8 kolumn statusów (todo → closed). Drag & drop zmiana statusu.
+- **Widok Kanban** (domyślny): 8 kolumn statusów (todo → closed). Drag & drop zmiana statusu. **Kompaktowe karty** — zmniejszony padding i rozmiar czcionek dla lepszej gęstości informacji.
 - **Widok Lista:** Tabela zadań.
 - **Filtry:** Wyszukiwanie, priorytet, typ (parent/subtask/standalone).
-- **Sortowanie w Kanbanie:** Dropdown "Sortuj po" z opcjami: Data utworzenia (`created_at`), Zmiana statusu (`status_updated_at`), Termin/Deadline (`due_date`), Priorytet (`priority`). Przycisk przełączania kierunku ASC/DESC. Sortowanie aplikowane per-kolumna. Priorytety sortowane logicznie (critical=4, high=3, medium=2, low=1). Zadania bez deadline'u zawsze na końcu listy. Logika w `src/lib/taskSorting.ts`.
+- **Sortowanie w Kanbanie:** Dropdown "Sortuj po" z opcjami: Data utworzenia (`created_at`), Czas w statusie (`status_updated_at`), Termin/Deadline (`due_date`), Priorytet (`priority`). Przycisk przełączania kierunku ASC/DESC. Sortowanie aplikowane per-kolumna. Priorytety sortowane logicznie (critical=4, high=3, medium=2, low=1). Zadania bez deadline'u zawsze na końcu listy. Logika w `src/lib/taskSorting.ts`.
 - **Optimistic UI Updates:** Operacje Drag & Drop (zmiana statusu w Kanbanie, przypisywanie w TeamBoard) używają wzorca "Optimistic UI Updates" — lokalny stan Reacta (TanStack Query cache) jest aktualizowany natychmiast po upuszczeniu karty, **bez czekania na odpowiedź serwera**. Zapytanie do Supabase (`change_task_status` RPC) wykonuje się w tle. W razie błędu (brak internetu, RLS) następuje automatyczny rollback do poprzedniego stanu + czerwony toast "Nie udało się zapisać zmiany statusu." Eliminuje to migotanie (flickering) kart przy operacjach drag & drop.
 - **Alerty:** Nieprzypisane, do weryfikacji, do akceptacji klienta, niezrozumiałe.
-- **Tworzenie:** Dialog z polami: tytuł, opis, priorytet, typ, klient, projekt, data, czas, brief, przypisane osoby.
+- **Tworzenie:** Dialog z polami: tytuł, opis, priorytet, typ, klient, projekt, data, czas, brief, przypisane osoby. **Tworzenie klienta po NIP:** pole NIP z przyciskiem "Znajdź" — wyszukuje klienta w bazie po NIP, a jeśli nie istnieje, pobiera dane z API MF (Biała Lista VAT) i automatycznie tworzy nowego klienta w tabeli `clients`.
 - **Walidacja workflow (Kanban):**
   - Nieprzypisane → nie mogą zmienić statusu.
   - `in_progress → review`: wymaga 100% checklisty.
@@ -406,18 +406,20 @@ Wszystkie strony ładowane są leniwie (`React.lazy`). Chronione przez `Protecte
 Najbardziej rozbudowany widok w systemie. Sekcje:
 
 1. **Nagłówek:** Tytuł, status (z możliwością zmiany), priorytet (inline edytowalny — dropdown), klient, projekt, termin/deadline (inline edytowalny — Date Picker z możliwością wyczyszczenia). **Edycja priorytetu i terminu jest zablokowana dla roli `klient` oraz w trybie podglądu klienta (`isPreviewMode`)** — wyświetlane jako statyczny tekst.
-2. **Brief:** 6 pól (cel, deliverable, format, materiały, czego nie robić, inspiracja). Edytowalny dialog.
-3. **Przypisania:** Lista osób (primary/collaborator/reviewer). Dodawanie/usuwanie.
-4. **Podzadania:** Dodawanie, oznaczanie jako ukończone.
-5. **Listy kontrolne:** Wiele checklist, każda z wieloma pozycjami. Oznaczanie jako completed/N/A.
-6. **Komentarze:** Typy: internal, client. Filtrowanie. Pole `requires_client_reply`.
-7. **Logowanie czasu:** Timer start/stop + ręczne wpisy (minuty). Wyświetlanie logów.
-8. **Materiały:** Upload plików do Supabase Storage (`task_materials`). Linki. Przełącznik widoczności dla klienta (ikona oka).
-9. **Poprawki (corrections):** Lista zgłoszonych poprawek z severity.
-10. **Historia statusów:** Timeline zmian statusów z czasami trwania.
-11. **Flaga "Nie rozumiem":** Modal zgłoszenia niezrozumienia + komentarz.
-12. **Podgląd jako klient:** Toggle `isPreviewMode` — ukrywa sekcje niedostępne dla klienta.
-13. **Widok klienta:** Klient widzi uproszczony widok — tylko materiały `is_visible_to_client`, komentarze `requires_client_reply`, read-only brief/checklists/subtasks. Przyciski akceptacji/odrzucenia.
+2. **Overlay nieprzypisanego zadania:** Jeśli zadanie nie ma przypisanej osoby, na górze widoku wyświetla się sticky banner z listą pracowników do szybkiego przypisania. Blokuje pełną edycję do momentu przypisania.
+3. **Auto-stop timera:** Przy zamknięciu/anulowaniu zadania timer jest automatycznie zatrzymywany, a zalogowany czas zapisywany.
+4. **Brief:** 6 pól (cel, deliverable, format, materiały, czego nie robić, inspiracja). Edytowalny dialog.
+5. **Przypisania:** Lista osób (primary/collaborator/reviewer). Dodawanie/usuwanie.
+6. **Podzadania:** Dodawanie, oznaczanie jako ukończone.
+7. **Listy kontrolne:** Wiele checklist, każda z wieloma pozycjami. Oznaczanie jako completed/N/A.
+8. **Komentarze:** Typy: internal, client. Filtrowanie. Pole `requires_client_reply`. **Rola użytkownika** wyświetlana jako osobny badge obok nazwy autora (pobierana z `profiles.role`), oddzielona od badge'a typu komentarza.
+9. **Logowanie czasu:** Timer start/stop + ręczne wpisy (minuty). Wyświetlanie logów.
+10. **Materiały:** Upload plików do Supabase Storage (`task_materials`). Linki. Przełącznik widoczności dla klienta (ikona oka).
+11. **Poprawki (corrections):** Lista zgłoszonych poprawek z severity.
+12. **Historia statusów:** Timeline zmian statusów z czasami trwania. **Widoczna również dla klientów.**
+13. **Flaga "Nie rozumiem":** Modal zgłoszenia niezrozumienia + komentarz.
+14. **Podgląd jako klient:** Toggle `isPreviewMode` — ukrywa sekcje niedostępne dla klienta.
+15. **Widok klienta:** Klient widzi pełne szczegóły zadania — materiały `is_visible_to_client`, komentarze, poprawki, historię statusów, read-only brief/checklists/subtasks. Przycisk "Szczegóły" w dashboardzie klienta prowadzi do `/tasks/:id`. Przyciski akceptacji/odrzucenia.
 
 **Realtime:** Subskrypcja na 8 tabelach jednocześnie (subtasks, comments, time_logs, status_history, assignments, checklists, materials, corrections).
 

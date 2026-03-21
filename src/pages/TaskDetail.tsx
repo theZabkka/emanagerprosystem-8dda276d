@@ -135,7 +135,7 @@ export default function TaskDetail() {
   const { data: comments } = useQuery({
     queryKey: ["comments", id],
     queryFn: async () => {
-      const { data } = await supabase.from("comments").select("*, profiles:user_id(full_name)").eq("task_id", id!).order("created_at", { ascending: false });
+      const { data } = await supabase.from("comments").select("*, profiles:user_id(full_name, role)").eq("task_id", id!).order("created_at", { ascending: false });
       return data || [];
     },
     enabled: !!id,
@@ -257,8 +257,16 @@ export default function TaskDetail() {
 
   async function executeStatusChange(newStatus: string) {
     if (!task) return;
-    const oldStatus = task.status;
 
+    // Auto-stop timer when closing/cancelling
+    if ((newStatus === "closed" || newStatus === "cancelled" || newStatus === "done") && timerRunning) {
+      if (timerSeconds >= 60) {
+        const minutes = Math.round(timerSeconds / 60);
+        await logTime(minutes);
+      }
+      setTimerRunning(false);
+      setTimerSeconds(0);
+    }
 
     const { error } = await supabase.rpc("change_task_status", {
       _task_id: task.id,
@@ -548,9 +556,47 @@ export default function TaskDetail() {
   if (isLoading) return <AppLayout title="Zadanie"><div className="p-8 text-muted-foreground">Ładowanie...</div></AppLayout>;
   if (!task) return <AppLayout title="Zadanie"><div className="p-8 text-muted-foreground">Nie znaleziono zadania.</div></AppLayout>;
 
+  // Show assignment overlay for unassigned tasks (staff only, not client)
+  const showAssignOverlay = hasNoAssignment && !isClient && !isPreviewMode;
+
   return (
     <AppLayout title={task.title}>
-      <div className="max-w-5xl mx-auto space-y-5">
+      <div className="max-w-5xl mx-auto space-y-5 relative">
+        {/* Unassigned task overlay */}
+        {showAssignOverlay && (
+          <div className="sticky top-0 z-50 mb-4">
+            <Card className="border-2 border-destructive bg-destructive/5 shadow-lg">
+              <CardContent className="pt-5 pb-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 rounded-full bg-destructive/10">
+                    <UserPlus className="h-5 w-5 text-destructive" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-destructive">Zadanie nie ma przypisanej osoby!</p>
+                    <p className="text-xs text-muted-foreground">Przypisz osobę, aby odblokować pełną edycję i zmianę statusu.</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {(allProfiles || []).map((p: any) => (
+                    <button
+                      key={p.id}
+                      onClick={() => addAssignment(p.id, "primary")}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs border rounded-full hover:bg-accent transition-colors bg-background"
+                    >
+                      <Avatar className="h-4 w-4">
+                        <AvatarFallback className="text-[8px] bg-primary/10 text-primary font-bold">
+                          {p.full_name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2) || "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                      {p.full_name}
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Client Preview Banner */}
         {isPreviewMode && (
           <div className="flex items-center justify-between gap-4 bg-orange-500 text-white rounded-lg px-5 py-3">
@@ -1197,9 +1243,14 @@ export default function TaskDetail() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-medium">{c.profiles?.full_name || ("?")}</span>
+                          {!isClient && c.profiles?.role && (
+                            <Badge variant="secondary" className="text-[9px] h-4 capitalize">
+                              {c.profiles.role}
+                            </Badge>
+                          )}
                           {!isClient && (
                           <Badge variant={c.type === "client" ? "default" : "outline"} className="text-[9px] h-4">
-                            {c.type === "client" ? "Klient" : "Wewnętrzny"}
+                            {c.type === "client" ? "Typ: Klient" : "Wewnętrzny"}
                           </Badge>
                           )}
                           {c.requires_client_reply && !isClient && <Badge className="text-[9px] h-4 bg-amber-500 text-white">Wymaga odpowiedzi klienta</Badge>}
@@ -1249,8 +1300,8 @@ export default function TaskDetail() {
             </CardContent>
           </Card>
 
-          {/* Status history - hidden in preview and for clients */}
-          {!isPreviewMode && !isClient && (
+          {/* Status history - visible for everyone */}
+          {!isPreviewMode && (
             <StatusTimeline
               statusHistory={statusHistory || []}
               currentStatus={task?.status || "new"}

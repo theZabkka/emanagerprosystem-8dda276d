@@ -241,6 +241,15 @@ export default function ClientDashboard() {
                       <div className="flex gap-2 flex-shrink-0">
                         <Button
                           size="sm"
+                          variant="outline"
+                          className="text-xs gap-1"
+                          onClick={() => navigate(`/tasks/${task.id}`)}
+                        >
+                          <FileText className="h-3 w-3" />
+                          Szczegóły
+                        </Button>
+                        <Button
+                          size="sm"
                           className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs gap-1"
                           onClick={() => { setSelectedTaskId(task.id); setReviewModalOpen(true); }}
                         >

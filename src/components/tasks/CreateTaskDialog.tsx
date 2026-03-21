@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,7 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { CalendarIcon, ChevronDown, FileText, X } from "lucide-react";
+import { CalendarIcon, ChevronDown, FileText, X, Search, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
@@ -46,9 +46,12 @@ const initialForm = {
 
 export default function CreateTaskDialog({ open, onOpenChange, onCreated }: CreateTaskDialogProps) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [form, setForm] = useState(initialForm);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [briefOpen, setBriefOpen] = useState(false);
+  const [nipInput, setNipInput] = useState("");
+  const [nipLoading, setNipLoading] = useState(false);
 
   // Fetch client users (profiles with role 'klient')
   const { data: clients } = useQuery({
@@ -104,7 +107,61 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
     setForm(initialForm);
     setSelectedUsers([]);
     setBriefOpen(false);
+    setNipInput("");
   };
+
+  async function handleNipLookup() {
+    const nip = nipInput.replace(/[\s-]/g, "");
+    if (!/^\d{10}$/.test(nip)) {
+      toast.error("Nieprawidłowy NIP. Wprowadź 10 cyfr.");
+      return;
+    }
+    setNipLoading(true);
+    try {
+      // Check if client with this NIP already exists
+      const { data: existingClient } = await supabase
+        .from("clients")
+        .select("id, name")
+        .eq("nip", nip)
+        .maybeSingle();
+
+      if (existingClient) {
+        update("client_id", existingClient.id);
+        toast.success(`Znaleziono klienta: ${existingClient.name}`);
+        setNipLoading(false);
+        return;
+      }
+
+      // Fetch from MF API
+      const today = new Date().toISOString().slice(0, 10);
+      const res = await fetch(`https://wl-api.mf.gov.pl/api/search/nip/${nip}?date=${today}`);
+      const json = await res.json();
+      const subject = json?.result?.subject;
+      const companyName = subject?.name || `Firma NIP: ${nip}`;
+      const address = subject?.workingAddress || subject?.residenceAddress || "";
+
+      // Create client in DB
+      const { data: newClient, error } = await supabase
+        .from("clients")
+        .insert({ name: companyName, nip, address, status: "potential" as any })
+        .select("id, name")
+        .single();
+
+      if (error) {
+        toast.error("Błąd tworzenia klienta: " + error.message);
+        setNipLoading(false);
+        return;
+      }
+
+      update("client_id", newClient.id);
+      queryClient.invalidateQueries({ queryKey: ["create-task-clients"] });
+      toast.success(`Utworzono klienta: ${newClient.name}`);
+    } catch {
+      toast.warning("Nie udało się pobrać danych z bazy. Klient nie został utworzony.");
+    } finally {
+      setNipLoading(false);
+    }
+  }
 
   const handleCreate = async () => {
     if (!form.title.trim()) { toast.error("Podaj nazwę zadania"); return; }
@@ -188,6 +245,18 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
 
           <Separator />
 
+          {/* NIP lookup - create client by NIP */}
+          <div className="space-y-1.5">
+            <Label>Klient po NIP (opcjonalnie)</Label>
+            <div className="flex gap-2">
+              <Input value={nipInput} onChange={e => setNipInput(e.target.value)} placeholder="Wpisz NIP firmy..." className="flex-1" />
+              <Button type="button" variant="outline" size="sm" onClick={handleNipLookup} disabled={nipLoading || !nipInput.trim()} className="shrink-0 h-10 px-3 gap-1.5">
+                {nipLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                Znajdź
+              </Button>
+            </div>
+          </div>
+
           {/* Relational: Client + Project */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
@@ -210,7 +279,6 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
               <Select value={form.project_id} onValueChange={v => {
                 const val = v === "__none" ? "" : v;
                 update("project_id", val);
-                // Auto-set client from project
                 if (val) {
                   const project = (allProjects || []).find((p: any) => p.id === val);
                   if (project?.client_id && !form.client_id) {
