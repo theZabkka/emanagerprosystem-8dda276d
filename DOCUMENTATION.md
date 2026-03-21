@@ -390,6 +390,7 @@ Wszystkie strony ładowane są leniwie (`React.lazy`). Chronione przez `Protecte
 - **Widok Kanban** (domyślny): 8 kolumn statusów (todo → closed). Drag & drop zmiana statusu.
 - **Widok Lista:** Tabela zadań.
 - **Filtry:** Wyszukiwanie, priorytet, typ (parent/subtask/standalone).
+- **Sortowanie w Kanbanie:** Dropdown "Sortuj po" z opcjami: Data utworzenia (`created_at`), Zmiana statusu (`status_updated_at`), Termin/Deadline (`due_date`), Priorytet (`priority`). Przycisk przełączania kierunku ASC/DESC. Sortowanie aplikowane per-kolumna. Priorytety sortowane logicznie (critical=4, high=3, medium=2, low=1). Zadania bez deadline'u zawsze na końcu listy. Logika w `src/lib/taskSorting.ts`.
 - **Alerty:** Nieprzypisane, do weryfikacji, do akceptacji klienta, niezrozumiałe.
 - **Tworzenie:** Dialog z polami: tytuł, opis, priorytet, typ, klient, projekt, data, czas, brief, przypisane osoby.
 - **Walidacja workflow (Kanban):**
