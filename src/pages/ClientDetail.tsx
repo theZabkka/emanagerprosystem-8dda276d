@@ -98,8 +98,6 @@ export default function ClientDetail() {
   const [newIdeaDesc, setNewIdeaDesc] = useState("");
   const [newLinkName, setNewLinkName] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState("");
-  const [_demoTick, setDemoTick] = useState(0);
-  const forceDemoUpdate = () => setDemoTick(t => t + 1);
 
   // ─── Fetch client ──────────────────────────────────────────────
   const { data: client, isLoading: loadingClient } = useQuery({
