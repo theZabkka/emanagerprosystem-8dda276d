@@ -92,6 +92,16 @@ export default function TaskKanbanBoard({
       || (a.profiles ? { id: a.user_id, full_name: a.profiles.full_name } : null);
   }, [assignments, profiles, allProfiles]);
 
+  const getAllAssignees = useCallback((taskId: string) => {
+    const taskAssigns = assignments.filter((a: any) => a.task_id === taskId);
+    return taskAssigns.map((a: any) => {
+      const profile = profiles.find((p: any) => p.id === a.user_id)
+        || (allProfiles || []).find((p: any) => p.id === a.user_id)
+        || (a.profiles ? { id: a.user_id, full_name: a.profiles.full_name } : null);
+      return profile ? { ...profile, assignRole: a.role } : null;
+    }).filter(Boolean);
+  }, [assignments, profiles, allProfiles]);
+
   const getClient = useCallback((clientId: string | null) => {
     if (!clientId) return null;
     return clients.find((c: any) => c.id === clientId) || null;
