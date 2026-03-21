@@ -29,7 +29,7 @@ export default function Permissions() {
   };
 
   const handleToggle = async (role: AppRoleName, module: string) => {
-    if (role === "boss") return;
+    if (role === "superadmin" || role === "boss") return;
     const current = getPermValue(role, module);
     const newVal = !current;
 
@@ -89,9 +89,9 @@ export default function Permissions() {
                       <td key={role} className="text-center py-2 px-3">
                         <Checkbox
                           checked={getPermValue(role, module)}
-                          disabled={role === "boss"}
+                          disabled={role === "superadmin" || role === "boss"}
                           onCheckedChange={() => handleToggle(role, module)}
-                          className={role === "boss" ? "opacity-60" : ""}
+                          className={role === "superadmin" || role === "boss" ? "opacity-60" : ""}
                         />
                       </td>
                     ))}

@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useDataSource } from "@/hooks/useDataSource";
 import { mockProfiles } from "@/lib/mockData";
 
-const STAFF_ROLES = ["boss", "koordynator", "specjalista", "praktykant"];
+const STAFF_ROLES = ["superadmin", "boss", "koordynator", "specjalista", "praktykant"];
 
 export interface StaffMember {
   id: string;

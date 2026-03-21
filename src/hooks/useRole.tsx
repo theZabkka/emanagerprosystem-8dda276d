@@ -4,9 +4,10 @@ import { useDataSource } from "./useDataSource";
 import { supabase } from "@/integrations/supabase/client";
 import { mockPermissions } from "@/lib/mockData";
 
-export type AppRoleName = "boss" | "koordynator" | "specjalista" | "praktykant" | "klient";
+export type AppRoleName = "superadmin" | "boss" | "koordynator" | "specjalista" | "praktykant" | "klient";
 
 export const ROLE_LABELS: Record<AppRoleName, string> = {
+  superadmin: "SUPERADMIN",
   boss: "BOSS",
   koordynator: "Koordynator",
   specjalista: "Specjalista",
@@ -14,7 +15,7 @@ export const ROLE_LABELS: Record<AppRoleName, string> = {
   klient: "Klient",
 };
 
-export const STAFF_ROLES: AppRoleName[] = ["boss", "koordynator", "specjalista", "praktykant"];
+export const STAFF_ROLES: AppRoleName[] = ["superadmin", "boss", "koordynator", "specjalista", "praktykant"];
 
 interface Permission {
   role_name: string;
@@ -56,7 +57,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   useEffect(() => { fetchPermissions(); }, [fetchPermissions]);
 
   const canViewModule = useCallback((moduleName: string) => {
-    if (currentRole === "boss") return true;
+    if (currentRole === "superadmin" || currentRole === "boss") return true;
     if (currentRole === "klient") return false;
     const perm = permissions.find(p => p.role_name === currentRole && p.module_name === moduleName);
     return perm?.can_view ?? true;
