@@ -259,20 +259,27 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
                 );
               })}
             </div>
-            <div className="flex flex-wrap gap-1.5 mt-1.5">
-              {(profiles || []).filter((p: any) => !selectedUsers.includes(p.id)).map((p: any) => (
-                <button
-                  key={p.id}
-                  onClick={() => toggleUser(p.id)}
-                  className="flex items-center gap-1.5 px-2 py-1 text-xs border rounded-full hover:bg-accent transition-colors"
-                >
-                  <Avatar className="h-4 w-4">
-                    <AvatarFallback className="text-[8px] bg-muted text-muted-foreground">{initials(p.full_name)}</AvatarFallback>
-                  </Avatar>
-                  {p.full_name}
-                </button>
-              ))}
-            </div>
+            {loadingProfiles ? (
+              <p className="text-xs text-muted-foreground py-2">Ładowanie pracowników...</p>
+            ) : !profiles || profiles.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-2">Brak dostępnych pracowników</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {profiles.filter((p: any) => !selectedUsers.includes(p.id)).map((p: any) => (
+                  <button
+                    key={p.id}
+                    onClick={() => toggleUser(p.id)}
+                    className="flex items-center gap-1.5 px-2 py-1 text-xs border rounded-full hover:bg-accent transition-colors"
+                  >
+                    <Avatar className="h-4 w-4">
+                      <AvatarFallback className="text-[8px] bg-muted text-muted-foreground">{initials(p.full_name || "")}</AvatarFallback>
+                    </Avatar>
+                    {p.full_name}
+                    <span className="text-muted-foreground">({p.role})</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <Separator />
