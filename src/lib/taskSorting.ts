@@ -13,12 +13,12 @@ export function sortTasks(
   direction: SortDirection,
   positions?: Record<string, number>
 ): any[] {
-  if (field === "manual" && positions) {
-    return [...tasks].sort((a, b) => {
-      const pa = positions[a.id] ?? Number.MAX_SAFE_INTEGER;
-      const pb = positions[b.id] ?? Number.MAX_SAFE_INTEGER;
-      return pa - pb;
-    });
+  if (field === "manual") {
+    // Sort by saved position; tasks without a position keep their relative order at the end
+    const withPos = tasks.filter(t => positions && positions[t.id] !== undefined);
+    const withoutPos = tasks.filter(t => !positions || positions[t.id] === undefined);
+    withPos.sort((a, b) => (positions![a.id]) - (positions![b.id]));
+    return [...withPos, ...withoutPos];
   }
 
   return [...tasks].sort((a, b) => {
