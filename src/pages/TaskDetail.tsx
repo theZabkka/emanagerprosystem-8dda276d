@@ -1300,8 +1300,8 @@ export default function TaskDetail() {
             </CardContent>
           </Card>
 
-          {/* Status history - hidden in preview and for clients */}
-          {!isPreviewMode && !isClient && (
+          {/* Status history - visible for everyone */}
+          {!isPreviewMode && (
             <StatusTimeline
               statusHistory={statusHistory || []}
               currentStatus={task?.status || "new"}
