@@ -19,6 +19,7 @@ export default function ClientDashboard() {
   const { profile, user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isDemo } = useDataSource();
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
