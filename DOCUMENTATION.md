@@ -239,6 +239,7 @@ Zgłoszenia poprawek z informacją o severity.
 |---|---|
 | `role_permissions` | Macierz uprawnień: rola × moduł → can_view |
 | `activity_log` | Log aktywności systemu |
+| `user_task_positions` | Personalizowana kolejność zadań per użytkownik (Trello-style manual sorting). Kolumny: `user_id` (FK→profiles), `task_id` (FK→tasks), `position` (REAL). UNIQUE(user_id, task_id). RLS: użytkownik CRUD tylko swoich rekordów. |
 
 ---
 
