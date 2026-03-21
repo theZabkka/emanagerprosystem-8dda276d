@@ -92,6 +92,16 @@ export default function TaskKanbanBoard({
       || (a.profiles ? { id: a.user_id, full_name: a.profiles.full_name } : null);
   }, [assignments, profiles, allProfiles]);
 
+  const getAllAssignees = useCallback((taskId: string) => {
+    const taskAssigns = assignments.filter((a: any) => a.task_id === taskId);
+    return taskAssigns.map((a: any) => {
+      const profile = profiles.find((p: any) => p.id === a.user_id)
+        || (allProfiles || []).find((p: any) => p.id === a.user_id)
+        || (a.profiles ? { id: a.user_id, full_name: a.profiles.full_name } : null);
+      return profile ? { ...profile, assignRole: a.role } : null;
+    }).filter(Boolean);
+  }, [assignments, profiles, allProfiles]);
+
   const getClient = useCallback((clientId: string | null) => {
     if (!clientId) return null;
     return clients.find((c: any) => c.id === clientId) || null;
@@ -283,12 +293,13 @@ export default function TaskKanbanBoard({
                         >
                           {columnTasks.map((task: any, index: number) => {
                             const assignee = getAssignee(task.id);
+                            const taskAssignees = getAllAssignees(task.id);
                             const client = getClient(task.client_id);
                             const priority = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
                             const waitingTime = (col.key === "client_review" || col.key === "corrections" || col.key === "review")
                               ? getWaitingTime(task.updated_at || task.created_at) : null;
 
-                            const isUnassigned = !assignee;
+                            const isUnassigned = taskAssignees.length === 0;
 
                             return (
                               <Draggable key={task.id} draggableId={task.id} index={index}>
@@ -345,16 +356,37 @@ export default function TaskKanbanBoard({
                                       )}
                                     </Link>
 
-                                    {/* Bottom row: Avatar + actions */}
+                                    {/* Bottom row: Avatars + actions */}
                                     <div className="px-2 pb-1.5 flex items-center justify-between">
-                                      <AssignPopover
-                                        taskId={task.id}
-                                        assignee={assignee}
-                                        allProfiles={allProfiles || []}
-                                        getInitials={getInitials}
-                                        getAvatarColor={getAvatarColor}
-                                        onAssign={handleAssign}
-                                      />
+                                      <div className="flex items-center gap-0.5">
+                                        {taskAssignees.length > 0 ? (
+                                          taskAssignees.map((person: any) => (
+                                            <TooltipProvider key={person.id} delayDuration={200}>
+                                              <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                  <Avatar className="h-4 w-4 -ml-0.5 first:ml-0 ring-1 ring-background">
+                                                    <AvatarFallback className={`text-[7px] text-white font-bold ${getAvatarColor(person.id)}`}>
+                                                      {getInitials(person.full_name || "?")}
+                                                    </AvatarFallback>
+                                                  </Avatar>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top" className="text-xs">
+                                                  {person.full_name}{person.assignRole !== "primary" ? ` (${person.assignRole})` : ""}
+                                                </TooltipContent>
+                                              </Tooltip>
+                                            </TooltipProvider>
+                                          ))
+                                        ) : null}
+                                        <AssignPopover
+                                          taskId={task.id}
+                                          assignee={taskAssignees.length > 0 ? taskAssignees[0] : null}
+                                          allProfiles={allProfiles || []}
+                                          getInitials={getInitials}
+                                          getAvatarColor={getAvatarColor}
+                                          onAssign={handleAssign}
+                                          showAvatarInTrigger={false}
+                                        />
+                                      </div>
                                       <div className="flex items-center gap-1">
                                         {task.estimated_time > 0 && task.logged_time > 0 && (
                                           <span className="flex items-center gap-0.5 text-[9px] text-muted-foreground">
@@ -400,11 +432,12 @@ export default function TaskKanbanBoard({
 }
 
 function AssignPopover({
-  taskId, assignee, allProfiles, getInitials, getAvatarColor, onAssign,
+  taskId, assignee, allProfiles, getInitials, getAvatarColor, onAssign, showAvatarInTrigger = true,
 }: {
   taskId: string; assignee: any; allProfiles: any[];
   getInitials: (name: string) => string; getAvatarColor: (id: string) => string;
   onAssign: (taskId: string, userId: string) => void;
+  showAvatarInTrigger?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -415,9 +448,13 @@ function AssignPopover({
           type="button"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
-          className="flex items-center hover:bg-accent rounded px-1 py-0.5 transition-colors"
+          className="flex items-center hover:bg-accent rounded px-0.5 py-0.5 transition-colors"
         >
-          {assignee ? (
+          {!showAvatarInTrigger ? (
+            <span className="inline-flex items-center justify-center h-4 w-4 rounded-full border border-dashed border-muted-foreground/40 text-muted-foreground hover:border-primary hover:text-primary">
+              <UserPlus className="h-2 w-2" />
+            </span>
+          ) : assignee ? (
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
