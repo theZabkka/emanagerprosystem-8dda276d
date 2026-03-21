@@ -107,7 +107,7 @@ export function CoordinatorFreezeOverlay() {
   if (currentRole === "superadmin") return null;
   if (currentRole !== "koordynator" && currentRole !== "boss") return null;
 
-  const canAssign = currentRole === "superadmin" || currentRole === "boss" || currentRole === "koordynator";
+  const canAssign = currentRole === "boss" || currentRole === "koordynator";
 
   return (
     <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex items-center justify-center p-4">
