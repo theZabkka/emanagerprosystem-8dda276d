@@ -21,6 +21,8 @@ export default function Tasks() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   const { data: tasks, isLoading, refetch } = useQuery({
     queryKey: ["tasks", priorityFilter],
