@@ -8,9 +8,10 @@ import TaskKanbanBoard from "@/components/tasks/TaskKanbanBoard";
 import TaskListView from "@/components/tasks/TaskListView";
 import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";
 import { TaskAlertBanners } from "@/components/tasks/TaskAlertBanners";
-import { TaskFilters } from "@/components/tasks/TaskFilters";
+import { TaskFilters, type SortField, type SortDirection } from "@/components/tasks/TaskFilters";
 import { KanbanSkeleton } from "@/components/skeletons/KanbanSkeleton";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
+import { sortTasks } from "@/lib/taskSorting";
 
 export default function Tasks() {
   const { user } = useAuth();
