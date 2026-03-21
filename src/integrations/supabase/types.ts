@@ -1336,6 +1336,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_task_positions: {
+        Row: {
+          id: string
+          position: number
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          position?: number
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          position?: number
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_task_positions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_task_positions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

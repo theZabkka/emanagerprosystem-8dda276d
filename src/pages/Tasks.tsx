@@ -21,8 +21,8 @@ export default function Tasks() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [sortField, setSortField] = useState<SortField>("created_at");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [sortField, setSortField] = useState<SortField>("due_date");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   const { data: tasks, isLoading, refetch } = useQuery({
     queryKey: ["tasks", priorityFilter],
@@ -36,6 +36,22 @@ export default function Tasks() {
       const { data, error } = await query;
       if (error) throw error;
       return data || [];
+    },
+  });
+
+  // Fetch user task positions for manual sorting
+  const { data: userPositions } = useQuery({
+    queryKey: ["user-task-positions", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_task_positions" as any)
+        .select("task_id, position")
+        .eq("user_id", user!.id);
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      (data || []).forEach((r: any) => { map[r.task_id] = r.position; });
+      return map;
     },
   });
 
@@ -57,17 +73,12 @@ export default function Tasks() {
   const clientReviewCount = allTasks.filter((t: any) => t.status === "client_review").length;
   const notUnderstoodCount = allTasks.filter((t: any) => t.not_understood).length;
 
-  // onFilterStatus is kept for review/client_review alerts but no longer sets status filter
-  const handleFilterStatus = (_status: string) => {
-    // Status filter removed - alerts are informational only for unassigned
-    // For review/client_review we could scroll or highlight but no filter action
-  };
+  const handleFilterStatus = (_status: string) => {};
 
   const handleStatusChange = useCallback(async (taskId: string, newStatus: string) => {
     const queryKey = ["tasks", priorityFilter];
     const previousTasks = queryClient.getQueryData<any[]>(queryKey);
 
-    // Optimistic update — instantly move card to new column
     queryClient.setQueryData<any[]>(queryKey, (old) =>
       (old || []).map((t) =>
         t.id === taskId
@@ -83,17 +94,38 @@ export default function Tasks() {
     });
 
     if (error) {
-      // Rollback to previous state
       queryClient.setQueryData(queryKey, previousTasks);
       toast.error("Nie udało się zapisać zmiany statusu.");
       return;
     }
 
     toast.success("Status zaktualizowany");
-    // Background refetch to sync server state without visual flicker
     queryClient.invalidateQueries({ queryKey, refetchType: "none" });
     refetch();
   }, [priorityFilter, queryClient, user?.id, refetch]);
+
+  const handleReorder = useCallback(async (taskId: string, newPosition: number) => {
+    if (!user?.id) return;
+
+    // Optimistic update
+    queryClient.setQueryData<Record<string, number>>(["user-task-positions", user.id], (old) => ({
+      ...(old || {}),
+      [taskId]: newPosition,
+    }));
+
+    const { error } = await supabase
+      .from("user_task_positions" as any)
+      .upsert(
+        { user_id: user.id, task_id: taskId, position: newPosition },
+        { onConflict: "user_id,task_id" }
+      );
+
+    if (error) {
+      // Refetch to rollback
+      queryClient.invalidateQueries({ queryKey: ["user-task-positions", user.id] });
+      toast.error("Nie udało się zapisać kolejności.");
+    }
+  }, [user?.id, queryClient]);
 
   async function handleArchive(taskId: string) {
     const { error } = await supabase.from("tasks").update({ is_archived: true, updated_at: new Date().toISOString() } as any).eq("id", taskId);
@@ -138,6 +170,8 @@ export default function Tasks() {
             onRefresh={() => refetch()}
             sortField={sortField}
             sortDirection={sortDirection}
+            positions={userPositions || {}}
+            onReorder={handleReorder}
           />
         ) : (
           <TaskListView tasks={filteredTasks} isLoading={isLoading} />

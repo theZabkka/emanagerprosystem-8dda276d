@@ -239,6 +239,7 @@ Zgłoszenia poprawek z informacją o severity.
 |---|---|
 | `role_permissions` | Macierz uprawnień: rola × moduł → can_view |
 | `activity_log` | Log aktywności systemu |
+| `user_task_positions` | Personalizowana kolejność zadań per użytkownik (Trello-style manual sorting). Kolumny: `user_id` (FK→profiles), `task_id` (FK→tasks), `position` (REAL). UNIQUE(user_id, task_id). RLS: użytkownik CRUD tylko swoich rekordów. |
 
 ---
 
@@ -390,7 +391,8 @@ Wszystkie strony ładowane są leniwie (`React.lazy`). Chronione przez `Protecte
 - **Widok Kanban** (domyślny): 8 kolumn statusów (todo → closed). Drag & drop zmiana statusu. **Kompaktowe karty** — zmniejszony padding i rozmiar czcionek dla lepszej gęstości informacji.
 - **Widok Lista:** Tabela zadań.
 - **Filtry:** Wyszukiwanie, priorytet, typ (parent/subtask/standalone).
-- **Sortowanie w Kanbanie:** Dropdown "Sortuj po" z opcjami: Data utworzenia (`created_at`), Czas w statusie (`status_updated_at`), Termin/Deadline (`due_date`), Priorytet (`priority`). Przycisk przełączania kierunku ASC/DESC. Sortowanie aplikowane per-kolumna. Priorytety sortowane logicznie (critical=4, high=3, medium=2, low=1). Zadania bez deadline'u zawsze na końcu listy. Logika w `src/lib/taskSorting.ts`.
+- **Sortowanie w Kanbanie:** Dropdown "Sortuj po" z opcjami: Termin/Deadline (`due_date` — domyślne, ASC), Data utworzenia (`created_at`), Czas w statusie (`status_updated_at`), Priorytet (`priority`), **Ręczne** (`manual`). Przycisk kierunku ASC/DESC ukryty w trybie "Ręczne". Priorytety sortowane logicznie (critical=4, high=3, medium=2, low=1). Zadania bez deadline'u zawsze na końcu listy. Logika w `src/lib/taskSorting.ts`.
+- **Sortowanie ręczne (Trello-style):** Opcja "Ręczne" zapisuje unikalną kolejność zadań **per użytkownik** w tabeli `user_task_positions` (kolumny: `user_id`, `task_id`, `position` REAL). Pozycja obliczana jako średnia sąsiadów (fractional indexing) — brak konieczności przeliczania pozycji wszystkich zadań przy każdym przesunięciu. Drag & drop w tej samej kolumnie zmienia pozycję bez zmiany statusu. Drag & drop do innej kolumny zmienia status + ustawia pozycję w docelowej kolumnie. Operacje zapisu pozycji używają upsert z optimistic UI. RLS: użytkownik widzi i edytuje tylko swoje pozycje (`user_id = auth.uid()`). Przy sortowaniu innym niż "Ręczne" swobodne rearanżowanie wewnątrz kolumny jest zablokowane.
 - **Optimistic UI Updates:** Operacje Drag & Drop (zmiana statusu w Kanbanie, przypisywanie w TeamBoard) używają wzorca "Optimistic UI Updates" — lokalny stan Reacta (TanStack Query cache) jest aktualizowany natychmiast po upuszczeniu karty, **bez czekania na odpowiedź serwera**. Zapytanie do Supabase (`change_task_status` RPC) wykonuje się w tle. W razie błędu (brak internetu, RLS) następuje automatyczny rollback do poprzedniego stanu + czerwony toast "Nie udało się zapisać zmiany statusu." Eliminuje to migotanie (flickering) kart przy operacjach drag & drop.
 - **Alerty:** Nieprzypisane, do weryfikacji, do akceptacji klienta, niezrozumiałe.
 - **Tworzenie:** Dialog z polami: tytuł, opis, priorytet, typ, klient, projekt, data, czas, brief, przypisane osoby. **Tworzenie klienta po NIP:** pole NIP z przyciskiem "Znajdź" — wyszukuje klienta w bazie po NIP, a jeśli nie istnieje, pobiera dane z API MF (Biała Lista VAT) i automatycznie tworzy nowego klienta w tabeli `clients`.

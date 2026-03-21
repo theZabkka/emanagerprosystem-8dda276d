@@ -5,7 +5,7 @@ import { Plus, Search, LayoutGrid, List, Layers, ArrowUpDown, ArrowUp, ArrowDown
 
 const priorityLabels: Record<string, string> = { critical: "Pilny", high: "Wysoki", medium: "Średni", low: "Niski" };
 
-export type SortField = "created_at" | "status_updated_at" | "due_date" | "priority";
+export type SortField = "created_at" | "status_updated_at" | "due_date" | "priority" | "manual";
 export type SortDirection = "asc" | "desc";
 
 interface TaskFiltersProps {
@@ -25,10 +25,11 @@ interface TaskFiltersProps {
 }
 
 const sortOptions: { value: SortField; label: string }[] = [
+  { value: "due_date", label: "Termin / Deadline" },
   { value: "created_at", label: "Data utworzenia" },
   { value: "status_updated_at", label: "Czas w statusie" },
-  { value: "due_date", label: "Termin / Deadline" },
   { value: "priority", label: "Priorytet" },
+  { value: "manual", label: "Ręczne" },
 ];
 
 export function TaskFilters({
@@ -81,13 +82,15 @@ export function TaskFilters({
             </SelectContent>
           </Select>
 
-          <button
-            onClick={onSortDirectionToggle}
-            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground px-2 h-9 border rounded-md bg-card transition-colors"
-            title={sortDirection === "asc" ? "Rosnąco" : "Malejąco"}
-          >
-            {sortDirection === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
-          </button>
+          {sortField !== "manual" && (
+            <button
+              onClick={onSortDirectionToggle}
+              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground px-2 h-9 border rounded-md bg-card transition-colors"
+              title={sortDirection === "asc" ? "Rosnąco" : "Malejąco"}
+            >
+              {sortDirection === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+            </button>
+          )}
 
           <button className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground px-3 h-9 border rounded-md bg-card">
             <Layers className="h-3.5 w-3.5" />
