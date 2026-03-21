@@ -42,8 +42,8 @@ export function TaskFilters({
   sortDirection, onSortDirectionToggle,
 }: TaskFiltersProps) {
   return (
-    <>
-      <div className="relative">
+    <div className="[&_svg]:pointer-events-none">
+      <div className="relative mb-2">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input placeholder="Szukaj zadań..." value={search} onChange={(e) => onSearchChange(e.target.value)} className="pl-10 h-11 text-sm" />
       </div>
