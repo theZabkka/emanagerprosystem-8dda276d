@@ -47,16 +47,21 @@ interface TaskKanbanBoardProps {
   onRefresh?: () => void;
   sortField?: SortField;
   sortDirection?: SortDirection;
+  positions?: Record<string, number>;
+  onReorder?: (taskId: string, newPosition: number) => void;
 }
 
-export default function TaskKanbanBoard({ tasks, profiles, assignments, clients, onStatusChange, onArchive, onRefresh, sortField = "created_at", sortDirection = "desc" }: TaskKanbanBoardProps) {
+export default function TaskKanbanBoard({
+  tasks, profiles, assignments, clients, onStatusChange, onArchive, onRefresh,
+  sortField = "due_date", sortDirection = "asc",
+  positions = {}, onReorder,
+}: TaskKanbanBoardProps) {
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
   const [responsibilityOpen, setResponsibilityOpen] = useState(false);
   const [pendingMove, setPendingMove] = useState<{ taskId: string; newStatus: string } | null>(null);
 
   const { data: allProfiles } = useStaffMembers();
 
-  // Fetch checklists for checklist validation
   const { data: allChecklists } = useQuery({
     queryKey: ["kanban-checklists"],
     queryFn: async () => {
@@ -66,7 +71,7 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
   });
 
   const isChecklistComplete = useCallback((taskId: string) => {
-    if (!allChecklists) return true; // no checklists = no block
+    if (!allChecklists) return true;
     const taskChecklists = allChecklists.filter((cl: any) => cl.task_id === taskId);
     if (taskChecklists.length === 0) return true;
     for (const cl of taskChecklists) {
@@ -122,14 +127,12 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
     const task = tasks.find((t: any) => t.id === taskId);
     if (!task) return;
 
-    // Rule: unassigned tasks cannot change status
     const taskAssigns = getTaskAssignments(taskId);
     if (taskAssigns.length === 0) {
       toast.error("Nie można zmienić statusu! Przypisz najpierw osobę do tego zadania.");
       return;
     }
 
-    // Rule: in_progress -> review requires complete checklist
     if (task.status === "in_progress" && newStatus === "review") {
       if (!isChecklistComplete(taskId)) {
         setChecklistBlockOpen(true);
@@ -137,13 +140,11 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
       }
     }
 
-    // Rule: client_review only from review or corrections
     if (newStatus === "client_review" && task.status !== "review" && task.status !== "corrections") {
       toast.error("Zadanie może trafić do akceptacji klienta tylko ze statusu Weryfikacja lub Poprawki");
       return;
     }
 
-    // Rule: review -> client_review requires responsibility confirmation
     if (task.status === "review" && newStatus === "client_review") {
       setPendingMove({ taskId, newStatus });
       setResponsibilityOpen(true);
@@ -155,7 +156,72 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
-    validateAndMove(result.draggableId, result.destination.droppableId);
+
+    const { source, destination, draggableId } = result;
+
+    // Same column reorder (only in manual mode)
+    if (source.droppableId === destination.droppableId) {
+      if (sortField !== "manual" || !onReorder) return; // Block reorder in non-manual mode
+
+      const columnTasks = sortTasks(
+        tasks.filter((t: any) => t.status === source.droppableId && !t.is_archived),
+        "manual", "asc", positions
+      );
+
+      const destIndex = destination.index;
+      let newPosition: number;
+
+      if (columnTasks.length <= 1) {
+        newPosition = 1000;
+      } else if (destIndex === 0) {
+        // Before first item
+        const firstPos = positions[columnTasks[0]?.id] ?? 1000;
+        newPosition = firstPos - 1000;
+      } else if (destIndex >= columnTasks.length - 1) {
+        // After last item
+        const lastPos = positions[columnTasks[columnTasks.length - 1]?.id] ?? (columnTasks.length * 1000);
+        newPosition = lastPos + 1000;
+      } else {
+        // Between two items - filter out the dragged item to get correct neighbors
+        const withoutDragged = columnTasks.filter((t: any) => t.id !== draggableId);
+        const prevTask = withoutDragged[destIndex - 1];
+        const nextTask = withoutDragged[destIndex];
+        const prevPos = positions[prevTask?.id] ?? ((destIndex - 1) * 1000);
+        const nextPos = positions[nextTask?.id] ?? ((destIndex) * 1000);
+        newPosition = (prevPos + nextPos) / 2;
+      }
+
+      onReorder(draggableId, newPosition);
+      return;
+    }
+
+    // Cross-column: change status + set position at destination
+    if (sortField === "manual" && onReorder) {
+      const destColumnTasks = sortTasks(
+        tasks.filter((t: any) => t.status === destination.droppableId && !t.is_archived),
+        "manual", "asc", positions
+      );
+      const destIndex = destination.index;
+      let newPosition: number;
+
+      if (destColumnTasks.length === 0) {
+        newPosition = 1000;
+      } else if (destIndex === 0) {
+        const firstPos = positions[destColumnTasks[0]?.id] ?? 1000;
+        newPosition = firstPos - 1000;
+      } else if (destIndex >= destColumnTasks.length) {
+        const lastPos = positions[destColumnTasks[destColumnTasks.length - 1]?.id] ?? (destColumnTasks.length * 1000);
+        newPosition = lastPos + 1000;
+      } else {
+        const prevPos = positions[destColumnTasks[destIndex - 1]?.id] ?? ((destIndex - 1) * 1000);
+        const nextPos = positions[destColumnTasks[destIndex]?.id] ?? (destIndex * 1000);
+        newPosition = (prevPos + nextPos) / 2;
+      }
+
+      onReorder(draggableId, newPosition);
+    }
+
+    validateAndMove(draggableId, destination.droppableId);
   };
 
   const handleAssign = async (taskId: string, userId: string) => {
@@ -190,7 +256,7 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
         <div className="flex gap-3 h-[calc(100vh-16rem)] overflow-x-auto pb-4">
           {KANBAN_COLUMNS.map((col) => {
             const columnTasksRaw = tasks.filter((t: any) => t.status === col.key && !t.is_archived);
-            const columnTasks = sortTasks(columnTasksRaw, sortField, sortDirection);
+            const columnTasks = sortTasks(columnTasksRaw, sortField, sortDirection, positions);
             const isEmpty = columnTasks.length === 0;
             return (
               <div key={col.key} className="flex-shrink-0 w-72 flex flex-col">
@@ -368,20 +434,15 @@ function AssignPopover({
             <button
               key={p.id}
               type="button"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={async (e) => {
-                e.stopPropagation();
-                await onAssign(taskId, p.id);
-                setOpen(false);
-              }}
-              className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded hover:bg-accent transition-colors ${assignee?.id === p.id ? "bg-accent font-medium" : ""}`}
+              onClick={() => { onAssign(taskId, p.id); setOpen(false); }}
+              className="flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm hover:bg-accent transition-colors text-left"
             >
-              <Avatar className="h-5 w-5">
-                <AvatarFallback className={`text-[8px] text-white font-bold ${getAvatarColor(p.id)}`}>
+              <Avatar className="h-6 w-6">
+                <AvatarFallback className={`text-[9px] text-white font-bold ${getAvatarColor(p.id)}`}>
                   {getInitials(p.full_name || "?")}
                 </AvatarFallback>
               </Avatar>
-              {p.full_name}
+              <span className="truncate text-xs">{p.full_name}</span>
             </button>
           ))}
         </div>
