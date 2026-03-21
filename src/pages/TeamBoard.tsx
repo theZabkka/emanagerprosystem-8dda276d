@@ -83,12 +83,12 @@ export default function TeamBoard() {
     enabled: !!user?.id,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("user_task_positions" as any)
+        .from("user_task_positions")
         .select("task_id, position")
         .eq("user_id", user!.id);
       if (error) throw error;
       const map: Record<string, number> = {};
-      (data || []).forEach((r: any) => { map[r.task_id] = r.position; });
+      (data || []).forEach((r) => { map[r.task_id] = r.position; });
       return map;
     },
   });
