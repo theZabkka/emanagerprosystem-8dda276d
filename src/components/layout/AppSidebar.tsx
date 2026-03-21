@@ -21,6 +21,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import logoDark from "@/assets/logo-dark.png";
 
 const sections = [
   {
@@ -115,13 +116,11 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <span className="text-lg font-bold text-foreground">
-              EMANAGER<span className="text-primary">.PRO</span>
-            </span>
+            <img src={logoDark} alt="EMANAGER.PRO" className="h-7 w-auto" />
           </div>
         )}
         {collapsed && (
-          <span className="text-lg font-bold text-primary">E</span>
+          <span className="text-lg font-extrabold text-primary">E</span>
         )}
       </SidebarHeader>
 

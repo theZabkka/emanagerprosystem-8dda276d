@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import logoDark from "@/assets/logo-dark.png";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -29,10 +30,8 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-muted">
         <div className="w-full max-w-sm">
         <div className="bg-card rounded-xl shadow-lg p-8 space-y-6">
-          <div className="text-center space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              EMANAGER<span className="text-primary">.PRO</span>
-            </h1>
+          <div className="text-center space-y-3">
+            <img src={logoDark} alt="EMANAGER.PRO" className="h-9 w-auto mx-auto" />
             <p className="text-sm text-muted-foreground">Zaloguj się do swojego konta</p>
           </div>
 
