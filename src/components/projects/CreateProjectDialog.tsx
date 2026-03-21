@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -9,14 +9,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { CalendarIcon, ChevronDown, FileText, Plus, Trash2 } from "lucide-react";
+import { CalendarIcon, ChevronDown, FileText, Plus, Trash2, ChevronsUpDown, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useStaffMembers } from "@/hooks/useStaffMembers";
 
 const statusOptions = [
   { value: "active", label: "Aktywny" },
@@ -56,26 +58,21 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }: C
   const [briefItems, setBriefItems] = useState<BriefItem[]>(
     defaultBriefQuestions.map(q => ({ question: q, answer: "" }))
   );
+  const [clientPopoverOpen, setClientPopoverOpen] = useState(false);
+  const [managerPopoverOpen, setManagerPopoverOpen] = useState(false);
 
-  const { data: clientProfiles } = useQuery({
-    queryKey: ["create-project-client-profiles"],
+  const { data: clients } = useQuery({
+    queryKey: ["create-project-clients"],
     queryFn: async () => {
       const { data } = await supabase
-        .from("profiles")
-        .select("id, full_name, client_id, avatar_url")
-        .eq("role", "klient")
-        .order("full_name");
+        .from("clients")
+        .select("id, name")
+        .order("name");
       return data || [];
     },
   });
 
-  const { data: profiles } = useQuery({
-    queryKey: ["create-project-profiles"],
-    queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, full_name, avatar_url").order("full_name");
-      return data || [];
-    },
-  });
+  const { data: staffMembers = [] } = useStaffMembers();
 
   const update = (field: string, value: any) => setForm(prev => ({ ...prev, [field]: value }));
 
@@ -104,9 +101,18 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }: C
     });
   };
 
+  const selectedClientName = useMemo(() => {
+    if (!form.client_id) return null;
+    return (clients || []).find(c => c.id === form.client_id)?.name || null;
+  }, [form.client_id, clients]);
+
+  const selectedManagerName = useMemo(() => {
+    if (!form.manager_id) return null;
+    return staffMembers.find(s => s.id === form.manager_id)?.full_name || null;
+  }, [form.manager_id, staffMembers]);
+
   const handleCreate = async () => {
     if (!form.name.trim()) { toast.error("Podaj nazwę projektu"); return; }
-    // Filter brief to only include items with a question
     const briefData = briefItems.filter(b => b.question.trim());
 
     const payload: any = {
@@ -143,7 +149,7 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }: C
             <Input value={form.name} onChange={e => update("name", e.target.value)} placeholder="Wpisz nazwę projektu..." className="h-11 text-base" />
           </div>
 
-          {/* Status + Description */}
+          {/* Status */}
           <div className="space-y-1.5">
             <Label>Status</Label>
             <Select value={form.status} onValueChange={v => update("status", v)}>
@@ -161,45 +167,122 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }: C
 
           <Separator />
 
-          {/* Client + Manager */}
+          {/* Client + Manager — Searchable Comboboxes */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Klient</Label>
-              <Select value={form.client_id} onValueChange={v => update("client_id", v === "__none" ? "" : v)}>
-                <SelectTrigger><SelectValue placeholder="Wybierz klienta..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none">— Brak —</SelectItem>
-                  {(clientProfiles || []).map((p: any) => (
-                    <SelectItem key={p.id} value={p.client_id || p.id}>
-                      <span className="flex items-center gap-2">
-                        <Avatar className="h-5 w-5">
-                          <AvatarFallback className="text-[9px] bg-primary text-primary-foreground">{initials(p.full_name)}</AvatarFallback>
+              <Popover open={clientPopoverOpen} onOpenChange={setClientPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between font-normal text-sm h-10">
+                    {selectedClientName ? (
+                      <span className="flex items-center gap-2 truncate">
+                        <Avatar className="h-5 w-5 shrink-0">
+                          <AvatarFallback className="text-[9px] bg-primary text-primary-foreground">{initials(selectedClientName)}</AvatarFallback>
                         </Avatar>
-                        {p.full_name}
+                        <span className="truncate">{selectedClientName}</span>
                       </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    ) : (
+                      <span className="text-muted-foreground">Wybierz klienta...</span>
+                    )}
+                    <div className="flex items-center gap-1 shrink-0 ml-1">
+                      {form.client_id && (
+                        <span
+                          role="button"
+                          className="h-4 w-4 rounded-sm hover:bg-accent flex items-center justify-center"
+                          onClick={(e) => { e.stopPropagation(); update("client_id", ""); }}
+                        >
+                          <X className="h-3 w-3" />
+                        </span>
+                      )}
+                      <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Szukaj klienta..." />
+                    <CommandList>
+                      <CommandEmpty>Nie znaleziono klienta.</CommandEmpty>
+                      <CommandGroup>
+                        {(clients || []).map(c => (
+                          <CommandItem
+                            key={c.id}
+                            value={c.name}
+                            onSelect={() => {
+                              update("client_id", c.id === form.client_id ? "" : c.id);
+                              setClientPopoverOpen(false);
+                            }}
+                          >
+                            <Avatar className="h-5 w-5 mr-2 shrink-0">
+                              <AvatarFallback className="text-[9px] bg-primary text-primary-foreground">{initials(c.name)}</AvatarFallback>
+                            </Avatar>
+                            <span className="truncate">{c.name}</span>
+                            <Check className={cn("ml-auto h-4 w-4 shrink-0", form.client_id === c.id ? "opacity-100" : "opacity-0")} />
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
+
             <div className="space-y-1.5">
               <Label>Kierownik projektu</Label>
-              <Select value={form.manager_id} onValueChange={v => update("manager_id", v === "__none" ? "" : v)}>
-                <SelectTrigger><SelectValue placeholder="Wybierz kierownika..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none">— Brak —</SelectItem>
-                  {(profiles || []).map((p: any) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      <span className="flex items-center gap-2">
-                        <Avatar className="h-5 w-5">
-                          <AvatarFallback className="text-[9px] bg-primary text-primary-foreground">{initials(p.full_name)}</AvatarFallback>
+              <Popover open={managerPopoverOpen} onOpenChange={setManagerPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between font-normal text-sm h-10">
+                    {selectedManagerName ? (
+                      <span className="flex items-center gap-2 truncate">
+                        <Avatar className="h-5 w-5 shrink-0">
+                          <AvatarFallback className="text-[9px] bg-primary text-primary-foreground">{initials(selectedManagerName)}</AvatarFallback>
                         </Avatar>
-                        {p.full_name}
+                        <span className="truncate">{selectedManagerName}</span>
                       </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    ) : (
+                      <span className="text-muted-foreground">Wybierz kierownika...</span>
+                    )}
+                    <div className="flex items-center gap-1 shrink-0 ml-1">
+                      {form.manager_id && (
+                        <span
+                          role="button"
+                          className="h-4 w-4 rounded-sm hover:bg-accent flex items-center justify-center"
+                          onClick={(e) => { e.stopPropagation(); update("manager_id", ""); }}
+                        >
+                          <X className="h-3 w-3" />
+                        </span>
+                      )}
+                      <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Szukaj pracownika..." />
+                    <CommandList>
+                      <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>
+                      <CommandGroup>
+                        {staffMembers.map(s => (
+                          <CommandItem
+                            key={s.id}
+                            value={s.full_name || ""}
+                            onSelect={() => {
+                              update("manager_id", s.id === form.manager_id ? "" : s.id);
+                              setManagerPopoverOpen(false);
+                            }}
+                          >
+                            <Avatar className="h-5 w-5 mr-2 shrink-0">
+                              <AvatarFallback className="text-[9px] bg-primary text-primary-foreground">{initials(s.full_name || "")}</AvatarFallback>
+                            </Avatar>
+                            <span className="truncate">{s.full_name}</span>
+                            <Check className={cn("ml-auto h-4 w-4 shrink-0", form.manager_id === s.id ? "opacity-100" : "opacity-0")} />
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 
