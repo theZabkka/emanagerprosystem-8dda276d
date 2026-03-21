@@ -120,9 +120,20 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
     return null;
   };
 
+  const getTaskAssignments = useCallback((taskId: string) => {
+    return assignments.filter((a: any) => a.task_id === taskId);
+  }, [assignments]);
+
   const validateAndMove = (taskId: string, newStatus: string) => {
     const task = tasks.find((t: any) => t.id === taskId);
     if (!task) return;
+
+    // Rule: unassigned tasks cannot change status
+    const taskAssigns = getTaskAssignments(taskId);
+    if (taskAssigns.length === 0) {
+      toast.error("Nie można zmienić statusu! Przypisz najpierw osobę do tego zadania.");
+      return;
+    }
 
     // Rule: in_progress -> review requires complete checklist
     if (task.status === "in_progress" && newStatus === "review") {

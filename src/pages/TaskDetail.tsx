@@ -282,6 +282,13 @@ export default function TaskDetail() {
   async function handleStatusChange(newStatus: string) {
     if (!task || newStatus === task.status) return;
 
+    // Rule: unassigned tasks cannot change status
+    const taskAssigns = assignments || [];
+    if (taskAssigns.length === 0) {
+      toast.error("Nie można zmienić statusu! Przypisz najpierw osobę do tego zadania.");
+      return;
+    }
+
     // Rule: in_progress -> review requires complete checklist
     if (task.status === "in_progress" && newStatus === "review") {
       const allComplete = checklists?.every((cl: any) =>
