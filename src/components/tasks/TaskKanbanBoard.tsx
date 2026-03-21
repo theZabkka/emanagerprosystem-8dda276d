@@ -278,7 +278,7 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
                                       </div>
                                     </Link>
 
-                                    <div className="px-3 pb-2 -mt-2 flex items-center justify-between">
+                                    <div className="px-2.5 pb-2 -mt-1 flex items-center justify-between">
                                       <AssignPopover
                                         taskId={task.id}
                                         assignee={assignee}
@@ -291,11 +291,11 @@ export default function TaskKanbanBoard({ tasks, profiles, assignments, clients,
                                         <Button
                                           size="sm"
                                           variant="ghost"
-                                          className="h-7 text-[10px] gap-1 text-muted-foreground hover:text-primary"
+                                          className="h-6 text-[9px] gap-1 text-muted-foreground hover:text-primary px-1.5"
                                           onPointerDown={(e) => e.stopPropagation()}
                                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onArchive(task.id); }}
                                         >
-                                          <Archive className="h-3 w-3" />
+                                          <Archive className="h-2.5 w-2.5" />
                                           Archiwizuj
                                         </Button>
                                       )}
