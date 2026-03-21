@@ -105,5 +105,6 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Saira', sans-serif;
   }
 }
