@@ -525,6 +525,7 @@ Nagłówek: karta z danymi klienta, onboarding progress, publiczny link statusu,
 - **Wyświetla wyłącznie pracowników** (role: boss, koordynator, specjalista, praktykant, superadmin) — klienci i użytkownicy z rolą 'user'/'klient' są wykluczeni.
 - Drag & drop między osobami (zmiana primary assignment).
 - Filtry: wyszukiwanie, priorytet.
+- **Zaawansowane sortowanie (współdzielone z modułem Zadań):** Tablica zespołu korzysta z identycznej logiki sortowania co główny moduł Zadań (`src/lib/taskSorting.ts`). Dostępne tryby: Termin/Deadline (domyślny, ASC), Data utworzenia, Czas w statusie, Priorytet, Ręczne. Sortowanie ręczne (Trello-style) używa tabeli `user_task_positions` z fractional indexing — każdy użytkownik ma unikalną personalizację kolejności kart. Drag & drop w tej samej kolumnie zmienia pozycję (manual mode), między kolumnami — zmienia przypisanie (primary assignment). Przycisk kierunku ASC/DESC ukryty w trybie "Ręczne".
 
 #### Kalendarz (`/team/calendar`)
 - Widok miesięczny (grid).
