@@ -561,7 +561,42 @@ export default function TaskDetail() {
 
   return (
     <AppLayout title={task.title}>
-      <div className="max-w-5xl mx-auto space-y-5">
+      <div className="max-w-5xl mx-auto space-y-5 relative">
+        {/* Unassigned task overlay */}
+        {showAssignOverlay && (
+          <div className="sticky top-0 z-50 mb-4">
+            <Card className="border-2 border-destructive bg-destructive/5 shadow-lg">
+              <CardContent className="pt-5 pb-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 rounded-full bg-destructive/10">
+                    <UserPlus className="h-5 w-5 text-destructive" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-destructive">Zadanie nie ma przypisanej osoby!</p>
+                    <p className="text-xs text-muted-foreground">Przypisz osobę, aby odblokować pełną edycję i zmianę statusu.</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {(allProfiles || []).map((p: any) => (
+                    <button
+                      key={p.id}
+                      onClick={() => addAssignment(p.id, "primary")}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs border rounded-full hover:bg-accent transition-colors bg-background"
+                    >
+                      <Avatar className="h-4 w-4">
+                        <AvatarFallback className="text-[8px] bg-primary/10 text-primary font-bold">
+                          {p.full_name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2) || "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                      {p.full_name}
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Client Preview Banner */}
         {isPreviewMode && (
           <div className="flex items-center justify-between gap-4 bg-orange-500 text-white rounded-lg px-5 py-3">
