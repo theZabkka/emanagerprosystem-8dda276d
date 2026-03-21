@@ -34,11 +34,17 @@ export default function TeamBoard() {
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("all");
 
+  const STAFF_ROLES = ["superadmin", "boss", "koordynator", "specjalista", "praktykant"];
+
   const { data: profiles = [] } = useQuery({
     queryKey: ["tb-profiles"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, full_name, role, department, avatar_url").order("full_name");
-      return data || [];
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, full_name, role, department, avatar_url, status")
+        .in("role", STAFF_ROLES)
+        .order("full_name");
+      return (data || []).filter(p => p.status !== "inactive");
     },
   });
 
