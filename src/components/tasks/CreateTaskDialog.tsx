@@ -46,9 +46,12 @@ const initialForm = {
 
 export default function CreateTaskDialog({ open, onOpenChange, onCreated }: CreateTaskDialogProps) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [form, setForm] = useState(initialForm);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [briefOpen, setBriefOpen] = useState(false);
+  const [nipInput, setNipInput] = useState("");
+  const [nipLoading, setNipLoading] = useState(false);
 
   // Fetch client users (profiles with role 'klient')
   const { data: clients } = useQuery({
