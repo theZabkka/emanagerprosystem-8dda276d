@@ -1205,9 +1205,14 @@ export default function TaskDetail() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-medium">{c.profiles?.full_name || ("?")}</span>
+                          {!isClient && c.profiles?.role && (
+                            <Badge variant="secondary" className="text-[9px] h-4 capitalize">
+                              {c.profiles.role}
+                            </Badge>
+                          )}
                           {!isClient && (
                           <Badge variant={c.type === "client" ? "default" : "outline"} className="text-[9px] h-4">
-                            {c.type === "client" ? "Klient" : "Wewnętrzny"}
+                            {c.type === "client" ? "Typ: Klient" : "Wewnętrzny"}
                           </Badge>
                           )}
                           {c.requires_client_reply && !isClient && <Badge className="text-[9px] h-4 bg-amber-500 text-white">Wymaga odpowiedzi klienta</Badge>}
