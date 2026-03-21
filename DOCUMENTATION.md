@@ -455,7 +455,7 @@ Nagłówek: karta z danymi klienta, onboarding progress, publiczny link statusu,
 
 #### Projekty (`/projects`)
 - Tabela projektów z klientem, statusem, managerem, datą.
-- Dialog tworzenia nowego projektu.
+- Dialog tworzenia nowego projektu z **wyszukiwalnymi polami wyboru** (Combobox) dla "Klienta" (z tabeli `clients`) i "Kierownika projektu" (z hooka `useStaffMembers`). Umożliwia wpisanie fragmentu nazwy/nazwiska i natychmiastowe filtrowanie listy wyników.
 
 #### Szczegóły Projektu (`/projects/:id`)
 - Nagłówek: nazwa, status, badge briefu, klient, manager.
