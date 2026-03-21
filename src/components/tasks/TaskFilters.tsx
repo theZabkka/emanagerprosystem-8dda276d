@@ -119,6 +119,6 @@ export function TaskFilters({
           <Plus className="h-4 w-4 mr-1" /> Nowe zadanie
         </Button>
       </div>
-    </>
+    </div>
   );
 }
