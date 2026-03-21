@@ -52,17 +52,6 @@ export default function ProjectDetail() {
   const { data: project, isLoading } = useQuery({
     queryKey: ["project-detail", id],
     queryFn: async () => {
-      if (isDemo) {
-        const p = mockProjects.find(pr => pr.id === id);
-        if (!p) return null;
-        return {
-          ...p,
-          clients: mockClients.find(c => c.id === p.client_id) || null,
-          profiles: mockProfiles.find(u => u.id === p.manager_id) || null,
-          brief_data: (p as any).brief_data || [],
-          ai_summary: (p as any).ai_summary || null,
-        };
-      }
       const { data } = await supabase
         .from("projects")
         .select("*, clients(name), profiles:manager_id(full_name, avatar_url)")
@@ -77,7 +66,7 @@ export default function ProjectDetail() {
   const { data: tasks } = useQuery({
     queryKey: ["project-tasks", id],
     queryFn: async () => {
-      if (isDemo) {
+      if () {
         return mockTasks
           .filter(t => t.project_id === id)
           .map(t => {

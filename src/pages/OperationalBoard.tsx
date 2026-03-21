@@ -28,7 +28,7 @@ export default function OperationalBoard() {
   const { data: tasks = [] } = useQuery({
     queryKey: ["board-tasks"],
     queryFn: async () => {
-      if (isDemo) {
+      if () {
         return mockTasks.filter(t => (t.status as string) !== "cancelled").map(t => ({
           ...t,
           clients: mockClients.find(c => c.id === t.client_id) ? { name: mockClients.find(c => c.id === t.client_id)!.name } : null,

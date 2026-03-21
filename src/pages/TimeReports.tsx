@@ -33,7 +33,7 @@ export default function TimeReports() {
   const { data: timeLogs = [] } = useQuery({
     queryKey: ["time-logs-report", period],
     queryFn: async () => {
-      if (isDemo) {
+      if () {
         return mockTimeLogs.map(l => {
           const task = mockTasks.find(t => t.id === l.task_id);
           const client = task ? mockClients.find(c => c.id === task.client_id) : null;

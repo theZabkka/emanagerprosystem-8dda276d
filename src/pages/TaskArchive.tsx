@@ -18,7 +18,7 @@ export default function TaskArchive() {
   const { data: tasks, isLoading } = useQuery({
     queryKey: ["archived-tasks"],
     queryFn: async () => {
-      if (isDemo) {
+      if () {
         return mockTasks
           .filter(t => t.is_archived)
           .map(t => {

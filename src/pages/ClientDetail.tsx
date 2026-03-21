@@ -1,13 +1,3 @@
-import { useState, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AppLayout } from "@/components/layout/AppLayout";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  mockClients, mockProjects, mockTasks, mockTaskAssignments, mockProfiles, mockPipelineDeals,
-  mockClientOffers, mockClientIdeas, mockClientConversations, mockClientFiles, mockClientInvoiceData,
-  mockClientContracts, mockClientOrders, mockClientSocialAccounts, mockActivityLog,
-} from "@/lib/mockData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -281,7 +271,7 @@ export default function ClientDetail() {
   };
 
   const saveInvoiceData = async () => {
-    if (isDemo) {
+    if () {
       const existing = demoInvoiceDataState.findIndex(i => i.client_id === id);
       const entry = { id: `demo-inv-${Date.now()}`, client_id: id!, ...invoiceForm, updated_at: new Date().toISOString() };
       if (existing >= 0) demoInvoiceDataState[existing] = entry;
@@ -381,7 +371,7 @@ export default function ClientDetail() {
   // ─── Actions ──────────────────────────────────────────────────
   const handleAddIdea = async () => {
     if (!newIdeaTitle.trim()) return;
-    if (isDemo) {
+    if () {
       demoIdeasState.push({ id: `demo-idea-${Date.now()}`, client_id: id!, title: newIdeaTitle, description: newIdeaDesc, status: "new", votes: 0, created_at: new Date().toISOString(), created_by: "demo-user-1" });
       forceDemoUpdate();
     } else {
@@ -393,7 +383,7 @@ export default function ClientDetail() {
   };
 
   const handleVoteIdea = async (ideaId: string) => {
-    if (isDemo) {
+    if () {
       const idea = demoIdeasState.find(i => i.id === ideaId);
       if (idea) idea.votes = (idea.votes || 0) + 1;
       forceDemoUpdate();
@@ -408,7 +398,7 @@ export default function ClientDetail() {
 
   const handleAddLink = async () => {
     if (!newLinkName.trim() || !newLinkUrl.trim()) return;
-    if (isDemo) {
+    if () {
       demoFilesState.push({ id: `demo-file-${Date.now()}`, client_id: id!, name: newLinkName, size: 0, url: newLinkUrl, uploaded_by: "demo-user-1", created_at: new Date().toISOString() });
       forceDemoUpdate();
     } else {
@@ -422,7 +412,7 @@ export default function ClientDetail() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (isDemo) {
+    if () {
       demoFilesState.push({ id: `demo-file-${Date.now()}`, client_id: id!, name: file.name, size: file.size, url: null, uploaded_by: "demo-user-1", created_at: new Date().toISOString() });
       forceDemoUpdate();
       toast.success("Plik dodany (demo)");
@@ -438,7 +428,7 @@ export default function ClientDetail() {
   };
 
   const handleDeleteFile = async (fileId: string) => {
-    if (isDemo) {
+    if () {
       demoFilesState = demoFilesState.filter(f => f.id !== fileId);
       forceDemoUpdate();
     } else {

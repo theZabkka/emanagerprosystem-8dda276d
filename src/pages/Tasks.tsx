@@ -47,9 +47,7 @@ export default function Tasks() {
 
   const allTasks = tasks || [];
   const unassignedCount = allTasks.filter((t: any) => {
-    const hasAssignment = isDemo
-      ? mockTaskAssignments.some(a => a.task_id === t.id && a.role === "primary")
-      : t.task_assignments?.some((a: any) => a.role === "primary");
+    const hasAssignment = t.task_assignments?.some((a: any) => a.role === "primary");
     return !hasAssignment && t.status !== "done" && t.status !== "cancelled" && t.status !== "closed";
   }).length;
   const reviewCount = allTasks.filter((t: any) => t.status === "review").length;
@@ -63,7 +61,7 @@ export default function Tasks() {
   };
 
   async function handleStatusChange(taskId: string, newStatus: string) {
-    if (isDemo) {
+    if () {
       queryClient.setQueryData(["tasks", priorityFilter], (old: any[]) =>
         old?.map(t => {
           if (t.id !== taskId) return t;
@@ -88,13 +86,6 @@ export default function Tasks() {
   }
 
   async function handleArchive(taskId: string) {
-    if (isDemo) {
-      queryClient.setQueryData(["tasks", priorityFilter], (old: any[]) =>
-        old?.map(t => t.id === taskId ? { ...t, is_archived: true } : t)
-      );
-      toast.success("Zadanie zarchiwizowane (demo)");
-      return;
-    }
     const { error } = await supabase.from("tasks").update({ is_archived: true, updated_at: new Date().toISOString() } as any).eq("id", taskId);
     if (error) { toast.error("Błąd archiwizacji"); return; }
     toast.success("Zadanie zarchiwizowane");
@@ -127,9 +118,9 @@ export default function Tasks() {
         ) : viewMode === "kanban" ? (
           <TaskKanbanBoard
             tasks={filteredTasks}
-            profiles={isDemo ? mockProfiles : []}
-            assignments={isDemo ? mockTaskAssignments : filteredTasks.flatMap((t: any) => (t.task_assignments || []).map((a: any) => ({ ...a, task_id: t.id })))}
-            clients={isDemo ? mockClients : filteredTasks.map((t: any) => t.clients ? { id: t.client_id, name: t.clients.name } : null).filter(Boolean)}
+            profiles={[]}
+            assignments={filteredTasks.flatMap((t: any) => (t.task_assignments || []).map((a: any) => ({ ...a, task_id: t.id })))}
+            clients={filteredTasks.map((t: any) => t.clients ? { id: t.client_id, name: t.clients.name } : null).filter(Boolean)}
             onStatusChange={handleStatusChange}
             onArchive={handleArchive}
             onRefresh={() => refetch()}

@@ -60,8 +60,6 @@ interface StatusHistoryEntry {
 interface StatusTimelineProps {
   statusHistory: StatusHistoryEntry[];
   currentStatus: string;
-  isDemo?: boolean;
-  demoProfiles?: any[];
 }
 
 function LiveTimer({ enteredAt }: { enteredAt: string }) {
@@ -104,7 +102,7 @@ export function StatusTimeline({ statusHistory, currentStatus, demoProfiles }: S
 
   const getPersonName = (h: StatusHistoryEntry) => {
     if (h.profiles?.full_name) return h.profiles.full_name;
-    if (isDemo && demoProfiles) {
+    if (false) {
       const p = demoProfiles.find((p: any) => p.id === h.changed_by);
       return p?.full_name || "?";
     }

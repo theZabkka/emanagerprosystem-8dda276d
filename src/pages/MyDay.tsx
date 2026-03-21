@@ -15,7 +15,7 @@ export default function MyDay() {
   const { data: myTasks = [] } = useQuery({
     queryKey: ["my-day-tasks", user?.id],
     queryFn: async () => {
-      if (isDemo) {
+      if () {
         // In demo, show tasks assigned to demo-user-3 (designer with most tasks)
         const assignedIds = mockTaskAssignments.filter(a => a.user_id === "demo-user-3").map(a => a.task_id);
         return mockTasks
@@ -47,7 +47,7 @@ export default function MyDay() {
   const { data: todayLogs = [] } = useQuery({
     queryKey: ["my-day-logs", user?.id, today],
     queryFn: async () => {
-      if (isDemo) {
+      if () {
         return mockTimeLogs
           .filter(l => l.user_id === "demo-user-3")
           .slice(0, 4)

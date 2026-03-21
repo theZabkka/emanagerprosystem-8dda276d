@@ -45,7 +45,7 @@ export default function TeamBoard() {
   const { data: tasks = [] } = useQuery({
     queryKey: ["tb-tasks"],
     queryFn: async () => {
-      if (isDemo) {
+      if () {
         return mockTasks.filter(t => t.status !== "done" && (t.status as string) !== "cancelled").map(t => {
           const client = mockClients.find(c => c.id === t.client_id);
           return { ...t, clients: client ? { name: client.name } : null };
@@ -95,7 +95,7 @@ export default function TeamBoard() {
     const oldUserId = result.source.droppableId === "unassigned" ? null : result.source.droppableId;
     if (newUserId === oldUserId) return;
 
-    if (isDemo) {
+    if () {
       queryClient.setQueryData(["tb-assignments"], (old: any[]) => {
         const without = (old || []).filter(a => !(a.task_id === taskId && a.role === "primary"));
         if (newUserId) return [...without, { task_id: taskId, user_id: newUserId, role: "primary" as const }];

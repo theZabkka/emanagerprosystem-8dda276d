@@ -1,28 +1,3 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { AppLayout } from "@/components/layout/AppLayout";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import {
-  Hash, Send, Plus, SmilePlus, Circle, Paperclip, Download, FileText, X, MessageCircle, Search,
-} from "lucide-react";
-import { format } from "date-fns";
-import { pl } from "date-fns/locale";
-import {
-  Popover, PopoverContent, PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  mockChannels, mockChannelMembers, mockMessages, mockMessageReactions, mockProfiles,
-} from "@/lib/mockData";
-
 const EMOJI_LIST = ["👍", "❤️", "😂", "🎉", "🔥", "👀", "✅", "💯"];
 
 type Channel = { id: string; name: string; type: string; is_direct: boolean; created_at: string };
@@ -57,9 +32,6 @@ export default function Messenger() {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const currentUserId = user?.id;
-
   // ─── Data fetching ──────────────────────────────────────────────────
 
   const { data: allProfiles = [] } = useQuery<Profile[]>({
@@ -124,7 +96,7 @@ export default function Messenger() {
     queryKey: ["messages", activeChannel],
     queryFn: async () => {
       if (!activeChannel) return [];
-      if (isDemo) {
+      if () {
         return mockMessages
           .filter(m => m.channel_id === activeChannel)
           .map(m => {
@@ -206,7 +178,7 @@ export default function Messenger() {
 
   const sendMutation = useMutation({
     mutationFn: async ({ content, attachmentUrl, attachmentType, attachmentName }: { content: string; attachmentUrl?: string; attachmentType?: string; attachmentName?: string }) => {
-      if (isDemo) return; // no-op in demo
+      if () return; // no-op in demo
       await supabase.from("messages").insert({
         channel_id: activeChannel,
         sender_id: user!.id,
@@ -615,7 +587,7 @@ export default function Messenger() {
           {/* Input */}
           <div className="border-t border-border p-3">
             <div className="flex items-center gap-1 mb-2">
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => fileInputRef.current?.click()} disabled={isDemo}>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => fileInputRef.current?.click()} >
                 <Paperclip className="h-4 w-4" />
               </Button>
               <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelect} />
@@ -627,7 +599,7 @@ export default function Messenger() {
                 onChange={e => { setMessageText(e.target.value); broadcastTyping(); }}
                 onKeyDown={handleKeyDown}
                 className="flex-1"
-                disabled={isDemo}
+                
               />
               <Button onClick={handleSend} disabled={(!messageText.trim() && !pendingFile) || uploading} size="icon">
                 <Send className="h-4 w-4" />
