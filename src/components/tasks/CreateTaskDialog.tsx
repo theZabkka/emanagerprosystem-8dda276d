@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { CalendarIcon, ChevronDown, FileText, X, Search, Loader2 } from "lucide-react";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
+import { CalendarIcon, ChevronDown, FileText, X, Search, Loader2, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
@@ -44,6 +45,160 @@ const initialForm = {
   brief_inspiration: "",
 };
 
+/* ─── Reusable Combobox (single select) ─── */
+function ComboboxField({
+  label,
+  value,
+  options,
+  onSelect,
+  placeholder = "Wyszukaj...",
+  emptyText = "Brak wyników",
+}: {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onSelect: (v: string) => void;
+  placeholder?: string;
+  emptyText?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find(o => o.value === value);
+
+  return (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between font-normal h-10 text-sm"
+          >
+            <span className="truncate">{selected?.label || `Wybierz ${label.toLowerCase()}...`}</span>
+            <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+          <Command>
+            <CommandInput placeholder={placeholder} className="h-10" />
+            <CommandList className="max-h-[200px]">
+              <CommandEmpty>{emptyText}</CommandEmpty>
+              <CommandGroup>
+                <CommandItem
+                  value="__none"
+                  onSelect={() => { onSelect(""); setOpen(false); }}
+                  className="text-muted-foreground"
+                >
+                  — Brak —
+                </CommandItem>
+                {options.map(opt => (
+                  <CommandItem
+                    key={opt.value}
+                    value={opt.label}
+                    onSelect={() => { onSelect(opt.value); setOpen(false); }}
+                  >
+                    <Check className={cn("mr-2 h-3.5 w-3.5", value === opt.value ? "opacity-100" : "opacity-0")} />
+                    <span className="truncate">{opt.label}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
+/* ─── Multi-select Combobox for Assignees ─── */
+function AssigneeCombobox({
+  selectedUsers,
+  toggleUser,
+  profiles,
+  loading,
+}: {
+  selectedUsers: string[];
+  toggleUser: (id: string) => void;
+  profiles: any[] | undefined;
+  loading: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const initials = (name: string) =>
+    name?.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "?";
+
+  const available = (profiles || []).filter((p: any) => p.status !== "inactive");
+
+  return (
+    <div className="space-y-1.5">
+      <Label>Przypisane osoby</Label>
+      {/* Selected chips */}
+      {selectedUsers.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-1.5">
+          {selectedUsers.map(uid => {
+            const profile = available.find((p: any) => p.id === uid);
+            const name = profile?.full_name || uid;
+            return (
+              <Badge key={uid} variant="secondary" className="gap-1 pr-1 text-xs">
+                <Avatar className="h-4 w-4">
+                  <AvatarFallback className="text-[8px] bg-primary text-primary-foreground">{initials(name)}</AvatarFallback>
+                </Avatar>
+                {name}
+                <button onClick={() => toggleUser(uid)} className="ml-0.5 hover:bg-destructive/20 rounded-full p-0.5">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            );
+          })}
+        </div>
+      )}
+      {/* Combobox trigger */}
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            className="w-full justify-between font-normal h-10 text-sm"
+          >
+            <span className="text-muted-foreground">Wyszukaj pracownika...</span>
+            <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Wpisz imię lub nazwisko..." className="h-10" />
+            <CommandList className="max-h-[200px]">
+              <CommandEmpty>
+                {loading ? "Ładowanie..." : "Brak wyników"}
+              </CommandEmpty>
+              <CommandGroup>
+                {available.map((p: any) => {
+                  const isSelected = selectedUsers.includes(p.id);
+                  return (
+                    <CommandItem
+                      key={p.id}
+                      value={p.full_name || p.email || p.id}
+                      onSelect={() => toggleUser(p.id)}
+                    >
+                      <Check className={cn("mr-2 h-3.5 w-3.5", isSelected ? "opacity-100" : "opacity-0")} />
+                      <Avatar className="h-5 w-5 mr-2">
+                        <AvatarFallback className="text-[8px] bg-muted text-muted-foreground">{initials(p.full_name || "")}</AvatarFallback>
+                      </Avatar>
+                      <span className="truncate">{p.full_name}</span>
+                      <span className="ml-auto text-xs text-muted-foreground">{p.role}</span>
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
+/* ─── Main Dialog ─── */
 export default function CreateTaskDialog({ open, onOpenChange, onCreated }: CreateTaskDialogProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -53,15 +208,14 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
   const [nipInput, setNipInput] = useState("");
   const [nipLoading, setNipLoading] = useState(false);
 
-  // Fetch client users (profiles with role 'klient')
+  // Fetch clients (from clients table directly)
   const { data: clients } = useQuery({
     queryKey: ["create-task-clients"],
     queryFn: async () => {
       const { data } = await supabase
-        .from("profiles")
-        .select("id, full_name, client_id, avatar_url")
-        .eq("role", "klient")
-        .order("full_name");
+        .from("clients")
+        .select("id, name")
+        .order("name");
       return data || [];
     },
   });
@@ -75,25 +229,25 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
     },
   });
 
-  // Fetch staff profiles (shared hook)
+  // Staff
   const { data: profiles, isLoading: loadingProfiles } = useStaffMembers();
 
-  // Filter projects by selected client profile's client_id
+  // Filter projects by selected client
   const filteredProjects = useMemo(() => {
     if (!allProjects) return [];
     if (!form.client_id) return allProjects;
-    // form.client_id stores the profile's client_id (from clients table)
     return allProjects.filter((p: any) => p.client_id === form.client_id);
   }, [allProjects, form.client_id]);
 
-  // Filter client profiles by selected project
-  const filteredClients = useMemo(() => {
-    if (!clients) return [];
-    if (!form.project_id) return clients;
-    const project = (allProjects || []).find((p: any) => p.id === form.project_id);
-    if (project?.client_id) return clients.filter((c: any) => c.client_id === project.client_id);
-    return clients;
-  }, [clients, allProjects, form.project_id]);
+  const clientOptions = useMemo(() =>
+    (clients || []).map((c: any) => ({ value: c.id, label: c.name })),
+    [clients]
+  );
+
+  const projectOptions = useMemo(() =>
+    filteredProjects.map((p: any) => ({ value: p.id, label: p.name })),
+    [filteredProjects]
+  );
 
   const update = (field: string, value: any) => setForm(prev => ({ ...prev, [field]: value }));
 
@@ -118,7 +272,6 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
     }
     setNipLoading(true);
     try {
-      // Check if client with this NIP already exists
       const { data: existingClient } = await supabase
         .from("clients")
         .select("id, name")
@@ -132,7 +285,6 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
         return;
       }
 
-      // Fetch from edge function (CEIDG + MF fallback)
       const { data, error: fnError } = await supabase.functions.invoke("lookup-nip", {
         body: { nip },
       });
@@ -143,7 +295,6 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
         return;
       }
 
-      // Create client in DB with parsed fields
       const { data: newClient, error } = await supabase
         .from("clients")
         .insert({
@@ -197,7 +348,6 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
     const { data: newTask, error } = await supabase.from("tasks").insert(taskPayload).select("id").single();
     if (error) { toast.error("Błąd", { description: error.message }); return; }
 
-    // Insert assignments
     if (selectedUsers.length > 0 && newTask) {
       const assignments = selectedUsers.map((uid, i) => ({
         task_id: newTask.id,
@@ -212,9 +362,6 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
     onOpenChange(false);
     onCreated();
   };
-
-  const initials = (name: string) =>
-    name?.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "?";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -238,7 +385,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
 
           <Separator />
 
-          {/* Row: Priority + Type */}
+          {/* Priority + Type */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Priorytet</Label>
@@ -257,7 +404,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
 
           <Separator />
 
-          {/* NIP lookup - create client by NIP */}
+          {/* NIP lookup */}
           <div className="space-y-1.5">
             <Label>Klient po NIP (opcjonalnie)</Label>
             <div className="flex gap-2">
@@ -269,86 +416,44 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
             </div>
           </div>
 
-          {/* Relational: Client + Project */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Klient</Label>
-              <Select value={form.client_id} onValueChange={v => {
-                update("client_id", v === "__none" ? "" : v);
-                if (v === "__none" || v !== form.client_id) update("project_id", "");
-              }}>
-                <SelectTrigger><SelectValue placeholder="Wybierz klienta..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none">— Brak —</SelectItem>
-                  {(filteredClients || []).filter((c: any) => c.client_id).map((c: any) => (
-                    <SelectItem key={c.id} value={c.client_id}>{c.full_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Projekt</Label>
-              <Select value={form.project_id} onValueChange={v => {
-                const val = v === "__none" ? "" : v;
-                update("project_id", val);
-                if (val) {
-                  const project = (allProjects || []).find((p: any) => p.id === val);
+          {/* Client + Project Comboboxes */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <ComboboxField
+              label="Klient"
+              value={form.client_id}
+              options={clientOptions}
+              onSelect={v => {
+                update("client_id", v);
+                if (v !== form.client_id) update("project_id", "");
+              }}
+              placeholder="Wpisz nazwę klienta..."
+              emptyText="Nie znaleziono klienta"
+            />
+            <ComboboxField
+              label="Projekt"
+              value={form.project_id}
+              options={projectOptions}
+              onSelect={v => {
+                update("project_id", v);
+                if (v) {
+                  const project = (allProjects || []).find((p: any) => p.id === v);
                   if (project?.client_id && !form.client_id) {
                     update("client_id", project.client_id);
                   }
                 }
-              }}>
-                <SelectTrigger><SelectValue placeholder="Wybierz projekt..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none">— Brak —</SelectItem>
-                  {filteredProjects.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+              }}
+              placeholder="Wpisz nazwę projektu..."
+              emptyText="Nie znaleziono projektu"
+            />
           </div>
 
-          {/* Assignees */}
-          <div className="space-y-1.5">
-            <Label>Przypisane osoby <span className="text-destructive">*</span></Label>
-            <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-background min-h-[42px]">
-              {selectedUsers.map(uid => {
-                const profile = (profiles || []).find((p: any) => p.id === uid);
-                const name = (profile as any)?.full_name || uid;
-                return (
-                  <Badge key={uid} variant="secondary" className="gap-1 pr-1 text-xs">
-                    <Avatar className="h-4 w-4">
-                      <AvatarFallback className="text-[8px] bg-primary text-primary-foreground">{initials(name)}</AvatarFallback>
-                    </Avatar>
-                    {name}
-                    <button onClick={() => toggleUser(uid)} className="ml-0.5 hover:bg-destructive/20 rounded-full p-0.5">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                );
-              })}
-            </div>
-            {loadingProfiles ? (
-              <p className="text-xs text-muted-foreground py-2">Ładowanie pracowników...</p>
-            ) : !profiles || profiles.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-2">Brak dostępnych pracowników</p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5 mt-1.5">
-                {profiles.filter((p: any) => !selectedUsers.includes(p.id)).map((p: any) => (
-                  <button
-                    key={p.id}
-                    onClick={() => toggleUser(p.id)}
-                    className="flex items-center gap-1.5 px-2 py-1 text-xs border rounded-full hover:bg-accent transition-colors"
-                  >
-                    <Avatar className="h-4 w-4">
-                      <AvatarFallback className="text-[8px] bg-muted text-muted-foreground">{initials(p.full_name || "")}</AvatarFallback>
-                    </Avatar>
-                    {p.full_name}
-                    <span className="text-muted-foreground">({p.role})</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Assignees Combobox */}
+          <AssigneeCombobox
+            selectedUsers={selectedUsers}
+            toggleUser={toggleUser}
+            profiles={profiles}
+            loading={loadingProfiles}
+          />
 
           <Separator />
 
@@ -381,7 +486,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
             </div>
           </div>
 
-          {/* Brief section (collapsible) */}
+          {/* Brief section */}
           <Collapsible open={briefOpen} onOpenChange={setBriefOpen}>
             <CollapsibleTrigger asChild>
               <button className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border bg-muted/50 hover:bg-accent transition-colors text-sm font-medium">
