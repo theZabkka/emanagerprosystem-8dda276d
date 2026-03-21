@@ -21,6 +21,47 @@ interface CreateClientDialogProps {
   onCreated: () => void;
 }
 
+function parseAddress(raw: string) {
+  const parts = raw.split(",").map((s) => s.trim());
+  const street = parts[0] || "";
+  let postal_code = "";
+  let city = "";
+  if (parts[1]) {
+    const match = parts[1].match(/^(\d{2}-\d{3})\s+(.+)$/);
+    if (match) {
+      postal_code = match[1];
+      city = match[2];
+    } else {
+      city = parts[1];
+    }
+  }
+  return { street, postal_code, city };
+}
+
+function titleCase(str: string) {
+  return str.toLowerCase().split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
+
+// Map voivodeship from city/postal code prefix
+const postalVoivodeshipMap: Record<string, string> = {
+  "00": "mazowieckie", "01": "mazowieckie", "02": "mazowieckie", "03": "mazowieckie", "04": "mazowieckie", "05": "mazowieckie", "06": "mazowieckie", "07": "mazowieckie", "08": "mazowieckie", "09": "mazowieckie",
+  "10": "warmińsko-mazurskie", "11": "warmińsko-mazurskie", "12": "warmińsko-mazurskie", "13": "warmińsko-mazurskie", "14": "warmińsko-mazurskie",
+  "15": "podlaskie", "16": "podlaskie", "17": "podlaskie", "18": "podlaskie", "19": "podlaskie",
+  "20": "lubelskie", "21": "lubelskie", "22": "lubelskie", "23": "lubelskie", "24": "lubelskie",
+  "25": "świętokrzyskie", "26": "świętokrzyskie", "27": "świętokrzyskie", "28": "świętokrzyskie", "29": "świętokrzyskie",
+  "30": "małopolskie", "31": "małopolskie", "32": "małopolskie", "33": "małopolskie", "34": "małopolskie",
+  "35": "podkarpackie", "36": "podkarpackie", "37": "podkarpackie", "38": "podkarpackie", "39": "podkarpackie",
+  "40": "śląskie", "41": "śląskie", "42": "śląskie", "43": "śląskie", "44": "śląskie",
+  "45": "opolskie", "46": "opolskie", "47": "opolskie", "48": "opolskie", "49": "opolskie",
+  "50": "dolnośląskie", "51": "dolnośląskie", "52": "dolnośląskie", "53": "dolnośląskie", "54": "dolnośląskie", "55": "dolnośląskie", "56": "dolnośląskie", "57": "dolnośląskie", "58": "dolnośląskie", "59": "dolnośląskie",
+  "60": "wielkopolskie", "61": "wielkopolskie", "62": "wielkopolskie", "63": "wielkopolskie", "64": "wielkopolskie",
+  "65": "lubuskie", "66": "lubuskie", "67": "lubuskie", "68": "lubuskie", "69": "lubuskie",
+  "70": "zachodniopomorskie", "71": "zachodniopomorskie", "72": "zachodniopomorskie", "73": "zachodniopomorskie", "74": "zachodniopomorskie", "75": "zachodniopomorskie", "76": "zachodniopomorskie", "77": "zachodniopomorskie", "78": "zachodniopomorskie",
+  "80": "pomorskie", "81": "pomorskie", "82": "pomorskie", "83": "pomorskie", "84": "pomorskie",
+  "85": "kujawsko-pomorskie", "86": "kujawsko-pomorskie", "87": "kujawsko-pomorskie", "88": "kujawsko-pomorskie", "89": "kujawsko-pomorskie",
+  "90": "łódzkie", "91": "łódzkie", "92": "łódzkie", "93": "łódzkie", "94": "łódzkie", "95": "łódzkie", "96": "łódzkie", "97": "łódzkie", "98": "łódzkie", "99": "łódzkie",
+};
+
 async function fetchCompanyDataByNip(rawNip: string) {
   const nip = rawNip.replace(/[\s-]/g, "");
   if (!/^\d{10}$/.test(nip)) {
@@ -32,10 +73,24 @@ async function fetchCompanyDataByNip(rawNip: string) {
   const json = await res.json();
   const subject = json?.result?.subject;
   if (!subject) throw new Error("Nie znaleziono firmy dla podanego NIP.");
-  return {
-    name: subject.name || "",
-    address: subject.workingAddress || subject.residenceAddress || "",
-  };
+
+  const fullName = subject.name || "";
+  const addressRaw = subject.workingAddress || subject.residenceAddress || "";
+  const parsed = parseAddress(addressRaw);
+
+  const nameParts = titleCase(fullName).split(" ");
+  let first_name = "";
+  let last_name = "";
+  if (nameParts.length >= 2) {
+    first_name = nameParts[0];
+    last_name = nameParts.slice(1).join(" ");
+  } else {
+    last_name = titleCase(fullName);
+  }
+
+  const voivodeship = parsed.postal_code ? (postalVoivodeshipMap[parsed.postal_code.substring(0, 2)] || "") : "";
+
+  return { company_name: titleCase(fullName), first_name, last_name, street: titleCase(parsed.street), postal_code: parsed.postal_code, city: titleCase(parsed.city), voivodeship };
 }
 
 export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClientDialogProps) {
@@ -70,8 +125,13 @@ export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClie
       const data = await fetchCompanyDataByNip(form.nip);
       setForm((prev) => ({
         ...prev,
-        company_name: data.name || prev.company_name,
-        address: data.address || prev.address,
+        first_name: data.first_name || prev.first_name,
+        last_name: data.last_name || prev.last_name,
+        company_name: data.company_name || prev.company_name,
+        address: data.street || prev.address,
+        postal_code: data.postal_code || prev.postal_code,
+        city: data.city || prev.city,
+        voivodeship: data.voivodeship || prev.voivodeship,
       }));
       toast.success("Pomyślnie pobrano dane firmy!");
     } catch (err: any) {
