@@ -33,6 +33,7 @@ const Team = lazy(() => import("./pages/Team"));
 const WhatsNew = lazy(() => import("./pages/WhatsNew"));
 const StubPage = lazy(() => import("./pages/StubPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const Documentation = lazy(() => import("./pages/Documentation"));
 const Permissions = lazy(() => import("./pages/Permissions"));
 const ClientIdeas = lazy(() => import("./pages/ClientIdeas"));
 const StaffIdeas = lazy(() => import("./pages/StaffIdeas"));
@@ -73,7 +74,7 @@ const stubRoutes = [
   { path: "/team-analytics", title: "Analityka zespołu" },
   { path: "/recurring-tasks", title: "Zadania cykliczne" },
   { path: "/suggestions", title: "Sugestie" },
-  { path: "/docs", title: "Dokumentacja" },
+  
   { path: "/project-guide", title: "Instrukcja projektu" },
 ];
 
@@ -114,6 +115,7 @@ const App = () => (
             <Route path="/settings/permissions" element={<ProtectedRoute><Permissions /></ProtectedRoute>} />
             <Route path="/client-ideas" element={<ProtectedRoute><ClientIdeas /></ProtectedRoute>} />
             <Route path="/staff-ideas" element={<ProtectedRoute><StaffIdeas /></ProtectedRoute>} />
+            <Route path="/docs" element={<ProtectedRoute><Documentation /></ProtectedRoute>} />
             {stubRoutes.map((r) => (
               <Route key={r.path} path={r.path} element={<ProtectedRoute><StubPage title={r.title} /></ProtectedRoute>} />
             ))}
