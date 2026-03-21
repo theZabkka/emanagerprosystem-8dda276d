@@ -164,14 +164,7 @@ export default function TaskDetail() {
     enabled: !!id,
   });
 
-  const { data: allProfiles } = useQuery({
-    queryKey: ["all-profiles", isDemo],
-    queryFn: async () => {
-      if (isDemo) return mockProfiles;
-      const { data } = await supabase.from("profiles").select("*");
-      return data || [];
-    },
-  });
+  const { data: allProfiles } = useStaffMembers();
 
   const { data: subtasks } = useQuery({
     queryKey: ["subtasks", id, isDemo],
