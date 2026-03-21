@@ -36,9 +36,6 @@ export function sortTasks(
       if (db === null) return -1;
       cmp = da - db;
     } else {
-      // created_at or status_updated_at
-      const va = a[field] ? new Date(a[field]).getTime() : 0;
-      const vb = b[field] ? new Date(b[field]).getTime() : 0;
       const va = a[field] ? new Date(a[field]).getTime() : 0;
       const vb = b[field] ? new Date(b[field]).getTime() : 0;
       cmp = va - vb;
