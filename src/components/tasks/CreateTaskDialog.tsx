@@ -132,18 +132,30 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
         return;
       }
 
-      // Fetch from MF API
-      const today = new Date().toISOString().slice(0, 10);
-      const res = await fetch(`https://wl-api.mf.gov.pl/api/search/nip/${nip}?date=${today}`);
-      const json = await res.json();
-      const subject = json?.result?.subject;
-      const companyName = subject?.name || `Firma NIP: ${nip}`;
-      const address = subject?.workingAddress || subject?.residenceAddress || "";
+      // Fetch from edge function (CEIDG + MF fallback)
+      const { data, error: fnError } = await supabase.functions.invoke("lookup-nip", {
+        body: { nip },
+      });
 
-      // Create client in DB
+      if (fnError || !data || data.error) {
+        toast.warning("Nie udało się pobrać danych z bazy. Klient nie został utworzony.");
+        setNipLoading(false);
+        return;
+      }
+
+      // Create client in DB with parsed fields
       const { data: newClient, error } = await supabase
         .from("clients")
-        .insert({ name: companyName, nip, address, status: "potential" as any })
+        .insert({
+          name: data.name || `Firma NIP: ${nip}`,
+          nip,
+          contact_person: data.contact_person || null,
+          address: data.street || null,
+          postal_code: data.postal_code || null,
+          city: data.city || null,
+          voivodeship: data.voivodeship || null,
+          status: "potential" as any,
+        })
         .select("id, name")
         .single();
 

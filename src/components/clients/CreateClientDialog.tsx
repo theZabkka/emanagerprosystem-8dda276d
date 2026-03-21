@@ -67,30 +67,35 @@ async function fetchCompanyDataByNip(rawNip: string) {
   if (!/^\d{10}$/.test(nip)) {
     throw new Error("Nieprawidłowy NIP. Wprowadź 10 cyfr.");
   }
-  const today = new Date().toISOString().slice(0, 10);
-  const res = await fetch(`https://wl-api.mf.gov.pl/api/search/nip/${nip}?date=${today}`);
-  if (!res.ok) throw new Error("API nie odpowiada");
-  const json = await res.json();
-  const subject = json?.result?.subject;
-  if (!subject) throw new Error("Nie znaleziono firmy dla podanego NIP.");
 
-  const fullName = subject.name || "";
-  const addressRaw = subject.workingAddress || subject.residenceAddress || "";
-  const parsed = parseAddress(addressRaw);
+  // Use edge function (CEIDG + MF fallback)
+  const { data, error } = await supabase.functions.invoke("lookup-nip", {
+    body: { nip },
+  });
 
-  const nameParts = titleCase(fullName).split(" ");
-  let first_name = "";
-  let last_name = "";
-  if (nameParts.length >= 2) {
-    first_name = nameParts[0];
-    last_name = nameParts.slice(1).join(" ");
-  } else {
-    last_name = titleCase(fullName);
+  if (error || !data || data.error) {
+    throw new Error(data?.error || "Nie znaleziono firmy dla podanego NIP.");
   }
 
-  const voivodeship = parsed.postal_code ? (postalVoivodeshipMap[parsed.postal_code.substring(0, 2)] || "") : "";
+  // data has: name, contact_person, nip, street, postal_code, city, voivodeship
+  const contactParts = (data.contact_person || "").split(" ");
+  const first_name = contactParts[0] || "";
+  const last_name = contactParts.slice(1).join(" ") || "";
 
-  return { company_name: titleCase(fullName), first_name, last_name, street: titleCase(parsed.street), postal_code: parsed.postal_code, city: titleCase(parsed.city), voivodeship };
+  // If CEIDG returned voivodeship, use it; otherwise fallback to postal code map
+  const voivodeship = data.voivodeship
+    ? titleCase(data.voivodeship)
+    : (data.postal_code ? (postalVoivodeshipMap[data.postal_code.substring(0, 2)] || "") : "");
+
+  return {
+    company_name: data.name || "",
+    first_name,
+    last_name,
+    street: data.street || "",
+    postal_code: data.postal_code || "",
+    city: data.city || "",
+    voivodeship,
+  };
 }
 
 export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClientDialogProps) {
