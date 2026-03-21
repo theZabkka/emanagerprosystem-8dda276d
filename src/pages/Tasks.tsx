@@ -100,6 +100,8 @@ export default function Tasks() {
           typeFilter={typeFilter} onTypeChange={setTypeFilter}
           viewMode={viewMode} onViewModeChange={setViewMode}
           onCreateClick={() => setIsCreateOpen(true)}
+          sortField={sortField} onSortFieldChange={setSortField}
+          sortDirection={sortDirection} onSortDirectionToggle={() => setSortDirection(d => d === "asc" ? "desc" : "asc")}
         />
 
         <CreateTaskDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} onCreated={() => refetch()} />
