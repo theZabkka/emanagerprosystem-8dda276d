@@ -1,11 +1,10 @@
-import { Search, Phone, Focus, Sun, Moon, Bell, Database, FlaskConical } from "lucide-react";
+import { Search, Phone, Focus, Sun, Moon, Bell, FlaskConical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataSource } from "@/hooks/useDataSource";
 import { useRole } from "@/hooks/useRole";
 import { seedSupabaseDatabase } from "@/lib/seedDatabase";
 import { toast } from "sonner";
@@ -17,7 +16,6 @@ interface TopbarProps {
 
 export function Topbar({ title = "Pulpit" }: TopbarProps) {
   const { profile } = useAuth();
-  const { dataSource, setDataSource, isDemo } = useDataSource();
   const { isClient } = useRole();
   const [isDark, setIsDark] = useState(false);
   const [seeding, setSeeding] = useState(false);
@@ -25,10 +23,6 @@ export function Topbar({ title = "Pulpit" }: TopbarProps) {
   const toggleTheme = () => {
     setIsDark(!isDark);
     document.documentElement.classList.toggle("dark");
-  };
-
-  const toggleDataSource = () => {
-    setDataSource(isDemo ? "database" : "demo");
   };
 
   const handleSeed = async () => {
@@ -55,50 +49,30 @@ export function Topbar({ title = "Pulpit" }: TopbarProps) {
         <h1 className="text-lg font-semibold text-foreground">{title}</h1>
       </div>
 
-      {/* Search - hidden for client */}
       {!isClient && (
         <div className="flex-1 max-w-md mx-4 hidden md:block">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Szukaj... ⌘K"
-              className="pl-9 h-9 bg-muted border-0"
-            />
+            <Input placeholder="Szukaj... ⌘K" className="pl-9 h-9 bg-muted border-0" />
           </div>
         </div>
       )}
 
-      {/* Spacer when client (no search) */}
       {isClient && <div className="flex-1" />}
 
       <div className="flex items-center gap-1">
-        {/* Data source toggle & seed - hidden for client */}
         {!isClient && (
-          <>
-            <button
-              onClick={toggleDataSource}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors mr-1 ${
-                isDemo
-                  ? "bg-orange-500/15 text-orange-600 border border-orange-400/50 hover:bg-orange-500/25"
-                  : "bg-emerald-500/15 text-emerald-600 border border-emerald-400/50 hover:bg-emerald-500/25"
-              }`}
-            >
-              <Database className="h-3.5 w-3.5" />
-              {isDemo ? "DEMO" : "BAZA"}
-            </button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
-              onClick={handleSeed}
-              disabled={seeding}
-              title="Zasil bazę danymi testowymi"
-            >
-              <FlaskConical className="h-3.5 w-3.5" />
-              <span className="hidden lg:inline">Zasil</span>
-            </Button>
-          </>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+            onClick={handleSeed}
+            disabled={seeding}
+            title="Zasil bazę danymi testowymi"
+          >
+            <FlaskConical className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">Zasil</span>
+          </Button>
         )}
 
         <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" onClick={toggleTheme}>
