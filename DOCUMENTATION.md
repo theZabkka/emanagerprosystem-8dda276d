@@ -388,7 +388,7 @@ Wszystkie strony ładowane są leniwie (`React.lazy`). Chronione przez `Protecte
 - Dane z: `task_assignments` → `tasks` + `time_logs`.
 
 #### Zadania (`/tasks`)
-- **Widok Kanban** (domyślny): 8 kolumn statusów (todo → closed). Drag & drop zmiana statusu. **Kompaktowe karty** — zmniejszony padding i rozmiar czcionek dla lepszej gęstości informacji.
+- **Widok Kanban** (domyślny): 8 kolumn statusów (todo → closed). Drag & drop zmiana statusu. **Ultra-kompaktowe karty** — ID zadania usunięte z karty (widoczne tylko w szczegółach), priorytet i termin w jednej linii na górze karty, awatar zmniejszony (h-5 w-5) z tooltipem pokazującym pełne imię i nazwisko po najechaniu, minimalne paddingi i fonty dla maksymalnej gęstości informacji.
 - **Widok Lista:** Tabela zadań.
 - **Filtry:** Wyszukiwanie, priorytet, typ (parent/subtask/standalone).
 - **Sortowanie w Kanbanie:** Dropdown "Sortuj po" z opcjami: Termin/Deadline (`due_date` — domyślne, ASC), Data utworzenia (`created_at`), Czas w statusie (`status_updated_at`), Priorytet (`priority`), **Ręczne** (`manual`). Przycisk kierunku ASC/DESC ukryty w trybie "Ręczne". Priorytety sortowane logicznie (critical=4, high=3, medium=2, low=1). Zadania bez deadline'u zawsze na końcu listy. Logika w `src/lib/taskSorting.ts`.

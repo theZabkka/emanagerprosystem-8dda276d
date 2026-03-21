@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { Clock, HelpCircle, UserPlus, Archive } from "lucide-react";
+import { Clock, UserPlus, Archive } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
@@ -278,7 +279,7 @@ export default function TaskKanbanBoard({
                         <div
                           ref={provided.innerRef}
                           {...provided.droppableProps}
-                          className={`px-2.5 pb-2.5 space-y-2.5 min-h-[120px] transition-colors ${snapshot.isDraggingOver ? "bg-destructive/5" : ""}`}
+                          className={`px-2 pb-2 space-y-1.5 min-h-[120px] transition-colors ${snapshot.isDraggingOver ? "bg-destructive/5" : ""}`}
                         >
                           {columnTasks.map((task: any, index: number) => {
                             const assignee = getAssignee(task.id);
@@ -298,57 +299,48 @@ export default function TaskKanbanBoard({
                                     {...provided.dragHandleProps}
                                     className={`rounded-lg border shadow-sm transition-shadow ${isUnassigned ? "bg-destructive/15 animate-pulse border-destructive/50 ring-2 ring-destructive/30" : "bg-card"} ${task.not_understood ? "ring-2 ring-amber-500/50 border-amber-500/30" : ""} ${task.correction_severity === "critical" ? "ring-2 ring-destructive/50" : ""} ${snapshot.isDragging ? "shadow-lg ring-2 ring-destructive/20" : "hover:shadow-md"}`}
                                   >
-                                    <Link to={`/tasks/${task.id}`} className="block p-2.5">
-                                      <div className="flex items-center justify-between mb-1.5">
-                                        <div className="flex items-center gap-1">
-                                          <span className="text-[10px] font-mono text-muted-foreground font-medium">{getTaskIndex(task.id)}</span>
-                                          {task.not_understood && (
-                                            <Badge className="text-[8px] h-3.5 px-1 bg-amber-500 text-white">❓</Badge>
-                                          )}
-                                        </div>
+                                    <Link to={`/tasks/${task.id}`} className="block px-2 pt-1.5 pb-1">
+                                      {/* Row 1: Priority + Deadline + flags */}
+                                      <div className="flex items-center gap-1 mb-1">
                                         <Badge
                                           variant="outline"
-                                          className={`text-[9px] h-4 px-1.5 font-bold border ${priority.border} ${priority.bg} ${priority.text} rounded-md`}
+                                          className={`text-[8px] h-3.5 px-1 font-bold border ${priority.border} ${priority.bg} ${priority.text} rounded`}
                                         >
                                           {priority.label}
                                         </Badge>
+                                        {task.due_date && (
+                                          <span className={`text-[9px] font-semibold ${new Date(task.due_date) < new Date() ? "text-destructive" : "text-muted-foreground"}`}>
+                                            · {new Date(task.due_date).toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit" })}
+                                          </span>
+                                        )}
+                                        {task.not_understood && (
+                                          <Badge className="text-[7px] h-3 px-0.5 bg-warning text-warning-foreground">❓</Badge>
+                                        )}
+                                        {task.correction_severity && (
+                                          <Badge className={`text-[7px] h-3 px-0.5 ${task.correction_severity === "critical" ? "bg-destructive text-destructive-foreground" : "bg-warning/15 text-warning border-warning/30"}`}>
+                                            {task.correction_severity === "critical" ? "KRYT" : "POPR"}
+                                          </Badge>
+                                        )}
                                       </div>
 
-                                      <p className="text-xs font-bold text-foreground leading-snug mb-0.5 line-clamp-2">{task.title}</p>
+                                      {/* Row 2: Title */}
+                                      <p className="text-[11px] font-bold text-foreground leading-tight line-clamp-2">{task.title}</p>
 
+                                      {/* Row 3: Client / Project (compact) */}
                                       {client && (
-                                        <p className="text-[10px] text-muted-foreground mb-1.5 truncate">{client.name}</p>
-                                      )}
-
-                                      {task.correction_severity && (
-                                        <Badge className={`text-[8px] h-3.5 mb-1 ${task.correction_severity === "critical" ? "bg-destructive text-destructive-foreground" : "bg-amber-500/15 text-amber-700 border-amber-500/30"}`}>
-                                          {task.correction_severity === "critical" ? "KRYTYCZNE" : "POPRAWKI"}
-                                        </Badge>
+                                        <p className="text-[9px] text-muted-foreground truncate mt-0.5">{client.name}</p>
                                       )}
 
                                       {waitingTime && (
-                                        <div className="flex items-center gap-1 text-[9px] text-destructive-foreground font-semibold mb-1 bg-destructive rounded px-1.5 py-0.5 w-fit">
-                                          <Clock className="h-2.5 w-2.5" />
+                                        <div className="flex items-center gap-0.5 text-[8px] text-destructive-foreground font-semibold mt-1 bg-destructive rounded px-1 py-0.5 w-fit">
+                                          <Clock className="h-2 w-2" />
                                           {waitingTime}
                                         </div>
                                       )}
-
-                                      <div className="flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground">
-                                        {task.estimated_time > 0 && task.logged_time > 0 && (
-                                          <span className="flex items-center gap-0.5">
-                                            <Clock className="h-2.5 w-2.5" />
-                                            {(task.logged_time / 60).toFixed(1)}h
-                                          </span>
-                                        )}
-                                        {task.due_date && (
-                                          <span className={`font-medium ${new Date(task.due_date) < new Date() ? "text-destructive" : ""}`}>
-                                            {new Date(task.due_date).toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit" })}
-                                          </span>
-                                        )}
-                                      </div>
                                     </Link>
 
-                                    <div className="px-2.5 pb-2 -mt-1 flex items-center justify-between">
+                                    {/* Bottom row: Avatar + actions */}
+                                    <div className="px-2 pb-1.5 flex items-center justify-between">
                                       <AssignPopover
                                         taskId={task.id}
                                         assignee={assignee}
@@ -357,22 +349,30 @@ export default function TaskKanbanBoard({
                                         getAvatarColor={getAvatarColor}
                                         onAssign={handleAssign}
                                       />
-                                      {col.key === "closed" && onArchive && (
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          className="h-6 text-[9px] gap-1 text-muted-foreground hover:text-primary px-1.5"
-                                          onPointerDown={(e) => e.stopPropagation()}
-                                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onArchive(task.id); }}
-                                        >
-                                          <Archive className="h-2.5 w-2.5" />
-                                          Archiwizuj
-                                        </Button>
-                                      )}
+                                      <div className="flex items-center gap-1">
+                                        {task.estimated_time > 0 && task.logged_time > 0 && (
+                                          <span className="flex items-center gap-0.5 text-[9px] text-muted-foreground">
+                                            <Clock className="h-2 w-2" />
+                                            {(task.logged_time / 60).toFixed(1)}h
+                                          </span>
+                                        )}
+                                        {col.key === "closed" && onArchive && (
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 text-[8px] gap-0.5 text-muted-foreground hover:text-primary px-1"
+                                            onPointerDown={(e) => e.stopPropagation()}
+                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onArchive(task.id); }}
+                                          >
+                                            <Archive className="h-2 w-2" />
+                                            Archiwizuj
+                                          </Button>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
-                                )}
-                              </Draggable>
+                                 )}
+                               </Draggable>
                             );
                           })}
                           {provided.placeholder}
@@ -409,17 +409,26 @@ function AssignPopover({
           type="button"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
-          className="flex items-center gap-1.5 hover:bg-accent rounded-md px-1.5 py-1 transition-colors"
+          className="flex items-center hover:bg-accent rounded px-1 py-0.5 transition-colors"
         >
           {assignee ? (
-            <Avatar className="h-7 w-7">
-              <AvatarFallback className={`text-[10px] text-white font-bold ${getAvatarColor(assignee.id)}`}>
-                {getInitials(assignee.full_name || "?")}
-              </AvatarFallback>
-            </Avatar>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Avatar className="h-5 w-5">
+                    <AvatarFallback className={`text-[8px] text-white font-bold ${getAvatarColor(assignee.id)}`}>
+                      {getInitials(assignee.full_name || "?")}
+                    </AvatarFallback>
+                  </Avatar>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  {assignee.full_name}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           ) : (
-            <span className="inline-flex items-center rounded-full border border-transparent bg-destructive px-2.5 py-0.5 text-[9px] font-bold text-destructive-foreground gap-1">
-              <UserPlus className="h-3 w-3" />
+            <span className="inline-flex items-center rounded-full border border-transparent bg-destructive px-2 py-0.5 text-[8px] font-bold text-destructive-foreground gap-0.5">
+              <UserPlus className="h-2.5 w-2.5" />
               PRZYPISZ
             </span>
           )}
@@ -441,8 +450,8 @@ function AssignPopover({
               onClick={() => { onAssign(taskId, p.id); setOpen(false); }}
               className="flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm hover:bg-accent transition-colors text-left"
             >
-              <Avatar className="h-6 w-6">
-                <AvatarFallback className={`text-[9px] text-white font-bold ${getAvatarColor(p.id)}`}>
+              <Avatar className="h-5 w-5">
+                <AvatarFallback className={`text-[8px] text-white font-bold ${getAvatarColor(p.id)}`}>
                   {getInitials(p.full_name || "?")}
                 </AvatarFallback>
               </Avatar>
