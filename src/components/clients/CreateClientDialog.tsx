@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 
 const voivodeships = [
   "dolnośląskie", "kujawsko-pomorskie", "lubelskie", "lubuskie",
@@ -21,8 +21,26 @@ interface CreateClientDialogProps {
   onCreated: () => void;
 }
 
+async function fetchCompanyDataByNip(rawNip: string) {
+  const nip = rawNip.replace(/[\s-]/g, "");
+  if (!/^\d{10}$/.test(nip)) {
+    throw new Error("Nieprawidłowy NIP. Wprowadź 10 cyfr.");
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  const res = await fetch(`https://wl-api.mf.gov.pl/api/search/nip/${nip}?date=${today}`);
+  if (!res.ok) throw new Error("API nie odpowiada");
+  const json = await res.json();
+  const subject = json?.result?.subject;
+  if (!subject) throw new Error("Nie znaleziono firmy dla podanego NIP.");
+  return {
+    name: subject.name || "",
+    address: subject.workingAddress || subject.residenceAddress || "",
+  };
+}
+
 export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClientDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [nipLoading, setNipLoading] = useState(false);
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
@@ -44,6 +62,27 @@ export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClie
 
   function updateField(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  async function handleFetchNip() {
+    setNipLoading(true);
+    try {
+      const data = await fetchCompanyDataByNip(form.nip);
+      setForm((prev) => ({
+        ...prev,
+        company_name: data.name || prev.company_name,
+        address: data.address || prev.address,
+      }));
+      toast.success("Pomyślnie pobrano dane firmy!");
+    } catch (err: any) {
+      if (err.message.includes("Nieprawidłowy NIP")) {
+        toast.error(err.message);
+      } else {
+        toast.warning("Nie udało się pobrać danych z bazy. Uzupełnij formularz ręcznie.");
+      }
+    } finally {
+      setNipLoading(false);
+    }
   }
 
   async function handleCreate() {
@@ -142,12 +181,30 @@ export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClie
           <div className="space-y-4">
             <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Informacje o firmie</h3>
             <div className="space-y-2">
-              <Label>Firma <span className="text-destructive">*</span></Label>
-              <Input value={form.company_name} onChange={(e) => updateField("company_name", e.target.value)} />
+              <Label>NIP</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={form.nip}
+                  onChange={(e) => updateField("nip", e.target.value)}
+                  placeholder="np. 1234567890"
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleFetchNip}
+                  disabled={nipLoading || !form.nip.trim()}
+                  className="shrink-0 h-10 px-3 gap-1.5"
+                >
+                  {nipLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  Pobierz z bazy
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
-              <Label>NIP</Label>
-              <Input value={form.nip} onChange={(e) => updateField("nip", e.target.value)} />
+              <Label>Pełna nazwa firmy <span className="text-destructive">*</span></Label>
+              <Input value={form.company_name} onChange={(e) => updateField("company_name", e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Telefon firmowy</Label>

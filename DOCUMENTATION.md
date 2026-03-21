@@ -429,6 +429,7 @@ Najbardziej rozbudowany widok w systemie. Sekcje:
 #### Klienci (`/clients`)
 - Tabela z wyszukiwaniem i filtrem statusu.
 - Dialog tworzenia nowego klienta (Insert do `clients`).
+- **Auto-uzupełnianie z NIP:** Obok pola NIP znajduje się przycisk "Pobierz z bazy", który odpytuje publiczne API Ministerstwa Finansów (Biała Lista VAT): `GET https://wl-api.mf.gov.pl/api/search/nip/{nip}?date={YYYY-MM-DD}`. Walidacja: NIP musi mieć dokładnie 10 cyfr (usuwane spacje i myślniki). Po pozytywnej odpowiedzi automatycznie wypełnia pola "Pełna nazwa firmy" (`name`) oraz "Adres" (`workingAddress`/`residenceAddress`). W przypadku błędu wyświetla żółty toast i pozwala na ręczne uzupełnienie.
 
 #### Szczegóły Klienta (`/clients/:id`)
 10 zakładek:
