@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { useDataSource } from "@/hooks/useDataSource";
+import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { AlertTriangle, Clock, UserPlus, Check, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
