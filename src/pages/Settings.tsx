@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Database, Eye, Bell, Briefcase, Users, Shield, Bot, Settings2, Clock, LayoutList, RotateCcw } from "lucide-react";
+import { Eye, Bell, Briefcase, Users, Shield, Bot, Settings2, Clock, LayoutList, RotateCcw } from "lucide-react";
 
 function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
   return (
