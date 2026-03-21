@@ -55,8 +55,8 @@ Deno.serve(async (req) => {
     // Try CEIDG first
     let ceidgData = null;
     try {
-      const ceidgUrl = `https://dane.biznes.gov.pl/api/ceidg/v2/firmy?nip=${nip}`;
-      console.log("CEIDG request:", ceidgUrl);
+      const ceidgUrl = `https://dane.biznes.gov.pl/api/ceidg/v3/firmy?nip=${nip}`;
+      console.log("CEIDG v3 request:", ceidgUrl);
       const ceidgRes = await fetch(ceidgUrl, {
         headers: { Authorization: `Bearer ${CEIDG_TOKEN}` },
       });
