@@ -229,9 +229,32 @@ Zgłoszenia poprawek z informacją o severity.
 
 ### 2.4 Tabele sprzedaży
 
-| Tabela | Opis |
-|---|---|
-| `pipeline_deals` | Szanse sprzedażowe z etapami (potential → won/lost) |
+#### `pipeline_deals`
+Szanse sprzedażowe zarządzane na tablicy Kanban (Drag & Drop).
+
+| Kolumna | Typ | Opis |
+|---|---|---|
+| `id` | uuid (PK) | |
+| `title` | text | Nazwa szansy (np. "Brand Strategy") |
+| `client_id` | uuid (FK → clients) | Powiązany klient |
+| `value` | numeric | Wartość w PLN |
+| `stage` | enum `pipeline_stage` | potential, contact, offer_sent, negotiations, won, lost |
+| `assigned_to` | uuid (FK → profiles) | Osoba odpowiedzialna |
+| `days_in_stage` | integer | Legacy — obliczane dynamicznie z `status_updated_at` |
+| `status_updated_at` | timestamptz | Reset przy zmianie etapu (DnD), służy do obliczania "X dn. na etapie" |
+| `probability` | integer (0-100) | Prawdopodobieństwo zamknięcia (%) |
+| `expected_close_date` | date | Oczekiwana data zamknięcia |
+| `last_contact_date` | timestamptz | Data ostatniego kontaktu (czerwony alert jeśli > 7 dni) |
+| `next_action` | text | Kolejny krok (np. "Wysłać umowę") |
+
+**RLS:** SELECT dla wszystkich. INSERT dla staff. UPDATE dla staff lub przypisanej osoby.
+
+**Tablica Kanban (UI):**
+- 6 kolumn etapów z dynamicznymi podsumowaniami (liczba szans + wartość).
+- Nagłówek strony: łączna liczba otwartych szans i wartość w lejku.
+- Karta szansy: ID, wartość, nazwa, klient, prawdopodobieństwo (badge kolorowy), data zamknięcia, ostatni kontakt (alert > 7 dni), kolejny krok, dni na etapie, awatar osoby.
+- Drag & Drop z Optimistic UI — przeciągnięcie resetuje `status_updated_at`.
+- Formularz tworzenia/edycji z Combobox (wyszukiwanie klienta i osoby) oraz datepickerem.
 
 ### 2.5 Tabele systemowe
 
