@@ -7,7 +7,20 @@ const PRIORITY_WEIGHT: Record<string, number> = {
   low: 1,
 };
 
-export function sortTasks(tasks: any[], field: SortField, direction: SortDirection): any[] {
+export function sortTasks(
+  tasks: any[],
+  field: SortField,
+  direction: SortDirection,
+  positions?: Record<string, number>
+): any[] {
+  if (field === "manual" && positions) {
+    return [...tasks].sort((a, b) => {
+      const pa = positions[a.id] ?? Number.MAX_SAFE_INTEGER;
+      const pb = positions[b.id] ?? Number.MAX_SAFE_INTEGER;
+      return pa - pb;
+    });
+  }
+
   return [...tasks].sort((a, b) => {
     let cmp = 0;
 
@@ -18,13 +31,16 @@ export function sortTasks(tasks: any[], field: SortField, direction: SortDirecti
     } else if (field === "due_date") {
       const da = a.due_date ? new Date(a.due_date).getTime() : null;
       const db = b.due_date ? new Date(b.due_date).getTime() : null;
-      // Nulls always last
       if (da === null && db === null) return 0;
       if (da === null) return 1;
       if (db === null) return -1;
       cmp = da - db;
+    } else if (field === "manual") {
+      // No positions provided, fallback to created_at
+      const va = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const vb = b.created_at ? new Date(b.created_at).getTime() : 0;
+      cmp = va - vb;
     } else {
-      // created_at or status_updated_at
       const va = a[field] ? new Date(a[field]).getTime() : 0;
       const vb = b[field] ? new Date(b[field]).getTime() : 0;
       cmp = va - vb;
