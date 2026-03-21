@@ -257,8 +257,16 @@ export default function TaskDetail() {
 
   async function executeStatusChange(newStatus: string) {
     if (!task) return;
-    const oldStatus = task.status;
 
+    // Auto-stop timer when closing/cancelling
+    if ((newStatus === "closed" || newStatus === "cancelled" || newStatus === "done") && timerRunning) {
+      if (timerSeconds >= 60) {
+        const minutes = Math.round(timerSeconds / 60);
+        await logTime(minutes);
+      }
+      setTimerRunning(false);
+      setTimerSeconds(0);
+    }
 
     const { error } = await supabase.rpc("change_task_status", {
       _task_id: task.id,
