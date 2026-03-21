@@ -22,16 +22,17 @@ export function CoordinatorFreezeOverlay() {
   const [assigning, setAssigning] = useState<string | null>(null);
 
   // Fetch staff profiles for assignment dropdown
-  const { data: staffProfiles } = useQuery({
+  const { data: staffProfiles, isLoading: loadingStaff, isError: staffError } = useQuery({
     queryKey: ["staff-profiles-freeze"],
     queryFn: async () => {
       if (isDemo) return [];
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, role, email")
-        .in("role", ["boss", "koordynator", "specjalista", "praktykant"])
-        .eq("status", "active");
-      return data || [];
+        .select("id, full_name, role, email, status")
+        .in("role", ["boss", "koordynator", "specjalista", "praktykant"]);
+      if (error) throw error;
+      // Filter out explicitly inactive, but allow null/undefined status
+      return (data || []).filter((p: any) => p.status !== "inactive");
     },
     enabled: !!user && (currentRole === "koordynator" || currentRole === "boss"),
   });
@@ -176,41 +177,49 @@ export function CoordinatorFreezeOverlay() {
                     <p className="text-xs text-muted-foreground">
                       Przypisz osobę odpowiedzialną, aby odblokować dalszą pracę nad tym zadaniem.
                     </p>
-                    <div className="flex items-end gap-2">
-                      <div className="flex-1">
-                        <label className="text-xs font-medium text-foreground mb-1 block">
-                          Wybierz osobę:
-                        </label>
-                        <Select
-                          value={selectedUsers[t.id] || ""}
-                          onValueChange={(val) => setSelectedUsers(prev => ({ ...prev, [t.id]: val }))}
+                    {loadingStaff ? (
+                      <p className="text-xs text-muted-foreground">Ładowanie pracowników...</p>
+                    ) : staffError ? (
+                      <p className="text-xs text-destructive">Nie udało się pobrać listy pracowników</p>
+                    ) : !staffProfiles || staffProfiles.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">Brak dostępnych pracowników do przypisania</p>
+                    ) : (
+                      <div className="flex items-end gap-2">
+                        <div className="flex-1">
+                          <label className="text-xs font-medium text-foreground mb-1 block">
+                            Wybierz osobę:
+                          </label>
+                          <Select
+                            value={selectedUsers[t.id] || ""}
+                            onValueChange={(val) => setSelectedUsers(prev => ({ ...prev, [t.id]: val }))}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder="Wybierz pracownika..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {staffProfiles.map((p: any) => (
+                                <SelectItem key={p.id} value={p.id}>
+                                  {p.full_name || p.email || "Bez nazwy"} ({p.role})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => handleAssign(t.id)}
+                          disabled={!selectedUsers[t.id] || assigning === t.id}
+                          className="gap-1"
                         >
-                          <SelectTrigger className="h-9">
-                            <SelectValue placeholder="Wybierz pracownika..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(staffProfiles || []).map((p: any) => (
-                              <SelectItem key={p.id} value={p.id}>
-                                {p.full_name || p.email} ({p.role})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          {assigning === t.id ? (
+                            <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                          ) : (
+                            <Check className="h-4 w-4" />
+                          )}
+                          Przypisz
+                        </Button>
                       </div>
-                      <Button
-                        size="sm"
-                        onClick={() => handleAssign(t.id)}
-                        disabled={!selectedUsers[t.id] || assigning === t.id}
-                        className="gap-1"
-                      >
-                        {assigning === t.id ? (
-                          <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                        ) : (
-                          <Check className="h-4 w-4" />
-                        )}
-                        Przypisz
-                      </Button>
-                    </div>
+                    )}
                   </div>
                 )}
 
