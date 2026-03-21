@@ -404,7 +404,7 @@ Wszystkie strony ładowane są leniwie (`React.lazy`). Chronione przez `Protecte
 #### Szczegóły Zadania (`/tasks/:id`)
 Najbardziej rozbudowany widok w systemie. Sekcje:
 
-1. **Nagłówek:** Tytuł, status (z możliwością zmiany), priorytet, klient, projekt.
+1. **Nagłówek:** Tytuł, status (z możliwością zmiany), priorytet (inline edytowalny — dropdown), klient, projekt, termin/deadline (inline edytowalny — Date Picker z możliwością wyczyszczenia). **Edycja priorytetu i terminu jest zablokowana dla roli `klient` oraz w trybie podglądu klienta (`isPreviewMode`)** — wyświetlane jako statyczny tekst.
 2. **Brief:** 6 pól (cel, deliverable, format, materiały, czego nie robić, inspiracja). Edytowalny dialog.
 3. **Przypisania:** Lista osób (primary/collaborator/reviewer). Dodawanie/usuwanie.
 4. **Podzadania:** Dodawanie, oznaczanie jako ukończone.

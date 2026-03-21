@@ -20,10 +20,13 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
 import {
   ChevronRight, Plus, Send, Clock, Play, FileText, Link as LinkIcon,
   CheckCircle2, MessageCircle, History, AlertTriangle, Eye, Zap,
-  Upload, Timer, UserPlus, Edit3, Bug, Lock, X, Trash2, HelpCircle, ArrowLeft
+  Upload, Timer, UserPlus, Edit3, Bug, Lock, X, Trash2, HelpCircle, ArrowLeft, CalendarIcon
 } from "lucide-react";
 import { NotUnderstoodModal, ChecklistBlockModal, ResponsibilityModal } from "@/components/tasks/WorkflowModals";
 import { useRole } from "@/hooks/useRole";
@@ -497,7 +500,29 @@ export default function TaskDetail() {
     return m > 0 ? `${h}h ${m}min` : `${h}h`;
   }
 
-  // ─── Computed ────────────────────────────────────────────────────
+  // ─── Inline edit: Priority & Deadline ─────────────────────────────
+  const canEditInline = !isClient && !isPreviewMode;
+
+  async function handlePriorityChange(newPriority: string) {
+    if (!task || newPriority === task.priority) return;
+    const { error } = await supabase.from("tasks").update({ priority: newPriority as any, updated_at: new Date().toISOString() } as any).eq("id", task.id);
+    if (error) { toast.error("Błąd aktualizacji priorytetu"); return; }
+    queryClient.invalidateQueries({ queryKey: ["task", id] });
+    toast.success(`Priorytet zmieniony na ${priorityLabels[newPriority]}`);
+  }
+
+  async function handleDeadlineChange(newDate: Date | undefined) {
+    if (!task) return;
+    const { error } = await supabase.from("tasks").update({
+      due_date: newDate ? newDate.toISOString().split("T")[0] : null,
+      updated_at: new Date().toISOString(),
+    } as any).eq("id", task.id);
+    if (error) { toast.error("Błąd aktualizacji terminu"); return; }
+    queryClient.invalidateQueries({ queryKey: ["task", id] });
+    toast.success(newDate ? `Termin ustawiony na ${format(newDate, "dd.MM.yyyy")}` : "Termin usunięty");
+  }
+
+
   const briefFilledCount = useMemo(() => {
     if (!task) return 0;
     return briefFields.filter(f => (task as any)[f.key]).length;
@@ -612,15 +637,66 @@ export default function TaskDetail() {
               {statusLabels[task.status] || task.status}
             </Badge>
           )}
-          <Badge className={`text-[10px] font-bold border ${priorityColors[task.priority] || ""}`}>{priorityLabels[task.priority] || task.priority}</Badge>
+          {/* Priority - inline editable for staff */}
+          {canEditInline ? (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="cursor-pointer">
+                  <Badge className={`text-[10px] font-bold border ${priorityColors[task.priority] || ""} hover:opacity-80 transition-opacity`}>
+                    {priorityLabels[task.priority] || task.priority} ▾
+                  </Badge>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-36 p-1" align="start">
+                {Object.entries(priorityLabels).map(([k, v]) => (
+                  <button key={k} onClick={() => handlePriorityChange(k)}
+                    className={`w-full text-left px-3 py-1.5 text-sm rounded-sm hover:bg-accent transition-colors ${k === task.priority ? "font-bold bg-accent/50" : ""}`}>
+                    <Badge className={`text-[9px] border ${priorityColors[k]}`}>{v}</Badge>
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <Badge className={`text-[10px] font-bold border ${priorityColors[task.priority] || ""}`}>{priorityLabels[task.priority] || task.priority}</Badge>
+          )}
           {hasNoAssignment && <Badge className="bg-destructive text-destructive-foreground text-[10px] font-bold">NIEPRZYPISANE!</Badge>}
           {isOverdue && <Badge className="bg-destructive text-destructive-foreground text-[10px] font-bold">PO TERMINIE</Badge>}
           {task.type && <Badge variant="secondary" className="text-[10px]">{task.type}</Badge>}
+          {/* Deadline - inline editable for staff */}
           <div className="ml-auto">
-            {task.due_date && (
-              <span className={`text-sm font-semibold ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
-                Termin: {new Date(task.due_date).toLocaleDateString("pl-PL")}
-              </span>
+            {canEditInline ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("text-xs gap-1.5 h-7", isOverdue && "border-destructive text-destructive")}>
+                    <CalendarIcon className="h-3 w-3" />
+                    {task.due_date ? format(new Date(task.due_date), "dd.MM.yyyy") : "Brak terminu"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    mode="single"
+                    selected={task.due_date ? new Date(task.due_date) : undefined}
+                    onSelect={(date) => handleDeadlineChange(date)}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                  {task.due_date && (
+                    <div className="px-3 pb-3">
+                      <Button variant="ghost" size="sm" className="w-full text-xs text-destructive" onClick={() => handleDeadlineChange(undefined)}>
+                        <X className="h-3 w-3 mr-1" /> Usuń termin
+                      </Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+            ) : (
+              task.due_date ? (
+                <span className={`text-sm font-semibold ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
+                  Termin: {new Date(task.due_date).toLocaleDateString("pl-PL")}
+                </span>
+              ) : (
+                <span className="text-sm text-muted-foreground">Brak terminu</span>
+              )
             )}
           </div>
         </div>
