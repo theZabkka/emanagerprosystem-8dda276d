@@ -300,7 +300,49 @@ export default function ClientDashboard() {
           )}
         </div>
 
-        {/* Archive */}
+        {/* Orphaned tasks - no project, client_review status */}
+        {orphanedTasks && orphanedTasks.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Zadania ogólne / Inne zlecenia ({orphanedTasks.length})
+            </h3>
+            <div className="grid grid-cols-1 gap-3">
+              {orphanedTasks.map((task: any) => (
+                <Card key={task.id} className="border-primary/30">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold">{task.title}</p>
+                        <Badge variant="outline" className="text-[10px] mt-1">Bez projektu</Badge>
+                        {task.description && (
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.description}</p>
+                        )}
+                        {task.due_date && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Termin: {new Date(task.due_date).toLocaleDateString("pl-PL")}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <Button
+                          size="sm"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs gap-1"
+                          onClick={() => { setSelectedTaskId(task.id); setReviewModalOpen(true); }}
+                        >
+                          <ShieldCheck className="h-3 w-3" />
+                          Sprawdź
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+
         {archivedTasks && archivedTasks.length > 0 && (
           <div>
             <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
