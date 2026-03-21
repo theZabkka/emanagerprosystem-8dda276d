@@ -57,7 +57,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   useEffect(() => { fetchPermissions(); }, [fetchPermissions]);
 
   const canViewModule = useCallback((moduleName: string) => {
-    if (currentRole === "boss") return true;
+    if (currentRole === "superadmin" || currentRole === "boss") return true;
     if (currentRole === "klient") return false;
     const perm = permissions.find(p => p.role_name === currentRole && p.module_name === moduleName);
     return perm?.can_view ?? true;

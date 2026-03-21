@@ -68,6 +68,7 @@ export default function Login() {
             <p className="text-xs text-muted-foreground mb-2 font-medium">Konta testowe (hasło: haslo1234):</p>
             <div className="space-y-1">
               {[
+                { email: "superadmin@local.test", role: "SuperAdmin" },
                 { email: "boss@test.pl", role: "Boss" },
                 { email: "koordynator@test.pl", role: "Koordynator" },
                 { email: "specjalista@test.pl", role: "Specjalista" },
