@@ -83,7 +83,7 @@ function LiveTimer({ enteredAt }: { enteredAt: string }) {
   );
 }
 
-export function StatusTimeline({ statusHistory, currentStatus, isDemo, demoProfiles }: StatusTimelineProps) {
+export function StatusTimeline({ statusHistory, currentStatus, demoProfiles }: StatusTimelineProps) {
   // Sort chronologically (oldest first) for timeline display
   const sorted = [...statusHistory].sort(
     (a, b) => new Date(a.status_entered_at || a.created_at).getTime() - new Date(b.status_entered_at || b.created_at).getTime()

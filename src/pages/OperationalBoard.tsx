@@ -26,7 +26,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 
 export default function OperationalBoard() {
   const { data: tasks = [] } = useQuery({
-    queryKey: ["board-tasks", isDemo],
+    queryKey: ["board-tasks"],
     queryFn: async () => {
       if (isDemo) {
         return mockTasks.filter(t => (t.status as string) !== "cancelled").map(t => ({

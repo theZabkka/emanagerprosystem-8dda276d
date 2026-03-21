@@ -72,16 +72,6 @@ const briefFields = [
 ];
 
 // ─── Demo state store (mutable for demo interactivity) ────────────
-let demoSubtasksState: typeof mockSubtasks = [...mockSubtasks];
-let demoCommentsState: typeof mockComments = [...mockComments];
-let demoTimeLogsState: typeof mockTimeLogs = [...mockTimeLogs];
-let demoChecklistsState: typeof mockChecklists = [...mockChecklists];
-let demoChecklistItemsState: typeof mockChecklistItems = [...mockChecklistItems];
-let demoMaterialsState: typeof mockTaskMaterials = [...mockTaskMaterials];
-let demoStatusHistoryState: typeof mockStatusHistory = [...mockStatusHistory];
-let demoAssignmentsState: typeof mockTaskAssignments = [...mockTaskAssignments];
-let demoTasksState: typeof mockTasks = [...mockTasks];
-
 function resetDemoState() {
   demoSubtasksState = [...mockSubtasks];
   demoCommentsState = [...mockComments];
@@ -132,7 +122,7 @@ export default function TaskDetail() {
 
   // ─── Queries ─────────────────────────────────────────────────────
   const { data: task, isLoading } = useQuery({
-    queryKey: ["task", id, isDemo],
+    queryKey: ["task", id],
     queryFn: async () => {
       if (isDemo) {
         const t = demoTasksState.find(t => t.id === id);
@@ -149,7 +139,7 @@ export default function TaskDetail() {
   });
 
   const { data: assignments } = useQuery({
-    queryKey: ["task-assignments", id, isDemo],
+    queryKey: ["task-assignments", id],
     queryFn: async () => {
       if (isDemo) {
         return demoAssignmentsState.filter(a => a.task_id === id).map(a => ({
@@ -165,9 +155,8 @@ export default function TaskDetail() {
   const { data: allProfiles } = useStaffMembers();
 
   const { data: subtasks } = useQuery({
-    queryKey: ["subtasks", id, isDemo],
+    queryKey: ["subtasks", id],
     queryFn: async () => {
-      if (isDemo) return demoSubtasksState.filter(s => s.task_id === id);
       const { data } = await supabase.from("subtasks").select("*").eq("task_id", id!).order("created_at");
       return data || [];
     },
@@ -175,9 +164,8 @@ export default function TaskDetail() {
   });
 
   const { data: comments } = useQuery({
-    queryKey: ["comments", id, isDemo],
+    queryKey: ["comments", id],
     queryFn: async () => {
-      if (isDemo) return demoCommentsState.filter(c => c.task_id === id);
       const { data } = await supabase.from("comments").select("*, profiles:user_id(full_name)").eq("task_id", id!).order("created_at", { ascending: false });
       return data || [];
     },
@@ -185,9 +173,8 @@ export default function TaskDetail() {
   });
 
   const { data: timeLogs } = useQuery({
-    queryKey: ["time-logs", id, isDemo],
+    queryKey: ["time-logs", id],
     queryFn: async () => {
-      if (isDemo) return demoTimeLogsState.filter(t => t.task_id === id);
       const { data } = await supabase.from("time_logs").select("*, profiles:user_id(full_name)").eq("task_id", id!).order("created_at", { ascending: false });
       return data || [];
     },
@@ -195,7 +182,7 @@ export default function TaskDetail() {
   });
 
   const { data: checklists } = useQuery({
-    queryKey: ["checklists", id, isDemo],
+    queryKey: ["checklists", id],
     queryFn: async () => {
       if (isDemo) {
         return demoChecklistsState.filter(cl => cl.task_id === id).map(cl => ({
@@ -210,9 +197,8 @@ export default function TaskDetail() {
   });
 
   const { data: materials } = useQuery({
-    queryKey: ["materials", id, isDemo],
+    queryKey: ["materials", id],
     queryFn: async () => {
-      if (isDemo) return demoMaterialsState.filter(m => m.task_id === id);
       const { data } = await supabase.from("task_materials").select("*, profiles:uploaded_by(full_name)").eq("task_id", id!).order("created_at");
       return data || [];
     },
@@ -220,9 +206,8 @@ export default function TaskDetail() {
   });
 
   const { data: statusHistory } = useQuery({
-    queryKey: ["status-history", id, isDemo],
+    queryKey: ["status-history", id],
     queryFn: async () => {
-      if (isDemo) return demoStatusHistoryState.filter(h => h.task_id === id).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       const { data } = await supabase.from("task_status_history").select("*, profiles:changed_by(full_name)").eq("task_id", id!).order("created_at", { ascending: false });
       return data || [];
     },
@@ -231,9 +216,8 @@ export default function TaskDetail() {
 
   // Corrections
   const { data: corrections } = useQuery({
-    queryKey: ["task-corrections", id, isDemo],
+    queryKey: ["task-corrections", id],
     queryFn: async () => {
-      if (isDemo) return [];
       const { data } = await supabase
         .from("task_corrections")
         .select("*, profiles:created_by(full_name)")
@@ -246,7 +230,7 @@ export default function TaskDetail() {
 
   // Real-time
   useEffect(() => {
-    if (!id || isDemo) return;
+    if (!id) return;
     const channel = supabase
       .channel(`task-${id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "subtasks", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["subtasks", id] }))
@@ -259,7 +243,7 @@ export default function TaskDetail() {
       .on("postgres_changes", { event: "*", schema: "public", table: "task_corrections", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["task-corrections", id] }))
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [id, isDemo, queryClient]);
+  }, [id, queryClient]);
 
   // Timer
   useEffect(() => {
@@ -331,8 +315,8 @@ export default function TaskDetail() {
         changed_by: demoUserId, created_at: now, status_entered_at: now, status_exited_at: null, duration_seconds: null, note: null,
         profiles: { full_name: mockProfiles.find(p => p.id === demoUserId)?.full_name || "Demo" },
       } as any);
-      queryClient.invalidateQueries({ queryKey: ["task", id, isDemo] });
-      queryClient.invalidateQueries({ queryKey: ["status-history", id, isDemo] });
+      queryClient.invalidateQueries({ queryKey: ["task", id] });
+      queryClient.invalidateQueries({ queryKey: ["status-history", id] });
       toast.success(`Status zmieniony na ${statusLabels[newStatus]}`);
       return;
     }
@@ -353,7 +337,7 @@ export default function TaskDetail() {
     if (isDemo) {
       const idx = demoTasksState.findIndex(t => t.id === id);
       if (idx >= 0) demoTasksState[idx] = { ...demoTasksState[idx], not_understood: true, not_understood_at: new Date().toISOString() };
-      queryClient.invalidateQueries({ queryKey: ["task", id, isDemo] });
+      queryClient.invalidateQueries({ queryKey: ["task", id] });
       toast.success("Zgłoszono niezrozumienie zadania — koordynator został powiadomiony");
       return;
     }
@@ -377,7 +361,7 @@ export default function TaskDetail() {
     if (isDemo) {
       const idx = demoTasksState.findIndex(t => t.id === id);
       if (idx >= 0) demoTasksState[idx] = { ...demoTasksState[idx], not_understood: false, not_understood_at: null };
-      queryClient.invalidateQueries({ queryKey: ["task", id, isDemo] });
+      queryClient.invalidateQueries({ queryKey: ["task", id] });
       toast.success("Oznaczono jako wyjaśnione");
       return;
     }
@@ -433,7 +417,7 @@ export default function TaskDetail() {
     if (isDemo) {
       const idx = demoTasksState.findIndex(t => t.id === id);
       if (idx >= 0) demoTasksState[idx] = { ...demoTasksState[idx], ...briefForm };
-      queryClient.invalidateQueries({ queryKey: ["task", id, isDemo] });
+      queryClient.invalidateQueries({ queryKey: ["task", id] });
       setBriefOpen(false);
       toast.success("Brief zapisany");
       return;
@@ -447,12 +431,8 @@ export default function TaskDetail() {
 
   // 3. Assignments
   async function addAssignment(userId: string, role: string = "collaborator") {
-    if (isDemo) {
-      if (demoAssignmentsState.some(a => a.task_id === id && a.user_id === userId)) {
-        toast.info("Ta osoba jest już przypisana"); return;
-      }
       demoAssignmentsState.push({ task_id: id!, user_id: userId, role: role as any });
-      queryClient.invalidateQueries({ queryKey: ["task-assignments", id, isDemo] });
+      queryClient.invalidateQueries({ queryKey: ["task-assignments", id] });
       toast.success("Osoba przypisana");
       return;
     }
@@ -465,7 +445,7 @@ export default function TaskDetail() {
   async function removeAssignment(userId: string) {
     if (isDemo) {
       demoAssignmentsState = demoAssignmentsState.filter(a => !(a.task_id === id && a.user_id === userId));
-      queryClient.invalidateQueries({ queryKey: ["task-assignments", id, isDemo] });
+      queryClient.invalidateQueries({ queryKey: ["task-assignments", id] });
       toast.success("Osoba usunięta");
       return;
     }
@@ -482,7 +462,7 @@ export default function TaskDetail() {
         id: `demo-sub-${Date.now()}`, task_id: id!, title: newSubtask, is_completed: false,
         assigned_to: null, created_at: new Date().toISOString(),
       });
-      queryClient.invalidateQueries({ queryKey: ["subtasks", id, isDemo] });
+      queryClient.invalidateQueries({ queryKey: ["subtasks", id] });
       setNewSubtask("");
       toast.success("Podzadanie dodane");
       return;
@@ -498,7 +478,7 @@ export default function TaskDetail() {
     if (isDemo) {
       const idx = demoSubtasksState.findIndex(s => s.id === subtaskId);
       if (idx >= 0) demoSubtasksState[idx] = { ...demoSubtasksState[idx], is_completed: !completed };
-      queryClient.invalidateQueries({ queryKey: ["subtasks", id, isDemo] });
+      queryClient.invalidateQueries({ queryKey: ["subtasks", id] });
       return;
     }
     await supabase.from("subtasks").update({ is_completed: !completed }).eq("id", subtaskId);
@@ -512,7 +492,7 @@ export default function TaskDetail() {
       demoChecklistsState.push({
         id: `demo-cl-${Date.now()}`, task_id: id!, title: newChecklistName, created_at: new Date().toISOString(),
       });
-      queryClient.invalidateQueries({ queryKey: ["checklists", id, isDemo] });
+      queryClient.invalidateQueries({ queryKey: ["checklists", id] });
       setNewChecklistName("");
       toast.success("Lista kontrolna dodana");
       return;
@@ -532,7 +512,7 @@ export default function TaskDetail() {
         id: `demo-cli-${Date.now()}`, checklist_id: checklistId, title: text,
         is_completed: false, is_na: false, evidence_url: null, created_at: new Date().toISOString(),
       });
-      queryClient.invalidateQueries({ queryKey: ["checklists", id, isDemo] });
+      queryClient.invalidateQueries({ queryKey: ["checklists", id] });
       setNewChecklistItemTexts(prev => ({ ...prev, [checklistId]: "" }));
       return;
     }
@@ -545,7 +525,7 @@ export default function TaskDetail() {
     if (isDemo) {
       const idx = demoChecklistItemsState.findIndex(i => i.id === itemId);
       if (idx >= 0) demoChecklistItemsState[idx] = { ...demoChecklistItemsState[idx], is_completed: !completed };
-      queryClient.invalidateQueries({ queryKey: ["checklists", id, isDemo] });
+      queryClient.invalidateQueries({ queryKey: ["checklists", id] });
       return;
     }
     await supabase.from("checklist_items").update({ is_completed: !completed }).eq("id", itemId);
@@ -559,7 +539,7 @@ export default function TaskDetail() {
         id: `demo-mat-${Date.now()}`, task_id: id!, name: file.name, type: "file",
         url: null, is_visible_to_client: false, uploaded_by: demoUserId, created_at: new Date().toISOString(),
       });
-      queryClient.invalidateQueries({ queryKey: ["materials", id, isDemo] });
+      queryClient.invalidateQueries({ queryKey: ["materials", id] });
       toast.success("Plik dodany (demo)");
       return;
     }
@@ -582,7 +562,7 @@ export default function TaskDetail() {
         id: `demo-mat-${Date.now()}`, task_id: id!, name: linkName, type: "link",
         url: linkUrl, is_visible_to_client: false, uploaded_by: demoUserId, created_at: new Date().toISOString(),
       });
-      queryClient.invalidateQueries({ queryKey: ["materials", id, isDemo] });
+      queryClient.invalidateQueries({ queryKey: ["materials", id] });
       setLinkDialogOpen(false); setLinkName(""); setLinkUrl("");
       toast.success("Link dodany");
       return;
@@ -599,7 +579,7 @@ export default function TaskDetail() {
   async function deleteMaterial(materialId: string) {
     if (isDemo) {
       demoMaterialsState = demoMaterialsState.filter(m => m.id !== materialId);
-      queryClient.invalidateQueries({ queryKey: ["materials", id, isDemo] });
+      queryClient.invalidateQueries({ queryKey: ["materials", id] });
       toast.success("Materiał usunięty");
       return;
     }
@@ -612,7 +592,7 @@ export default function TaskDetail() {
     if (isDemo) {
       const idx = demoMaterialsState.findIndex(m => m.id === materialId);
       if (idx >= 0) demoMaterialsState[idx] = { ...demoMaterialsState[idx], is_visible_to_client: visible };
-      queryClient.invalidateQueries({ queryKey: ["materials", id, isDemo] });
+      queryClient.invalidateQueries({ queryKey: ["materials", id] });
       toast.success(visible ? "Materiał widoczny dla klienta" : "Materiał ukryty przed klientem");
       return;
     }
@@ -630,7 +610,7 @@ export default function TaskDetail() {
         id: `demo-tl-${Date.now()}`, task_id: id!, user_id: demoUserId, duration: minutes,
         description: null, phase: null, created_at: new Date().toISOString(),
       });
-      queryClient.invalidateQueries({ queryKey: ["time-logs", id, isDemo] });
+      queryClient.invalidateQueries({ queryKey: ["time-logs", id] });
       toast.success(`Zalogowano ${minutes} min`);
       return;
     }
@@ -665,7 +645,7 @@ export default function TaskDetail() {
         type: commentType, created_at: new Date().toISOString(),
         profiles: { full_name: mockProfiles.find(p => p.id === demoUserId)?.full_name || "Demo" },
       });
-      queryClient.invalidateQueries({ queryKey: ["comments", id, isDemo] });
+      queryClient.invalidateQueries({ queryKey: ["comments", id] });
       setCommentText("");
       toast.success("Komentarz dodany");
       return;
@@ -685,7 +665,7 @@ export default function TaskDetail() {
     if (isDemo) {
       const idx = demoTasksState.findIndex(t => t.id === id);
       if (idx >= 0) demoTasksState[idx] = { ...demoTasksState[idx], is_client_visible: newVal };
-      queryClient.invalidateQueries({ queryKey: ["task", id, isDemo] });
+      queryClient.invalidateQueries({ queryKey: ["task", id] });
       toast.success("Widoczność zmieniona");
       return;
     }

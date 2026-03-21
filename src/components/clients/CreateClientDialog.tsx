@@ -56,9 +56,6 @@ export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClie
     if (form.password.length < 6) { toast.error("Hasło musi mieć min. 6 znaków"); return; }
     if (form.password !== form.password_confirm) { toast.error("Hasła nie są identyczne"); return; }
     if (!form.company_name.trim()) { toast.error("Podaj nazwę firmy"); return; }
-
-    if (isDemo) { toast.info("W trybie demo nie można dodawać klientów"); return; }
-
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-client-user", {

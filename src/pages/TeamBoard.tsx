@@ -35,16 +35,15 @@ export default function TeamBoard() {
   const [priorityFilter, setPriorityFilter] = useState("all");
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ["tb-profiles", isDemo],
+    queryKey: ["tb-profiles"],
     queryFn: async () => {
-      if (isDemo) return mockProfiles;
       const { data } = await supabase.from("profiles").select("id, full_name, role, department, avatar_url").order("full_name");
       return data || [];
     },
   });
 
   const { data: tasks = [] } = useQuery({
-    queryKey: ["tb-tasks", isDemo],
+    queryKey: ["tb-tasks"],
     queryFn: async () => {
       if (isDemo) {
         return mockTasks.filter(t => t.status !== "done" && (t.status as string) !== "cancelled").map(t => {
@@ -58,9 +57,8 @@ export default function TeamBoard() {
   });
 
   const { data: assignments = [] } = useQuery({
-    queryKey: ["tb-assignments", isDemo],
+    queryKey: ["tb-assignments"],
     queryFn: async () => {
-      if (isDemo) return mockTaskAssignments;
       const { data } = await supabase.from("task_assignments").select("task_id, user_id, role");
       return data || [];
     },
@@ -98,7 +96,7 @@ export default function TeamBoard() {
     if (newUserId === oldUserId) return;
 
     if (isDemo) {
-      queryClient.setQueryData(["tb-assignments", isDemo], (old: any[]) => {
+      queryClient.setQueryData(["tb-assignments"], (old: any[]) => {
         const without = (old || []).filter(a => !(a.task_id === taskId && a.role === "primary"));
         if (newUserId) return [...without, { task_id: taskId, user_id: newUserId, role: "primary" as const }];
         return without;

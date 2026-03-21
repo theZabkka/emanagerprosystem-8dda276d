@@ -69,11 +69,8 @@ export default function ClientDashboard() {
 
   // Fetch orphaned tasks (no project, client_review status)
   const { data: orphanedTasks } = useQuery({
-    queryKey: ["client-orphaned-tasks", clientId, isDemo],
+    queryKey: ["client-orphaned-tasks", clientId],
     queryFn: async () => {
-      if (isDemo) {
-        return mockTasks.filter(t => t.client_id === clientId && !t.project_id && t.status === "client_review");
-      }
       if (!clientId) return [];
       const { data } = await supabase
         .from("tasks")

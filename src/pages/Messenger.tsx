@@ -25,8 +25,6 @@ import {
 
 const EMOJI_LIST = ["👍", "❤️", "😂", "🎉", "🔥", "👀", "✅", "💯"];
 
-const DEMO_CURRENT_USER = "demo-user-1";
-
 type Channel = { id: string; name: string; type: string; is_direct: boolean; created_at: string };
 type Message = {
   id: string;
@@ -60,32 +58,29 @@ export default function Messenger() {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const currentUserId = isDemo ? DEMO_CURRENT_USER : user?.id;
+  const currentUserId = user?.id;
 
   // ─── Data fetching ──────────────────────────────────────────────────
 
   const { data: allProfiles = [] } = useQuery<Profile[]>({
-    queryKey: ["profiles-all", isDemo],
+    queryKey: ["profiles-all"],
     queryFn: async () => {
-      if (isDemo) return mockProfiles.map(p => ({ id: p.id, full_name: p.full_name, avatar_url: p.avatar_url, email: p.email, department: p.department }));
       const { data } = await supabase.from("profiles").select("id, full_name, avatar_url, email, department");
       return data || [];
     },
   });
 
   const { data: channels = [] } = useQuery<Channel[]>({
-    queryKey: ["channels", isDemo],
+    queryKey: ["channels"],
     queryFn: async () => {
-      if (isDemo) return mockChannels as Channel[];
       const { data } = await supabase.from("channels").select("*").order("created_at");
       return (data || []) as Channel[];
     },
   });
 
   const { data: channelMembers = [] } = useQuery({
-    queryKey: ["channel-members", isDemo],
+    queryKey: ["channel-members"],
     queryFn: async () => {
-      if (isDemo) return mockChannelMembers;
       const { data } = await supabase.from("channel_members").select("*");
       return data || [];
     },
@@ -126,7 +121,7 @@ export default function Messenger() {
 
   // Fetch messages
   const { data: messages = [] } = useQuery<Message[]>({
-    queryKey: ["messages", activeChannel, isDemo],
+    queryKey: ["messages", activeChannel],
     queryFn: async () => {
       if (!activeChannel) return [];
       if (isDemo) {
@@ -154,10 +149,9 @@ export default function Messenger() {
   // Fetch reactions
   const messageIds = messages.map(m => m.id);
   const { data: reactions = [] } = useQuery<Reaction[]>({
-    queryKey: ["reactions", messageIds, isDemo],
+    queryKey: ["reactions", messageIds],
     queryFn: async () => {
       if (messageIds.length === 0) return [];
-      if (isDemo) return mockMessageReactions.filter(r => messageIds.includes(r.message_id));
       const { data } = await supabase.from("message_reactions").select("*").in("message_id", messageIds);
       return (data || []) as Reaction[];
     },
@@ -167,7 +161,7 @@ export default function Messenger() {
   // ─── Real-time (only in database mode) ──────────────────────────────
 
   useEffect(() => {
-    if (isDemo || !activeChannel) return;
+    if (!activeChannel) return;
     const sub = supabase
       .channel(`messages-${activeChannel}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "messages", filter: `channel_id=eq.${activeChannel}` },
@@ -176,11 +170,11 @@ export default function Messenger() {
         () => queryClient.invalidateQueries({ queryKey: ["reactions"] }))
       .subscribe();
     return () => { supabase.removeChannel(sub); };
-  }, [activeChannel, queryClient, isDemo]);
+  }, [activeChannel, queryClient]);
 
   // Presence & typing
   useEffect(() => {
-    if (isDemo || !activeChannel || !user) return;
+    if (!activeChannel || !user) return;
     const ch = supabase.channel(`room-${activeChannel}`, {
       config: { presence: { key: user.id } },
     });
@@ -200,13 +194,9 @@ export default function Messenger() {
     });
     channelRef.current = ch;
     return () => { supabase.removeChannel(ch); };
-  }, [activeChannel, user, profile, isDemo]);
+  }, [activeChannel, user, profile]);
 
   // Demo mode: simulate some online users
-  useEffect(() => {
-    if (isDemo) setOnlineUsers(["demo-user-1", "demo-user-2", "demo-user-4"]);
-  }, [isDemo]);
-
   // Scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -232,7 +222,7 @@ export default function Messenger() {
   });
 
   const toggleReaction = useCallback(async (messageId: string, emoji: string) => {
-    if (isDemo || !user) return;
+    if (!user) return;
     const existing = reactions.find(r => r.message_id === messageId && r.user_id === user.id && r.emoji === emoji);
     if (existing) {
       await supabase.from("message_reactions").delete().eq("id", existing.id);
@@ -240,11 +230,10 @@ export default function Messenger() {
       await supabase.from("message_reactions").insert({ message_id: messageId, user_id: user.id, emoji } as any);
     }
     queryClient.invalidateQueries({ queryKey: ["reactions"] });
-  }, [user, reactions, queryClient, isDemo]);
+  }, [user, reactions, queryClient]);
 
   const createChannel = useMutation({
     mutationFn: async (name: string) => {
-      if (isDemo) return;
       const { data: ch } = await supabase.from("channels").insert({ name, type: "public", is_direct: false } as any).select().single();
       if (ch && user) {
         await supabase.from("channel_members").insert({ channel_id: (ch as any).id, user_id: user.id } as any);
@@ -260,7 +249,6 @@ export default function Messenger() {
 
   const createDM = useMutation({
     mutationFn: async (otherUserId: string) => {
-      if (isDemo) return;
       // Check if DM already exists
       const existingDM = dmChannels.find(ch => {
         const members = channelMembers.filter(m => m.channel_id === ch.id);
@@ -296,7 +284,7 @@ export default function Messenger() {
   };
 
   const uploadAndSend = async () => {
-    if (!pendingFile || !activeChannel || isDemo) return;
+    if (!pendingFile || !activeChannel) return;
     setUploading(true);
     try {
       const fileName = `${Date.now()}-${pendingFile.name}`;
@@ -343,7 +331,6 @@ export default function Messenger() {
   };
 
   const broadcastTyping = () => {
-    if (isDemo) return;
     if (channelRef.current && user) {
       channelRef.current.send({
         type: "broadcast", event: "typing",
@@ -433,7 +420,7 @@ export default function Messenger() {
             <div className="p-2">
               <div className="flex items-center justify-between px-2 py-1">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Wiadomości bezpośrednie</span>
-                {!isDemo && (
+                {(
                   <Dialog open={showNewDM} onOpenChange={setShowNewDM}>
                     <DialogTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-5 w-5">
@@ -642,7 +629,7 @@ export default function Messenger() {
                 className="flex-1"
                 disabled={isDemo}
               />
-              <Button onClick={handleSend} disabled={(!messageText.trim() && !pendingFile) || uploading || isDemo} size="icon">
+              <Button onClick={handleSend} disabled={(!messageText.trim() && !pendingFile) || uploading} size="icon">
                 <Send className="h-4 w-4" />
               </Button>
             </div>

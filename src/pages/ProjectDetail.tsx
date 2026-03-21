@@ -50,7 +50,7 @@ export default function ProjectDetail() {
 
   // Fetch project
   const { data: project, isLoading } = useQuery({
-    queryKey: ["project-detail", id, isDemo],
+    queryKey: ["project-detail", id],
     queryFn: async () => {
       if (isDemo) {
         const p = mockProjects.find(pr => pr.id === id);
@@ -75,7 +75,7 @@ export default function ProjectDetail() {
 
   // Fetch tasks for this project
   const { data: tasks } = useQuery({
-    queryKey: ["project-tasks", id, isDemo],
+    queryKey: ["project-tasks", id],
     queryFn: async () => {
       if (isDemo) {
         return mockTasks
@@ -102,15 +102,6 @@ export default function ProjectDetail() {
   // Team members for this project
   const teamMembers = (() => {
     if (!tasks) return [];
-    if (isDemo) {
-      const userIds = new Set<string>();
-      mockTaskAssignments
-        .filter(a => tasks.some((t: any) => t.id === a.task_id))
-        .forEach(a => userIds.add(a.user_id));
-      const proj = mockProjects.find(p => p.id === id);
-      if (proj?.manager_id) userIds.add(proj.manager_id);
-      return Array.from(userIds).map(uid => mockProfiles.find(p => p.id === uid)).filter(Boolean);
-    }
     // For Supabase, dedupe from task assignments
     const seen = new Set<string>();
     const members: { full_name: string }[] = [];
@@ -140,11 +131,6 @@ export default function ProjectDetail() {
   };
 
   const saveBrief = async () => {
-    if (isDemo) {
-      toast.info("W trybie demo nie można zapisywać briefu");
-      setEditingBrief(false);
-      return;
-    }
     const { error } = await supabase.from("projects").update({ brief_data: editedBrief as any }).eq("id", id!);
     if (error) { toast.error(error.message); return; }
     toast.success("Brief zapisany");

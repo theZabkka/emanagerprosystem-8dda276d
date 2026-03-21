@@ -12,21 +12,6 @@ import { TaskFilters } from "@/components/tasks/TaskFilters";
 import { KanbanSkeleton } from "@/components/skeletons/KanbanSkeleton";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 
-function enrichDemoTasks(priorityFilter: string) {
-  let tasks = mockTasks
-    .filter(t => !t.is_archived)
-    .map(t => {
-    const assignments = mockTaskAssignments
-      .filter(a => a.task_id === t.id)
-      .map(a => ({ ...a, profiles: mockProfiles.find(p => p.id === a.user_id) || null }));
-    const client = mockClients.find(c => c.id === t.client_id);
-    const project = mockProjects.find(p => p.id === t.project_id);
-    return { ...t, task_assignments: assignments, clients: client ? { name: client.name } : null, projects: project ? { name: project.name } : null };
-  });
-  if (priorityFilter !== "all") tasks = tasks.filter(t => t.priority === priorityFilter);
-  return tasks;
-}
-
 export default function Tasks() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -37,9 +22,8 @@ export default function Tasks() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const { data: tasks, isLoading, refetch } = useQuery({
-    queryKey: ["tasks", priorityFilter, isDemo],
+    queryKey: ["tasks", priorityFilter],
     queryFn: async () => {
-      if (isDemo) return enrichDemoTasks(priorityFilter);
       let query = supabase
         .from("tasks")
         .select("*, clients(name), projects(name), task_assignments(user_id, role, profiles:user_id(full_name))")
@@ -80,7 +64,7 @@ export default function Tasks() {
 
   async function handleStatusChange(taskId: string, newStatus: string) {
     if (isDemo) {
-      queryClient.setQueryData(["tasks", priorityFilter, isDemo], (old: any[]) =>
+      queryClient.setQueryData(["tasks", priorityFilter], (old: any[]) =>
         old?.map(t => {
           if (t.id !== taskId) return t;
           const updates: any = { status: newStatus, updated_at: new Date().toISOString() };
@@ -105,7 +89,7 @@ export default function Tasks() {
 
   async function handleArchive(taskId: string) {
     if (isDemo) {
-      queryClient.setQueryData(["tasks", priorityFilter, isDemo], (old: any[]) =>
+      queryClient.setQueryData(["tasks", priorityFilter], (old: any[]) =>
         old?.map(t => t.id === taskId ? { ...t, is_archived: true } : t)
       );
       toast.success("Zadanie zarchiwizowane (demo)");

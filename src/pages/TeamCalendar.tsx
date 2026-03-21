@@ -24,7 +24,7 @@ export default function TeamCalendar() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const { data: tasks = [] } = useQuery({
-    queryKey: ["calendar-tasks", format(currentMonth, "yyyy-MM"), isDemo],
+    queryKey: ["calendar-tasks", format(currentMonth, "yyyy-MM")],
     queryFn: async () => {
       if (isDemo) {
         const start = format(startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 }), "yyyy-MM-dd");

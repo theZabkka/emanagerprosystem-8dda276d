@@ -31,7 +31,7 @@ export default function TimeReports() {
   }, [period]);
 
   const { data: timeLogs = [] } = useQuery({
-    queryKey: ["time-logs-report", period, isDemo],
+    queryKey: ["time-logs-report", period],
     queryFn: async () => {
       if (isDemo) {
         return mockTimeLogs.map(l => {
@@ -56,9 +56,8 @@ export default function TimeReports() {
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ["report-profiles", isDemo],
+    queryKey: ["report-profiles"],
     queryFn: async () => {
-      if (isDemo) return mockProfiles.map(p => ({ id: p.id, full_name: p.full_name, role: p.role }));
       const { data } = await supabase.from("profiles").select("id, full_name, role");
       return data || [];
     },

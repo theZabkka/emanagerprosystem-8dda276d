@@ -52,9 +52,8 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
 
   // Fetch client users (profiles with role 'klient')
   const { data: clients } = useQuery({
-    queryKey: ["create-task-clients", isDemo],
+    queryKey: ["create-task-clients"],
     queryFn: async () => {
-      if (isDemo) return mockProfiles.filter(p => p.role === "klient");
       const { data } = await supabase
         .from("profiles")
         .select("id, full_name, client_id, avatar_url")
@@ -66,9 +65,8 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
 
   // Fetch projects
   const { data: allProjects } = useQuery({
-    queryKey: ["create-task-projects", isDemo],
+    queryKey: ["create-task-projects"],
     queryFn: async () => {
-      if (isDemo) return mockProjects;
       const { data } = await supabase.from("projects").select("id, name, client_id").order("name");
       return data || [];
     },
@@ -110,13 +108,6 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
 
   const handleCreate = async () => {
     if (!form.title.trim()) { toast.error("Podaj nazwę zadania"); return; }
-    
-
-    if (isDemo) {
-      toast.info("W trybie demo nie można tworzyć zadań");
-      return;
-    }
-
     const taskPayload: any = {
       title: form.title,
       description: form.description || null,
