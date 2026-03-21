@@ -125,8 +125,13 @@ export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClie
       const data = await fetchCompanyDataByNip(form.nip);
       setForm((prev) => ({
         ...prev,
-        company_name: data.name || prev.company_name,
-        address: data.address || prev.address,
+        first_name: data.first_name || prev.first_name,
+        last_name: data.last_name || prev.last_name,
+        company_name: data.company_name || prev.company_name,
+        address: data.street || prev.address,
+        postal_code: data.postal_code || prev.postal_code,
+        city: data.city || prev.city,
+        voivodeship: data.voivodeship || prev.voivodeship,
       }));
       toast.success("Pomyślnie pobrano dane firmy!");
     } catch (err: any) {
