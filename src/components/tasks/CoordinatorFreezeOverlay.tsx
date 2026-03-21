@@ -22,16 +22,17 @@ export function CoordinatorFreezeOverlay() {
   const [assigning, setAssigning] = useState<string | null>(null);
 
   // Fetch staff profiles for assignment dropdown
-  const { data: staffProfiles } = useQuery({
+  const { data: staffProfiles, isLoading: loadingStaff, isError: staffError } = useQuery({
     queryKey: ["staff-profiles-freeze"],
     queryFn: async () => {
       if (isDemo) return [];
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, role, email")
-        .in("role", ["boss", "koordynator", "specjalista", "praktykant"])
-        .eq("status", "active");
-      return data || [];
+        .select("id, full_name, role, email, status")
+        .in("role", ["boss", "koordynator", "specjalista", "praktykant"]);
+      if (error) throw error;
+      // Filter out explicitly inactive, but allow null/undefined status
+      return (data || []).filter((p: any) => p.status !== "inactive");
     },
     enabled: !!user && (currentRole === "koordynator" || currentRole === "boss"),
   });
