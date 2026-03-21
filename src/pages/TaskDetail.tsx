@@ -637,15 +637,66 @@ export default function TaskDetail() {
               {statusLabels[task.status] || task.status}
             </Badge>
           )}
-          <Badge className={`text-[10px] font-bold border ${priorityColors[task.priority] || ""}`}>{priorityLabels[task.priority] || task.priority}</Badge>
+          {/* Priority - inline editable for staff */}
+          {canEditInline ? (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="cursor-pointer">
+                  <Badge className={`text-[10px] font-bold border ${priorityColors[task.priority] || ""} hover:opacity-80 transition-opacity`}>
+                    {priorityLabels[task.priority] || task.priority} ▾
+                  </Badge>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-36 p-1" align="start">
+                {Object.entries(priorityLabels).map(([k, v]) => (
+                  <button key={k} onClick={() => handlePriorityChange(k)}
+                    className={`w-full text-left px-3 py-1.5 text-sm rounded-sm hover:bg-accent transition-colors ${k === task.priority ? "font-bold bg-accent/50" : ""}`}>
+                    <Badge className={`text-[9px] border ${priorityColors[k]}`}>{v}</Badge>
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <Badge className={`text-[10px] font-bold border ${priorityColors[task.priority] || ""}`}>{priorityLabels[task.priority] || task.priority}</Badge>
+          )}
           {hasNoAssignment && <Badge className="bg-destructive text-destructive-foreground text-[10px] font-bold">NIEPRZYPISANE!</Badge>}
           {isOverdue && <Badge className="bg-destructive text-destructive-foreground text-[10px] font-bold">PO TERMINIE</Badge>}
           {task.type && <Badge variant="secondary" className="text-[10px]">{task.type}</Badge>}
+          {/* Deadline - inline editable for staff */}
           <div className="ml-auto">
-            {task.due_date && (
-              <span className={`text-sm font-semibold ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
-                Termin: {new Date(task.due_date).toLocaleDateString("pl-PL")}
-              </span>
+            {canEditInline ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("text-xs gap-1.5 h-7", isOverdue && "border-destructive text-destructive")}>
+                    <CalendarIcon className="h-3 w-3" />
+                    {task.due_date ? format(new Date(task.due_date), "dd.MM.yyyy") : "Brak terminu"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    mode="single"
+                    selected={task.due_date ? new Date(task.due_date) : undefined}
+                    onSelect={(date) => handleDeadlineChange(date)}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                  {task.due_date && (
+                    <div className="px-3 pb-3">
+                      <Button variant="ghost" size="sm" className="w-full text-xs text-destructive" onClick={() => handleDeadlineChange(undefined)}>
+                        <X className="h-3 w-3 mr-1" /> Usuń termin
+                      </Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+            ) : (
+              task.due_date ? (
+                <span className={`text-sm font-semibold ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
+                  Termin: {new Date(task.due_date).toLocaleDateString("pl-PL")}
+                </span>
+              ) : (
+                <span className="text-sm text-muted-foreground">Brak terminu</span>
+              )
             )}
           </div>
         </div>
