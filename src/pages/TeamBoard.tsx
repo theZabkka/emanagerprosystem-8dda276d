@@ -123,7 +123,7 @@ export default function TeamBoard() {
       [taskId]: newPosition,
     }));
     const { error } = await supabase
-      .from("user_task_positions" as any)
+      .from("user_task_positions")
       .upsert(
         { user_id: user.id, task_id: taskId, position: newPosition },
         { onConflict: "user_id,task_id" }
