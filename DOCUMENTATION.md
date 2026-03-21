@@ -143,6 +143,7 @@ Zadania — główna encja systemu.
 | `is_video_task` | boolean | Czy zadanie wideo |
 | `not_understood` | boolean | Flaga "nie rozumiem" |
 | `not_understood_at` | timestamptz | Kiedy zgłoszono |
+| `status_updated_at` | timestamptz | Automatycznie ustawiany na `now()` przy każdej zmianie statusu (przez `change_task_status()`) |
 | `verification_start_time` | timestamptz | Automatycznie ustawiany na `now()` gdy status → review |
 | `accepted_responsibility_by` | uuid | Kto zaakceptował odpowiedzialność |
 | `client_review_accepted_by` | text | Kto zaakceptował po stronie klienta |
