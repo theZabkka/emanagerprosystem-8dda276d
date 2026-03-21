@@ -293,12 +293,13 @@ export default function TaskKanbanBoard({
                         >
                           {columnTasks.map((task: any, index: number) => {
                             const assignee = getAssignee(task.id);
+                            const taskAssignees = getAllAssignees(task.id);
                             const client = getClient(task.client_id);
                             const priority = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
                             const waitingTime = (col.key === "client_review" || col.key === "corrections" || col.key === "review")
                               ? getWaitingTime(task.updated_at || task.created_at) : null;
 
-                            const isUnassigned = !assignee;
+                            const isUnassigned = taskAssignees.length === 0;
 
                             return (
                               <Draggable key={task.id} draggableId={task.id} index={index}>
