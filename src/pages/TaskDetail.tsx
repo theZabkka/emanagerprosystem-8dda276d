@@ -500,7 +500,29 @@ export default function TaskDetail() {
     return m > 0 ? `${h}h ${m}min` : `${h}h`;
   }
 
-  // ─── Computed ────────────────────────────────────────────────────
+  // ─── Inline edit: Priority & Deadline ─────────────────────────────
+  const canEditInline = !isClient && !isPreviewMode;
+
+  async function handlePriorityChange(newPriority: string) {
+    if (!task || newPriority === task.priority) return;
+    const { error } = await supabase.from("tasks").update({ priority: newPriority as any, updated_at: new Date().toISOString() } as any).eq("id", task.id);
+    if (error) { toast.error("Błąd aktualizacji priorytetu"); return; }
+    queryClient.invalidateQueries({ queryKey: ["task", id] });
+    toast.success(`Priorytet zmieniony na ${priorityLabels[newPriority]}`);
+  }
+
+  async function handleDeadlineChange(newDate: Date | undefined) {
+    if (!task) return;
+    const { error } = await supabase.from("tasks").update({
+      due_date: newDate ? newDate.toISOString().split("T")[0] : null,
+      updated_at: new Date().toISOString(),
+    } as any).eq("id", task.id);
+    if (error) { toast.error("Błąd aktualizacji terminu"); return; }
+    queryClient.invalidateQueries({ queryKey: ["task", id] });
+    toast.success(newDate ? `Termin ustawiony na ${format(newDate, "dd.MM.yyyy")}` : "Termin usunięty");
+  }
+
+
   const briefFilledCount = useMemo(() => {
     if (!task) return 0;
     return briefFields.filter(f => (task as any)[f.key]).length;
