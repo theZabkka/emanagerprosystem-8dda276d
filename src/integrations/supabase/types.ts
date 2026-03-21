@@ -812,8 +812,13 @@ export type Database = {
           client_id: string | null
           created_at: string | null
           days_in_stage: number | null
+          expected_close_date: string | null
           id: string
+          last_contact_date: string | null
+          next_action: string | null
+          probability: number | null
           stage: Database["public"]["Enums"]["pipeline_stage"] | null
+          status_updated_at: string | null
           title: string
           value: number | null
         }
@@ -822,8 +827,13 @@ export type Database = {
           client_id?: string | null
           created_at?: string | null
           days_in_stage?: number | null
+          expected_close_date?: string | null
           id?: string
+          last_contact_date?: string | null
+          next_action?: string | null
+          probability?: number | null
           stage?: Database["public"]["Enums"]["pipeline_stage"] | null
+          status_updated_at?: string | null
           title: string
           value?: number | null
         }
@@ -832,8 +842,13 @@ export type Database = {
           client_id?: string | null
           created_at?: string | null
           days_in_stage?: number | null
+          expected_close_date?: string | null
           id?: string
+          last_contact_date?: string | null
+          next_action?: string | null
+          probability?: number | null
           stage?: Database["public"]["Enums"]["pipeline_stage"] | null
+          status_updated_at?: string | null
           title?: string
           value?: number | null
         }
