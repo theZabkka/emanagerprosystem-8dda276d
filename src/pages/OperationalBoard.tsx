@@ -16,8 +16,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Star } from "lucide-react";
+import { Plus, Star, Archive, CheckCircle2, ArchiveIcon } from "lucide-react";
 import { toast } from "sonner";
+import { OperationalArchiveDrawer } from "@/components/operational/OperationalArchiveDrawer";
 
 interface InternalTask {
   id: string;
@@ -37,11 +38,10 @@ interface TaskRating {
   rating: number;
 }
 
-const COLUMNS = [
+const ACTIVE_COLUMNS = [
   { key: "Do zrobienia", color: "bg-blue-500/10" },
   { key: "W trakcie", color: "bg-yellow-500/10" },
   { key: "Zrealizowane", color: "bg-green-500/10" },
-  { key: "Odrzucone", color: "bg-destructive/10" },
 ];
 
 const TYPE_COLORS: Record<string, string> = {
@@ -58,6 +58,7 @@ export default function OperationalBoard() {
   const { currentRole } = useRole();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newType, setNewType] = useState("Inne");
@@ -88,7 +89,7 @@ export default function OperationalBoard() {
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const updates: Record<string, unknown> = { status };
-      if (status === "Zrealizowane") updates.completed_at = new Date().toISOString();
+      if (status === "Zrealizowane" || status === "Zakończone") updates.completed_at = new Date().toISOString();
       else updates.completed_at = null;
       const { error } = await supabase.from("internal_tasks").update(updates).eq("id", id);
       if (error) throw error;
@@ -145,13 +146,23 @@ export default function OperationalBoard() {
       const task = tasks.find((t) => t.id === taskId);
       if (!task || task.status === newStatus) return;
 
-      // Optimistic update
       queryClient.setQueryData<InternalTask[]>(["internal-tasks"], (old) =>
         (old || []).map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
       );
       updateStatusMutation.mutate({ id: taskId, status: newStatus });
     },
     [tasks, queryClient, updateStatusMutation]
+  );
+
+  const handleQuickAction = useCallback(
+    (taskId: string, newStatus: string, label: string) => {
+      queryClient.setQueryData<InternalTask[]>(["internal-tasks"], (old) =>
+        (old || []).map((t) => (t.id === taskId ? { ...t, status: newStatus, completed_at: new Date().toISOString() } : t))
+      );
+      updateStatusMutation.mutate({ id: taskId, status: newStatus });
+      toast.success(label);
+    },
+    [queryClient, updateStatusMutation]
   );
 
   const canRate = CAN_RATE_ROLES.includes(currentRole);
@@ -167,18 +178,26 @@ export default function OperationalBoard() {
   const getInitials = (name: string | null) =>
     (name || "?").split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
+  // Only show active statuses on the board
+  const activeTasks = tasks.filter((t) => ACTIVE_COLUMNS.some((c) => c.key === t.status));
+
   return (
     <AppLayout title="Tablica operacyjna">
-      <div className="mb-4">
+      <div className="mb-4 flex items-center gap-2">
         <Button onClick={() => setCreateOpen(true)} size="sm">
           <Plus className="h-4 w-4 mr-1" /> Zgłoś sprawę / pomysł
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setArchiveOpen(true)}>
+          <ArchiveIcon className="h-4 w-4 mr-1" /> Archiwum
         </Button>
       </div>
 
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="flex gap-3 h-[calc(100vh-10rem)] overflow-x-auto pb-4">
-          {COLUMNS.map((col) => {
-            const colTasks = tasks.filter((t) => t.status === col.key);
+          {ACTIVE_COLUMNS.map((col, colIdx) => {
+            const colTasks = activeTasks.filter((t) => t.status === col.key);
+            const isFirst = colIdx === 0;
+            const isLast = colIdx === ACTIVE_COLUMNS.length - 1;
             return (
               <div key={col.key} className="flex-shrink-0 w-72 flex flex-col">
                 <div className={`rounded-t-lg px-3 py-1.5 ${col.color}`}>
@@ -200,6 +219,9 @@ export default function OperationalBoard() {
                             canRate={canRate}
                             onRate={(rating) => rateMutation.mutate({ taskId: task.id, rating })}
                             getInitials={getInitials}
+                            isFirstColumn={isFirst}
+                            isLastColumn={isLast}
+                            onQuickAction={handleQuickAction}
                           />
                         ))}
                         {provided.placeholder}
@@ -251,6 +273,9 @@ export default function OperationalBoard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Archive drawer */}
+      <OperationalArchiveDrawer open={archiveOpen} onOpenChange={setArchiveOpen} allRatings={allRatings} />
     </AppLayout>
   );
 }
@@ -263,6 +288,9 @@ function TaskCard({
   canRate,
   onRate,
   getInitials,
+  isFirstColumn,
+  isLastColumn,
+  onQuickAction,
 }: {
   task: InternalTask;
   index: number;
@@ -270,6 +298,9 @@ function TaskCard({
   canRate: boolean;
   onRate: (rating: number) => void;
   getInitials: (n: string | null) => string;
+  isFirstColumn: boolean;
+  isLastColumn: boolean;
+  onQuickAction: (taskId: string, status: string, label: string) => void;
 }) {
   const [hoverStar, setHoverStar] = useState(0);
   const authorName = task.profiles?.full_name || "Nieznany";
@@ -342,6 +373,32 @@ function TaskCard({
                   : "Brak oceny"}
               </span>
             </div>
+
+            {/* Quick action buttons */}
+            {(isFirstColumn || isLastColumn) && (
+              <div className="mt-2 pt-2 border-t border-border">
+                {isFirstColumn && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-[11px] text-muted-foreground hover:text-destructive w-full justify-start px-1"
+                    onClick={(e) => { e.stopPropagation(); onQuickAction(task.id, "Odrzucone", "Zgłoszenie odrzucone"); }}
+                  >
+                    <Archive className="h-3 w-3 mr-1" /> Archiwizuj
+                  </Button>
+                )}
+                {isLastColumn && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-[11px] text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 w-full justify-start px-1"
+                    onClick={(e) => { e.stopPropagation(); onQuickAction(task.id, "Zakończone", "Zgłoszenie zakończone ✓"); }}
+                  >
+                    <CheckCircle2 className="h-3 w-3 mr-1" /> Zakończ
+                  </Button>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
