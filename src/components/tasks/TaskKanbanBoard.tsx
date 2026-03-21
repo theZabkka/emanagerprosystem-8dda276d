@@ -154,9 +154,13 @@ export default function TaskKanbanBoard({
     onStatusChange(taskId, newStatus);
   };
 
-  // Helper: get effective position for a task in sorted column order
-  const getPos = useCallback((taskId: string, index: number) => {
-    return positions[taskId] ?? (index * 1000);
+  // Helper: build a stable position map for a column's tasks (index-based fallback)
+  const buildPosMap = useCallback((columnTasks: any[]) => {
+    const map: Record<string, number> = {};
+    columnTasks.forEach((t, i) => {
+      map[t.id] = positions[t.id] ?? ((i + 1) * 1000);
+    });
+    return map;
   }, [positions]);
 
   const handleDragEnd = (result: DropResult) => {
@@ -173,7 +177,9 @@ export default function TaskKanbanBoard({
         "manual", "asc", positions
       );
 
-      // Build effective positions array (index-based fallback for unsaved)
+      // Build stable position map BEFORE removing dragged item
+      const posMap = buildPosMap(columnTasks);
+
       const withoutDragged = columnTasks.filter((t: any) => t.id !== draggableId);
       const destIndex = destination.index;
       let newPosition: number;
@@ -181,14 +187,12 @@ export default function TaskKanbanBoard({
       if (withoutDragged.length === 0) {
         newPosition = 1000;
       } else if (destIndex === 0) {
-        const firstPos = getPos(withoutDragged[0]?.id, 0);
-        newPosition = firstPos - 1000;
+        newPosition = posMap[withoutDragged[0].id] - 1000;
       } else if (destIndex >= withoutDragged.length) {
-        const lastPos = getPos(withoutDragged[withoutDragged.length - 1]?.id, withoutDragged.length - 1);
-        newPosition = lastPos + 1000;
+        newPosition = posMap[withoutDragged[withoutDragged.length - 1].id] + 1000;
       } else {
-        const prevPos = getPos(withoutDragged[destIndex - 1]?.id, destIndex - 1);
-        const nextPos = getPos(withoutDragged[destIndex]?.id, destIndex);
+        const prevPos = posMap[withoutDragged[destIndex - 1].id];
+        const nextPos = posMap[withoutDragged[destIndex].id];
         newPosition = (prevPos + nextPos) / 2;
       }
 
