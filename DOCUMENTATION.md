@@ -512,8 +512,13 @@ Nagłówek: karta z danymi klienta, onboarding progress, publiczny link statusu,
 - **Typing indicator:** Broadcast typing events.
 
 #### Tablica Operacyjna (`/operational`)
-- Read-only Kanban: 8 kolumn statusów.
-- Karty zadań z priorytetem, klientem, terminem.
+- Kanban wewnętrzny z 3 aktywnymi kolumnami: "Do zrobienia", "W trakcie", "Zrealizowane".
+- Drag & Drop z optymistyczną aktualizacją UI.
+- **Szybkie akcje na kartach:**
+  - Kolumna "Do zrobienia": przycisk "Archiwizuj" → zmienia status na "Odrzucone" (karta znika z tablicy).
+  - Kolumna "Zrealizowane": przycisk "Zakończ" → zmienia status na "Zakończone" (karta znika z tablicy).
+- System oceniania pomysłów (1-5 gwiazdek) — głosowanie dla ról boss/koordynator/specjalista.
+- **Archiwum operacyjne:** przycisk "Archiwum" otwiera dialog z tabelą wszystkich zgłoszeń o statusie "Odrzucone" i "Zakończone" (tytuł, typ, autor, średnia ocena, data zamknięcia).
 
 #### Tablica Zespołu (`/team-board`)
 - Kolumny per osoba + kolumna "Nieprzypisane".
