@@ -55,15 +55,24 @@ Deno.serve(async (req) => {
     // Try CEIDG first
     let ceidgData = null;
     try {
-      const ceidgRes = await fetch(
-        `https://dane.biznes.gov.pl/api/ceidg/v2/firmy?nip=${nip}`,
-        { headers: { Authorization: `Bearer ${CEIDG_TOKEN}` } }
-      );
+      const ceidgUrl = `https://dane.biznes.gov.pl/api/ceidg/v2/firmy?nip=${nip}`;
+      console.log("CEIDG request:", ceidgUrl);
+      const ceidgRes = await fetch(ceidgUrl, {
+        headers: { Authorization: `Bearer ${CEIDG_TOKEN}` },
+      });
 
-      if (ceidgRes.ok) {
+      console.log("CEIDG status:", ceidgRes.status);
+
+      if (ceidgRes.status === 200) {
         const ceidgJson = await ceidgRes.json();
-        const firma = ceidgJson?.firmy?.[0];
+        console.log("CEIDG response firmy count:", ceidgJson?.firmy?.length);
+        
+        // Find active entry first, fallback to first
+        const firmy = ceidgJson?.firmy || [];
+        const firma = firmy.find((f: any) => f.status === "AKTYWNY") || firmy[0];
+        
         if (firma) {
+          console.log("CEIDG firma nazwa:", firma.nazwa);
           const addr = firma.adresDzialalnosci || {};
           const owner = firma.wlasciciel || {};
           
@@ -83,6 +92,9 @@ Deno.serve(async (req) => {
             voivodeship: addr.wojewodztwo || "",
           };
         }
+      } else {
+        const body = await ceidgRes.text();
+        console.error("CEIDG non-200:", ceidgRes.status, body);
       }
     } catch (e) {
       console.error("CEIDG lookup failed:", e);
