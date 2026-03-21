@@ -33,6 +33,7 @@ const Team = lazy(() => import("./pages/Team"));
 const WhatsNew = lazy(() => import("./pages/WhatsNew"));
 const StubPage = lazy(() => import("./pages/StubPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const Documentation = lazy(() => import("./pages/Documentation"));
 const Permissions = lazy(() => import("./pages/Permissions"));
 const ClientIdeas = lazy(() => import("./pages/ClientIdeas"));
 const StaffIdeas = lazy(() => import("./pages/StaffIdeas"));
