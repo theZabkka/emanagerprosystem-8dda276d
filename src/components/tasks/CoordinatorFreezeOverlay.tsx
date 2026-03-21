@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
-import { useDataSource } from "@/hooks/useDataSource";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { AlertTriangle, Clock, UserPlus, Check, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,6 @@ const FREEZE_THRESHOLD_MS = 60 * 60 * 1000; // 60 min
 export function CoordinatorFreezeOverlay() {
   const { user } = useAuth();
   const { currentRole } = useRole();
-  const { isDemo } = useDataSource();
   const queryClient = useQueryClient();
   const [frozenTasks, setFrozenTasks] = useState<any[]>([]);
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
@@ -27,9 +25,8 @@ export function CoordinatorFreezeOverlay() {
 
   // Fetch tasks currently in review with their status_entered_at from history
   const { data: reviewTasks, refetch } = useQuery({
-    queryKey: ["review-tasks-freeze", isDemo],
+    queryKey: ["review-tasks-freeze"],
     queryFn: async () => {
-      if (isDemo) return [];
       const { data } = await supabase
         .from("task_status_history")
         .select("task_id, status_entered_at, tasks:task_id(id, title, client_id, clients:client_id(name), task_assignments(user_id, role))")
@@ -67,14 +64,6 @@ export function CoordinatorFreezeOverlay() {
 
     setAssigning(taskId);
     try {
-      if (isDemo) {
-        toast.success("Zadanie przypisane (demo)");
-        setFrozenTasks(prev => prev.filter(t => t.id !== taskId));
-        setExpandedTaskId(null);
-        setAssigning(null);
-        return;
-      }
-
       const { error } = await supabase
         .from("task_assignments")
         .insert({ task_id: taskId, user_id: userId, role: "primary" as any });

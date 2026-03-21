@@ -1,14 +1,3 @@
-import { useState, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AppLayout } from "@/components/layout/AppLayout";
-import { useDataSource } from "@/hooks/useDataSource";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  mockClients, mockProjects, mockTasks, mockTaskAssignments, mockProfiles, mockPipelineDeals,
-  mockClientOffers, mockClientIdeas, mockClientConversations, mockClientFiles, mockClientInvoiceData,
-  mockClientContracts, mockClientOrders, mockClientSocialAccounts, mockActivityLog,
-} from "@/lib/mockData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -89,18 +78,8 @@ function getInitials(name: string | null | undefined) {
 }
 
 // Mutable demo state
-let demoOffersState = [...mockClientOffers];
-let demoIdeasState = [...mockClientIdeas];
-let demoConversationsState = [...mockClientConversations];
-let demoFilesState = [...mockClientFiles];
-let demoInvoiceDataState = [...mockClientInvoiceData];
-let demoContractsState = [...mockClientContracts];
-let demoOrdersState = [...mockClientOrders];
-let demoSocialState = [...mockClientSocialAccounts];
-
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
-  const { isDemo } = useDataSource();
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("tasks");
@@ -124,9 +103,8 @@ export default function ClientDetail() {
 
   // ─── Fetch client ──────────────────────────────────────────────
   const { data: client, isLoading: loadingClient } = useQuery({
-    queryKey: ["client-detail", id, isDemo],
+    queryKey: ["client-detail", id],
     queryFn: async () => {
-      if (isDemo) return mockClients.find(c => c.id === id) || null;
       const { data, error } = await supabase.from("clients").select("*").eq("id", id!).single();
       if (error) throw error;
       return data;
@@ -136,9 +114,8 @@ export default function ClientDetail() {
 
   // ─── Fetch projects ────────────────────────────────────────────
   const { data: projects } = useQuery({
-    queryKey: ["client-projects", id, isDemo],
+    queryKey: ["client-projects", id],
     queryFn: async () => {
-      if (isDemo) return mockProjects.filter(p => p.client_id === id);
       const { data } = await supabase.from("projects").select("*").eq("client_id", id!);
       return data || [];
     },
@@ -147,9 +124,8 @@ export default function ClientDetail() {
 
   // ─── Fetch tasks ──────────────────────────────────────────────
   const { data: tasks } = useQuery({
-    queryKey: ["client-tasks", id, isDemo],
+    queryKey: ["client-tasks", id],
     queryFn: async () => {
-      if (isDemo) return mockTasks.filter(t => t.client_id === id);
       const { data } = await supabase.from("tasks").select("*").eq("client_id", id!);
       return data || [];
     },
@@ -158,21 +134,16 @@ export default function ClientDetail() {
 
   // ─── Fetch profiles & assignments ─────────────────────────────
   const { data: profiles } = useQuery({
-    queryKey: ["profiles-all", isDemo],
+    queryKey: ["profiles-all"],
     queryFn: async () => {
-      if (isDemo) return mockProfiles;
       const { data } = await supabase.from("profiles").select("*");
       return data || [];
     },
   });
 
   const { data: assignments } = useQuery({
-    queryKey: ["client-assignments", id, isDemo],
+    queryKey: ["client-assignments", id],
     queryFn: async () => {
-      if (isDemo) {
-        const taskIds = mockTasks.filter(t => t.client_id === id).map(t => t.id);
-        return mockTaskAssignments.filter(a => taskIds.includes(a.task_id));
-      }
       const { data: clientTasks } = await supabase.from("tasks").select("id").eq("client_id", id!);
       if (!clientTasks?.length) return [];
       const taskIds = clientTasks.map(t => t.id);
@@ -184,9 +155,8 @@ export default function ClientDetail() {
 
   // ─── Fetch deals ──────────────────────────────────────────────
   const { data: deals } = useQuery({
-    queryKey: ["client-deals", id, isDemo],
+    queryKey: ["client-deals", id],
     queryFn: async () => {
-      if (isDemo) return mockPipelineDeals.filter(d => d.client_id === id);
       const { data } = await supabase.from("pipeline_deals").select("*").eq("client_id", id!);
       return data || [];
     },
@@ -195,9 +165,8 @@ export default function ClientDetail() {
 
   // ─── Fetch offers ─────────────────────────────────────────────
   const { data: offers } = useQuery({
-    queryKey: ["client-offers", id, isDemo, _demoTick],
+    queryKey: ["client-offers", id, _demoTick],
     queryFn: async () => {
-      if (isDemo) return demoOffersState.filter(o => o.client_id === id);
       const { data } = await supabase.from("client_offers").select("*").eq("client_id", id!).order("created_at", { ascending: false });
       return data || [];
     },
@@ -206,9 +175,8 @@ export default function ClientDetail() {
 
   // ─── Fetch ideas ──────────────────────────────────────────────
   const { data: ideas } = useQuery({
-    queryKey: ["client-ideas", id, isDemo, _demoTick],
+    queryKey: ["client-ideas", id, _demoTick],
     queryFn: async () => {
-      if (isDemo) return demoIdeasState.filter(i => i.client_id === id);
       const { data } = await supabase.from("client_ideas").select("*").eq("client_id", id!).order("created_at", { ascending: false });
       return data || [];
     },
@@ -217,9 +185,8 @@ export default function ClientDetail() {
 
   // ─── Fetch conversations ──────────────────────────────────────
   const { data: conversations } = useQuery({
-    queryKey: ["client-conversations", id, isDemo, _demoTick],
+    queryKey: ["client-conversations", id, _demoTick],
     queryFn: async () => {
-      if (isDemo) return demoConversationsState.filter(c => c.client_id === id);
       const { data } = await supabase.from("client_conversations").select("*").eq("client_id", id!).order("created_at", { ascending: false });
       return data || [];
     },
@@ -228,9 +195,8 @@ export default function ClientDetail() {
 
   // ─── Fetch files ──────────────────────────────────────────────
   const { data: files } = useQuery({
-    queryKey: ["client-files", id, isDemo, _demoTick],
+    queryKey: ["client-files", id, _demoTick],
     queryFn: async () => {
-      if (isDemo) return demoFilesState.filter(f => f.client_id === id);
       const { data } = await supabase.from("client_files").select("*").eq("client_id", id!).order("created_at", { ascending: false });
       return data || [];
     },
@@ -239,9 +205,8 @@ export default function ClientDetail() {
 
   // ─── Fetch invoice data ───────────────────────────────────────
   const { data: invoiceData } = useQuery({
-    queryKey: ["client-invoice", id, isDemo, _demoTick],
+    queryKey: ["client-invoice", id, _demoTick],
     queryFn: async () => {
-      if (isDemo) return demoInvoiceDataState.find(i => i.client_id === id) || null;
       const { data } = await supabase.from("client_invoice_data").select("*").eq("client_id", id!).maybeSingle();
       return data || null;
     },
@@ -250,9 +215,8 @@ export default function ClientDetail() {
 
   // ─── Fetch contracts ──────────────────────────────────────────
   const { data: contracts } = useQuery({
-    queryKey: ["client-contracts", id, isDemo, _demoTick],
+    queryKey: ["client-contracts", id, _demoTick],
     queryFn: async () => {
-      if (isDemo) return demoContractsState.filter(c => c.client_id === id);
       const { data } = await supabase.from("client_contracts").select("*").eq("client_id", id!).order("created_at", { ascending: false });
       return data || [];
     },
@@ -261,9 +225,8 @@ export default function ClientDetail() {
 
   // ─── Fetch orders ─────────────────────────────────────────────
   const { data: orders } = useQuery({
-    queryKey: ["client-orders", id, isDemo, _demoTick],
+    queryKey: ["client-orders", id, _demoTick],
     queryFn: async () => {
-      if (isDemo) return demoOrdersState.filter(o => o.client_id === id);
       const { data } = await supabase.from("client_orders").select("*").eq("client_id", id!).order("created_at", { ascending: false });
       return data || [];
     },
@@ -272,9 +235,8 @@ export default function ClientDetail() {
 
   // ─── Fetch social accounts ────────────────────────────────────
   const { data: socialAccounts } = useQuery({
-    queryKey: ["client-social", id, isDemo, _demoTick],
+    queryKey: ["client-social", id, _demoTick],
     queryFn: async () => {
-      if (isDemo) return demoSocialState.filter(s => s.client_id === id);
       const { data } = await supabase.from("client_social_accounts").select("*").eq("client_id", id!);
       return data || [];
     },
@@ -283,14 +245,8 @@ export default function ClientDetail() {
 
   // ─── Fetch activity history ───────────────────────────────────
   const { data: activityHistory } = useQuery({
-    queryKey: ["client-history", id, isDemo],
+    queryKey: ["client-history", id],
     queryFn: async () => {
-      if (isDemo) {
-        const clientTaskIds = mockTasks.filter(t => t.client_id === id).map(t => t.id);
-        return mockActivityLog.filter(a =>
-          (a.entity_type === "client" && a.entity_id === id) || clientTaskIds.includes(a.entity_id || "")
-        );
-      }
       const { data } = await supabase.from("activity_log").select("*").or(`entity_id.eq.${id}`).order("created_at", { ascending: false }).limit(50);
       return data || [];
     },
@@ -315,7 +271,7 @@ export default function ClientDetail() {
   };
 
   const saveInvoiceData = async () => {
-    if (isDemo) {
+    if () {
       const existing = demoInvoiceDataState.findIndex(i => i.client_id === id);
       const entry = { id: `demo-inv-${Date.now()}`, client_id: id!, ...invoiceForm, updated_at: new Date().toISOString() };
       if (existing >= 0) demoInvoiceDataState[existing] = entry;
@@ -395,7 +351,6 @@ export default function ClientDetail() {
   }, [filteredTasks, projects]);
 
   const handleStatusChange = async (taskId: string, newStatus: string) => {
-    if (isDemo) { toast.info("W trybie demo zmiana statusu jest symulowana"); return; }
     await supabase.from("tasks").update({ status: newStatus as any }).eq("id", taskId);
   };
 
@@ -416,7 +371,7 @@ export default function ClientDetail() {
   // ─── Actions ──────────────────────────────────────────────────
   const handleAddIdea = async () => {
     if (!newIdeaTitle.trim()) return;
-    if (isDemo) {
+    if () {
       demoIdeasState.push({ id: `demo-idea-${Date.now()}`, client_id: id!, title: newIdeaTitle, description: newIdeaDesc, status: "new", votes: 0, created_at: new Date().toISOString(), created_by: "demo-user-1" });
       forceDemoUpdate();
     } else {
@@ -428,7 +383,7 @@ export default function ClientDetail() {
   };
 
   const handleVoteIdea = async (ideaId: string) => {
-    if (isDemo) {
+    if () {
       const idea = demoIdeasState.find(i => i.id === ideaId);
       if (idea) idea.votes = (idea.votes || 0) + 1;
       forceDemoUpdate();
@@ -443,7 +398,7 @@ export default function ClientDetail() {
 
   const handleAddLink = async () => {
     if (!newLinkName.trim() || !newLinkUrl.trim()) return;
-    if (isDemo) {
+    if () {
       demoFilesState.push({ id: `demo-file-${Date.now()}`, client_id: id!, name: newLinkName, size: 0, url: newLinkUrl, uploaded_by: "demo-user-1", created_at: new Date().toISOString() });
       forceDemoUpdate();
     } else {
@@ -457,7 +412,7 @@ export default function ClientDetail() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (isDemo) {
+    if () {
       demoFilesState.push({ id: `demo-file-${Date.now()}`, client_id: id!, name: file.name, size: file.size, url: null, uploaded_by: "demo-user-1", created_at: new Date().toISOString() });
       forceDemoUpdate();
       toast.success("Plik dodany (demo)");
@@ -473,7 +428,7 @@ export default function ClientDetail() {
   };
 
   const handleDeleteFile = async (fileId: string) => {
-    if (isDemo) {
+    if () {
       demoFilesState = demoFilesState.filter(f => f.id !== fileId);
       forceDemoUpdate();
     } else {

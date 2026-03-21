@@ -1,23 +1,6 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useDataSource } from "@/hooks/useDataSource";
-import { mockClients, mockTasks, mockPipelineDeals, mockActivityLog } from "@/lib/mockData";
-
-function getDemoStats() {
-  const activeClients = mockClients.filter((c) => c.status === "active").length;
-  const totalClients = mockClients.length;
-  const overdue = mockTasks.filter(
-    (t) => t.due_date < new Date().toISOString().split("T")[0] && t.status !== "done" && (t.status as string) !== "cancelled"
-  ).length;
-  const corrections = mockTasks.filter((t) => t.status === "corrections").length;
-  const clientReview = mockTasks.filter((t) => t.status === "client_review").length;
-  const pipelineValue = mockPipelineDeals
-    .filter((d) => !["won", "lost"].includes(d.stage))
-    .reduce((s, d) => s + (d.value || 0), 0);
-  const pipelineCount = mockPipelineDeals.filter((d) => !["won", "lost"].includes(d.stage)).length;
-  return { activeClients, totalClients, overdue, corrections, clientReview, pipelineValue, pipelineCount };
-}
 
 const PIPELINE_STAGES = [
   { label: "Potencjalny", key: "potential", color: "bg-muted" },
@@ -28,26 +11,15 @@ const PIPELINE_STAGES = [
   { label: "Przegrane", key: "lost", color: "bg-destructive/20" },
 ];
 
-function getDemoPipelineStages() {
-  return PIPELINE_STAGES.map((s) => {
-    const deals = mockPipelineDeals.filter((d) => d.stage === s.key);
-    const value = deals.reduce((sum, d) => sum + (d.value || 0), 0);
-    return { ...s, value: `${(value / 1000).toFixed(0)}k zł`, count: deals.length };
-  });
-}
-
 const EMPTY_PIPELINE = PIPELINE_STAGES.map((s) => ({ ...s, value: "0 zł", count: 0 }));
 
 export function useDashboardData() {
-  const { isDemo } = useDataSource();
-
   const { data: clientCount } = useQuery({
     queryKey: ["clients-count"],
     queryFn: async () => {
       const { count } = await supabase.from("clients").select("*", { count: "exact", head: true });
       return count || 0;
     },
-    enabled: !isDemo,
   });
 
   const { data: activeClientCount } = useQuery({
@@ -56,7 +28,6 @@ export function useDashboardData() {
       const { count } = await supabase.from("clients").select("*", { count: "exact", head: true }).eq("status", "active");
       return count || 0;
     },
-    enabled: !isDemo,
   });
 
   const { data: taskStats } = useQuery({
@@ -67,7 +38,6 @@ export function useDashboardData() {
       const clientReview = tasks?.filter((t) => t.status === "client_review").length || 0;
       return { overdue: 0, corrections, clientReview };
     },
-    enabled: !isDemo,
   });
 
   const { data: activities } = useQuery({
@@ -80,32 +50,66 @@ export function useDashboardData() {
         .limit(10);
       return data || [];
     },
-    enabled: !isDemo,
+  });
+
+  const { data: pipelineDeals } = useQuery({
+    queryKey: ["dashboard-pipeline"],
+    queryFn: async () => {
+      const { data } = await supabase.from("pipeline_deals").select("stage, value");
+      return data || [];
+    },
+  });
+
+  const { data: clientReviewTasks } = useQuery({
+    queryKey: ["dashboard-client-review-tasks"],
+    queryFn: async () => {
+      const { data } = await supabase.from("tasks").select("id, title, status, priority, client_id, clients:client_id(name)").eq("status", "client_review");
+      return data || [];
+    },
+  });
+
+  const { data: correctionTasks } = useQuery({
+    queryKey: ["dashboard-correction-tasks"],
+    queryFn: async () => {
+      const { data } = await supabase.from("tasks").select("id, title, status, priority, client_id, clients:client_id(name)").eq("status", "corrections");
+      return data || [];
+    },
   });
 
   useEffect(() => {
-    if (isDemo) return;
     const channel = supabase
       .channel("dashboard-activity")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "activity_log" }, () => {})
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [isDemo]);
+  }, []);
 
-  const demo = isDemo ? getDemoStats() : null;
+  const pipeline = pipelineDeals
+    ? PIPELINE_STAGES.map((s) => {
+        const deals = pipelineDeals.filter((d: any) => d.stage === s.key);
+        const value = deals.reduce((sum: number, d: any) => sum + Number(d.value || 0), 0);
+        return { ...s, value: `${(value / 1000).toFixed(0)}k zł`, count: deals.length };
+      })
+    : EMPTY_PIPELINE;
+
+  const pipelineValue = pipelineDeals
+    ? `${(pipelineDeals.filter((d: any) => !["won", "lost"].includes(d.stage)).reduce((s: number, d: any) => s + Number(d.value || 0), 0) / 1000).toFixed(0)}k zł`
+    : "0 zł";
+  const pipelineCount = pipelineDeals
+    ? `${pipelineDeals.filter((d: any) => !["won", "lost"].includes(d.stage)).length} szans`
+    : "0 szans";
 
   return {
-    isDemo,
-    overdue: isDemo ? demo!.overdue : (taskStats?.overdue ?? 0),
-    corrections: isDemo ? demo!.corrections : (taskStats?.corrections ?? 0),
-    clientReview: isDemo ? demo!.clientReview : (taskStats?.clientReview ?? 0),
-    activeClients: isDemo ? demo!.activeClients : (activeClientCount ?? 0),
-    totalClients: isDemo ? demo!.totalClients : (clientCount ?? 0),
-    pipelineValue: isDemo ? `${(demo!.pipelineValue / 1000).toFixed(0)}k zł` : "0 zł",
-    pipelineCount: isDemo ? `${demo!.pipelineCount} szans` : "0 szans",
-    activities: isDemo ? mockActivityLog : (activities || []),
-    pipeline: isDemo ? getDemoPipelineStages() : EMPTY_PIPELINE,
-    clientReviewTasks: isDemo ? mockTasks.filter((t) => t.status === "client_review") : [],
-    correctionTasks: isDemo ? mockTasks.filter((t) => t.status === "corrections") : [],
+    overdue: taskStats?.overdue ?? 0,
+    corrections: taskStats?.corrections ?? 0,
+    clientReview: taskStats?.clientReview ?? 0,
+    activeClients: activeClientCount ?? 0,
+    totalClients: clientCount ?? 0,
+    pipelineValue,
+    pipelineCount,
+    activities: activities || [],
+    pipeline,
+    clientReviewTasks: clientReviewTasks || [],
+    correctionTasks: correctionTasks || [],
   };
 }

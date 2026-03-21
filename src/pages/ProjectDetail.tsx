@@ -3,8 +3,6 @@ import { useRole } from "@/hooks/useRole";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { useDataSource } from "@/hooks/useDataSource";
-import { mockProjects, mockClients, mockProfiles, mockTasks, mockTaskAssignments } from "@/lib/mockData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,7 +43,6 @@ type BriefQuestion = { question: string; answer: string };
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isDemo } = useDataSource();
   const { isClient } = useRole();
   const [activeTab, setActiveTab] = useState<"tasks" | "budget" | "brief">("tasks");
   const [editingBrief, setEditingBrief] = useState(false);
@@ -53,19 +50,8 @@ export default function ProjectDetail() {
 
   // Fetch project
   const { data: project, isLoading } = useQuery({
-    queryKey: ["project-detail", id, isDemo],
+    queryKey: ["project-detail", id],
     queryFn: async () => {
-      if (isDemo) {
-        const p = mockProjects.find(pr => pr.id === id);
-        if (!p) return null;
-        return {
-          ...p,
-          clients: mockClients.find(c => c.id === p.client_id) || null,
-          profiles: mockProfiles.find(u => u.id === p.manager_id) || null,
-          brief_data: (p as any).brief_data || [],
-          ai_summary: (p as any).ai_summary || null,
-        };
-      }
       const { data } = await supabase
         .from("projects")
         .select("*, clients(name), profiles:manager_id(full_name, avatar_url)")
@@ -78,9 +64,9 @@ export default function ProjectDetail() {
 
   // Fetch tasks for this project
   const { data: tasks } = useQuery({
-    queryKey: ["project-tasks", id, isDemo],
+    queryKey: ["project-tasks", id],
     queryFn: async () => {
-      if (isDemo) {
+      if () {
         return mockTasks
           .filter(t => t.project_id === id)
           .map(t => {
@@ -105,15 +91,6 @@ export default function ProjectDetail() {
   // Team members for this project
   const teamMembers = (() => {
     if (!tasks) return [];
-    if (isDemo) {
-      const userIds = new Set<string>();
-      mockTaskAssignments
-        .filter(a => tasks.some((t: any) => t.id === a.task_id))
-        .forEach(a => userIds.add(a.user_id));
-      const proj = mockProjects.find(p => p.id === id);
-      if (proj?.manager_id) userIds.add(proj.manager_id);
-      return Array.from(userIds).map(uid => mockProfiles.find(p => p.id === uid)).filter(Boolean);
-    }
     // For Supabase, dedupe from task assignments
     const seen = new Set<string>();
     const members: { full_name: string }[] = [];
@@ -143,11 +120,6 @@ export default function ProjectDetail() {
   };
 
   const saveBrief = async () => {
-    if (isDemo) {
-      toast.info("W trybie demo nie można zapisywać briefu");
-      setEditingBrief(false);
-      return;
-    }
     const { error } = await supabase.from("projects").update({ brief_data: editedBrief as any }).eq("id", id!);
     if (error) { toast.error(error.message); return; }
     toast.success("Brief zapisany");

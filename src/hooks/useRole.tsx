@@ -1,8 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useAuth } from "./useAuth";
-import { useDataSource } from "./useDataSource";
 import { supabase } from "@/integrations/supabase/client";
-import { mockPermissions } from "@/lib/mockData";
 
 export type AppRoleName = "superadmin" | "boss" | "koordynator" | "specjalista" | "praktykant" | "klient";
 
@@ -37,22 +35,16 @@ const RoleContext = createContext<RoleContextType | null>(null);
 
 export function RoleProvider({ children }: { children: ReactNode }) {
   const { profile } = useAuth();
-  const { isDemo } = useDataSource();
   const [permissions, setPermissions] = useState<Permission[]>([]);
 
-  // Derive role from profile
   const currentRole: AppRoleName = (profile?.role as AppRoleName) || "specjalista";
   const isClient = currentRole === "klient";
   const clientId = (profile as any)?.client_id || null;
 
   const fetchPermissions = useCallback(async () => {
-    if (isDemo) {
-      setPermissions(mockPermissions);
-      return;
-    }
     const { data } = await supabase.from("role_permissions").select("role_name, module_name, can_view");
     if (data) setPermissions(data as Permission[]);
-  }, [isDemo]);
+  }, []);
 
   useEffect(() => { fetchPermissions(); }, [fetchPermissions]);
 
@@ -65,13 +57,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
 
   return (
     <RoleContext.Provider value={{
-      currentRole,
-      isClient,
-      clientId,
-      permissions,
-      setPermissions,
-      canViewModule,
-      refreshPermissions: fetchPermissions,
+      currentRole, isClient, clientId, permissions, setPermissions, canViewModule, refreshPermissions: fetchPermissions,
     }}>
       {children}
     </RoleContext.Provider>

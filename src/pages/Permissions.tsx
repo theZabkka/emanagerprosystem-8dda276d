@@ -1,6 +1,5 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useRole, STAFF_ROLES, ROLE_LABELS, type AppRoleName } from "@/hooks/useRole";
-import { useDataSource } from "@/hooks/useDataSource";
 import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +20,6 @@ const MODULE_NAMES = [
 
 export default function Permissions() {
   const { permissions, setPermissions, refreshPermissions } = useRole();
-  const { isDemo } = useDataSource();
 
   const getPermValue = (role: string, module: string) => {
     const p = permissions.find(p => p.role_name === role && p.module_name === module);
@@ -33,7 +31,6 @@ export default function Permissions() {
     const current = getPermValue(role, module);
     const newVal = !current;
 
-    // Optimistic update
     setPermissions(prev => {
       const idx = prev.findIndex(p => p.role_name === role && p.module_name === module);
       if (idx >= 0) {
@@ -44,17 +41,15 @@ export default function Permissions() {
       return [...prev, { role_name: role, module_name: module, can_view: newVal }];
     });
 
-    if (!isDemo) {
-      const { error } = await supabase
-        .from("role_permissions")
-        .update({ can_view: newVal } as any)
-        .eq("role_name", role)
-        .eq("module_name", module);
-      if (error) {
-        toast.error("Błąd zapisu: " + error.message);
-        refreshPermissions();
-        return;
-      }
+    const { error } = await supabase
+      .from("role_permissions")
+      .update({ can_view: newVal } as any)
+      .eq("role_name", role)
+      .eq("module_name", module);
+    if (error) {
+      toast.error("Błąd zapisu: " + error.message);
+      refreshPermissions();
+      return;
     }
     toast.success(`${ROLE_LABELS[role]}: ${module} → ${newVal ? "widoczny" : "ukryty"}`);
   };
@@ -64,9 +59,7 @@ export default function Permissions() {
       <div className="max-w-6xl mx-auto">
         <p className="text-sm text-muted-foreground mb-4">Macierz uprawnień — zarządzaj widocznością modułów dla poszczególnych ról.</p>
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Macierz uprawnień ról</CardTitle>
-          </CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Macierz uprawnień ról</CardTitle></CardHeader>
           <CardContent className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -74,9 +67,7 @@ export default function Permissions() {
                   <th className="text-left py-2 pr-4 font-semibold text-muted-foreground min-w-[200px]">Moduł</th>
                   {STAFF_ROLES.map(role => (
                     <th key={role} className="text-center py-2 px-3 font-semibold min-w-[100px]">
-                      <Badge variant={role === "boss" ? "default" : "outline"} className="text-xs">
-                        {ROLE_LABELS[role]}
-                      </Badge>
+                      <Badge variant={role === "boss" ? "default" : "outline"} className="text-xs">{ROLE_LABELS[role]}</Badge>
                     </th>
                   ))}
                 </tr>

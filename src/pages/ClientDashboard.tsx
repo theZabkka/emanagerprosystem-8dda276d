@@ -9,8 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { useDataSource } from "@/hooks/useDataSource";
-import { mockTasks } from "@/lib/mockData";
 import { ClientReviewModal } from "@/components/tasks/WorkflowModals";
 import { toast } from "sonner";
 
@@ -19,7 +17,6 @@ export default function ClientDashboard() {
   const { profile, user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isDemo } = useDataSource();
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
@@ -72,11 +69,8 @@ export default function ClientDashboard() {
 
   // Fetch orphaned tasks (no project, client_review status)
   const { data: orphanedTasks } = useQuery({
-    queryKey: ["client-orphaned-tasks", clientId, isDemo],
+    queryKey: ["client-orphaned-tasks", clientId],
     queryFn: async () => {
-      if (isDemo) {
-        return mockTasks.filter(t => t.client_id === clientId && !t.project_id && t.status === "client_review");
-      }
       if (!clientId) return [];
       const { data } = await supabase
         .from("tasks")

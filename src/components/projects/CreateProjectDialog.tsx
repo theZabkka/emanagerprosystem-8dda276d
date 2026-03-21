@@ -16,8 +16,6 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
-import { useDataSource } from "@/hooks/useDataSource";
-import { mockClients, mockProfiles } from "@/lib/mockData";
 import { toast } from "sonner";
 
 const statusOptions = [
@@ -53,7 +51,6 @@ const initialForm = {
 };
 
 export default function CreateProjectDialog({ open, onOpenChange, onCreated }: CreateProjectDialogProps) {
-  const { isDemo } = useDataSource();
   const [form, setForm] = useState(initialForm);
   const [briefOpen, setBriefOpen] = useState(false);
   const [briefItems, setBriefItems] = useState<BriefItem[]>(
@@ -61,9 +58,8 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }: C
   );
 
   const { data: clientProfiles } = useQuery({
-    queryKey: ["create-project-client-profiles", isDemo],
+    queryKey: ["create-project-client-profiles"],
     queryFn: async () => {
-      if (isDemo) return mockProfiles.filter(p => p.role === "klient");
       const { data } = await supabase
         .from("profiles")
         .select("id, full_name, client_id, avatar_url")
@@ -74,9 +70,8 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }: C
   });
 
   const { data: profiles } = useQuery({
-    queryKey: ["create-project-profiles", isDemo],
+    queryKey: ["create-project-profiles"],
     queryFn: async () => {
-      if (isDemo) return mockProfiles;
       const { data } = await supabase.from("profiles").select("id, full_name, avatar_url").order("full_name");
       return data || [];
     },
@@ -111,8 +106,6 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }: C
 
   const handleCreate = async () => {
     if (!form.name.trim()) { toast.error("Podaj nazwę projektu"); return; }
-    if (isDemo) { toast.info("W trybie demo nie można tworzyć projektów"); return; }
-
     // Filter brief to only include items with a question
     const briefData = briefItems.filter(b => b.question.trim());
 

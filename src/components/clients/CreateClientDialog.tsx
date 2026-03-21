@@ -5,7 +5,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useDataSource } from "@/hooks/useDataSource";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -23,7 +22,6 @@ interface CreateClientDialogProps {
 }
 
 export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClientDialogProps) {
-  const { isDemo } = useDataSource();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     first_name: "",
@@ -58,9 +56,6 @@ export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClie
     if (form.password.length < 6) { toast.error("Hasło musi mieć min. 6 znaków"); return; }
     if (form.password !== form.password_confirm) { toast.error("Hasła nie są identyczne"); return; }
     if (!form.company_name.trim()) { toast.error("Podaj nazwę firmy"); return; }
-
-    if (isDemo) { toast.info("W trybie demo nie można dodawać klientów"); return; }
-
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-client-user", {

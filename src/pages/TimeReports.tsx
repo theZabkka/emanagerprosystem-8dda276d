@@ -2,8 +2,6 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { useDataSource } from "@/hooks/useDataSource";
-import { mockTimeLogs, mockProfiles, mockTasks, mockClients } from "@/lib/mockData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,7 +17,6 @@ import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { pl } from "date-fns/locale";
 
 export default function TimeReports() {
-  const { isDemo } = useDataSource();
   const [period, setPeriod] = useState("this-month");
 
   const dateRange = useMemo(() => {
@@ -34,9 +31,9 @@ export default function TimeReports() {
   }, [period]);
 
   const { data: timeLogs = [] } = useQuery({
-    queryKey: ["time-logs-report", period, isDemo],
+    queryKey: ["time-logs-report", period],
     queryFn: async () => {
-      if (isDemo) {
+      if () {
         return mockTimeLogs.map(l => {
           const task = mockTasks.find(t => t.id === l.task_id);
           const client = task ? mockClients.find(c => c.id === task.client_id) : null;
@@ -59,9 +56,8 @@ export default function TimeReports() {
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ["report-profiles", isDemo],
+    queryKey: ["report-profiles"],
     queryFn: async () => {
-      if (isDemo) return mockProfiles.map(p => ({ id: p.id, full_name: p.full_name, role: p.role }));
       const { data } = await supabase.from("profiles").select("id, full_name, role");
       return data || [];
     },

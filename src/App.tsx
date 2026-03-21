@@ -5,7 +5,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
-import { DataSourceProvider } from "@/hooks/useDataSource";
 import { RoleProvider } from "@/hooks/useRole";
 import { ErrorBoundary } from "@/components/layout/ErrorBoundary";
 import { PageLoader } from "@/components/layout/PageLoader";
@@ -85,7 +84,6 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <DataSourceProvider>
           <RoleProvider>
           <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
@@ -124,7 +122,6 @@ const App = () => (
           </Suspense>
           </ErrorBoundary>
           </RoleProvider>
-          </DataSourceProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

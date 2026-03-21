@@ -1,7 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useDataSource } from "@/hooks/useDataSource";
-import { mockProfiles } from "@/lib/mockData";
 
 const STAFF_ROLES = ["superadmin", "boss", "koordynator", "specjalista", "praktykant"];
 
@@ -18,17 +16,11 @@ export interface StaffMember {
 /**
  * Single source of truth for fetching assignable staff members.
  * Filters out clients and inactive users.
- * Use everywhere a staff/employee dropdown is needed.
  */
 export function useStaffMembers() {
-  const { isDemo } = useDataSource();
-
   return useQuery<StaffMember[]>({
-    queryKey: ["staff-members", isDemo],
+    queryKey: ["staff-members"],
     queryFn: async () => {
-      if (isDemo) {
-        return mockProfiles.filter(p => STAFF_ROLES.includes(p.role));
-      }
       const { data, error } = await supabase
         .from("profiles")
         .select("id, full_name, email, role, avatar_url, department, status")
@@ -36,9 +28,8 @@ export function useStaffMembers() {
         .order("full_name");
 
       if (error) throw error;
-      // Keep everyone except explicitly inactive
       return (data || []).filter((p) => p.status !== "inactive");
     },
-    staleTime: 5 * 60 * 1000, // 5 min cache
+    staleTime: 5 * 60 * 1000,
   });
 }

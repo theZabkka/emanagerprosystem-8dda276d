@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataSource } from "@/hooks/useDataSource";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,8 +36,6 @@ function SettingRow({ label, description, children }: { label: string; descripti
 
 export default function Settings() {
   const { profile, user } = useAuth();
-  const { dataSource, setDataSource } = useDataSource();
-
   // Appearance
   const [theme, setTheme] = useState("system");
   const [compactSidebar, setCompactSidebar] = useState(false);

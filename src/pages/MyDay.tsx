@@ -2,8 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataSource } from "@/hooks/useDataSource";
-import { mockTasks, mockTimeLogs, mockTaskAssignments, mockClients } from "@/lib/mockData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sun, CheckSquare, Clock, AlertTriangle, Calendar } from "lucide-react";
@@ -12,13 +10,12 @@ import { pl } from "date-fns/locale";
 
 export default function MyDay() {
   const { user } = useAuth();
-  const { isDemo } = useDataSource();
   const today = format(new Date(), "yyyy-MM-dd");
 
   const { data: myTasks = [] } = useQuery({
-    queryKey: ["my-day-tasks", user?.id, isDemo],
+    queryKey: ["my-day-tasks", user?.id],
     queryFn: async () => {
-      if (isDemo) {
+      if () {
         // In demo, show tasks assigned to demo-user-3 (designer with most tasks)
         const assignedIds = mockTaskAssignments.filter(a => a.user_id === "demo-user-3").map(a => a.task_id);
         return mockTasks
@@ -44,13 +41,13 @@ export default function MyDay() {
         .limit(50);
       return data || [];
     },
-    enabled: isDemo || !!user,
+    enabled: !!user,
   });
 
   const { data: todayLogs = [] } = useQuery({
-    queryKey: ["my-day-logs", user?.id, today, isDemo],
+    queryKey: ["my-day-logs", user?.id, today],
     queryFn: async () => {
-      if (isDemo) {
+      if () {
         return mockTimeLogs
           .filter(l => l.user_id === "demo-user-3")
           .slice(0, 4)
@@ -69,7 +66,7 @@ export default function MyDay() {
         .lte("created_at", `${today}T23:59:59`);
       return data || [];
     },
-    enabled: isDemo || !!user,
+    enabled: !!user,
   });
 
   const overdue = myTasks.filter((t: any) => t.due_date && t.due_date < today);
@@ -90,12 +87,6 @@ export default function MyDay() {
   return (
     <AppLayout title="Mój dzień">
       <div className="space-y-6">
-        {isDemo && (
-          <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20 text-sm text-primary">
-            🎭 Tryb demo — dane dla przykładowego użytkownika (Piotr Wiśniewski).
-            <a href="/settings" className="underline font-medium ml-1">Zmień w Ustawieniach</a>
-          </div>
-        )}
         <div className="flex items-center gap-3">
           <Sun className="h-6 w-6 text-primary" />
           <div>
