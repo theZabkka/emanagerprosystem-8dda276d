@@ -41,7 +41,7 @@ export default function TeamBoard() {
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("id, full_name, role, department, avatar_url")
+        .select("id, full_name, role, department, avatar_url, status")
         .in("role", STAFF_ROLES)
         .order("full_name");
       return (data || []).filter(p => p.status !== "inactive");
