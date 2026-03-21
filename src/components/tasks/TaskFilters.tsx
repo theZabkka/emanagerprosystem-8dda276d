@@ -1,9 +1,12 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, LayoutGrid, List, Layers } from "lucide-react";
+import { Plus, Search, LayoutGrid, List, Layers, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 const priorityLabels: Record<string, string> = { critical: "Pilny", high: "Wysoki", medium: "Średni", low: "Niski" };
+
+export type SortField = "created_at" | "status_updated_at" | "due_date" | "priority";
+export type SortDirection = "asc" | "desc";
 
 interface TaskFiltersProps {
   search: string;
@@ -15,7 +18,18 @@ interface TaskFiltersProps {
   viewMode: "kanban" | "list";
   onViewModeChange: (mode: "kanban" | "list") => void;
   onCreateClick: () => void;
+  sortField: SortField;
+  onSortFieldChange: (value: SortField) => void;
+  sortDirection: SortDirection;
+  onSortDirectionToggle: () => void;
 }
+
+const sortOptions: { value: SortField; label: string }[] = [
+  { value: "created_at", label: "Data utworzenia" },
+  { value: "status_updated_at", label: "Zmiana statusu" },
+  { value: "due_date", label: "Termin / Deadline" },
+  { value: "priority", label: "Priorytet" },
+];
 
 export function TaskFilters({
   search, onSearchChange,
@@ -23,6 +37,8 @@ export function TaskFilters({
   typeFilter, onTypeChange,
   viewMode, onViewModeChange,
   onCreateClick,
+  sortField, onSortFieldChange,
+  sortDirection, onSortDirectionToggle,
 }: TaskFiltersProps) {
   return (
     <>
@@ -50,6 +66,28 @@ export function TaskFilters({
               <SelectItem value="standalone">Tylko samodzielne</SelectItem>
             </SelectContent>
           </Select>
+
+          <Select value={sortField} onValueChange={(v) => onSortFieldChange(v as SortField)}>
+            <SelectTrigger className="w-[180px] h-9 text-sm">
+              <div className="flex items-center gap-1.5">
+                <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+                <SelectValue placeholder="Sortuj po..." />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              {sortOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <button
+            onClick={onSortDirectionToggle}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground px-2 h-9 border rounded-md bg-card transition-colors"
+            title={sortDirection === "asc" ? "Rosnąco" : "Malejąco"}
+          >
+            {sortDirection === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+          </button>
 
           <button className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground px-3 h-9 border rounded-md bg-card">
             <Layers className="h-3.5 w-3.5" />
