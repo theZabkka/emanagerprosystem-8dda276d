@@ -279,17 +279,29 @@ export default function TaskDetail() {
     toast.success(`Status zmieniony na ${statusLabels[newStatus]}`);
   }
 
-  // "Not understood" handler
+  // "Not understood" / "Misunderstood" handler
   async function handleNotUnderstood(reason: string) {
-    if (!task) return;
+    if (!task || !user) return;
     await supabase.from("tasks").update({
       not_understood: true,
       not_understood_at: new Date().toISOString(),
+      is_misunderstood: true,
+      misunderstood_by: user.id,
+      misunderstood_reason: reason || null,
     } as any).eq("id", task.id);
+    // Log to activity_log
+    await supabase.from("activity_log").insert({
+      user_id: user.id,
+      action: "misunderstood_reported",
+      entity_type: "task",
+      entity_id: task.id,
+      entity_name: task.title,
+      details: { reason: reason || null },
+    });
     // Add a comment about the confusion
     if (reason.trim()) {
       await supabase.from("comments").insert({
-        task_id: task.id, user_id: user?.id!, content: `❓ Nie rozumiem polecenia: ${reason}`, type: "internal",
+        task_id: task.id, user_id: user.id, content: `❓ Nie rozumiem polecenia: ${reason}`, type: "internal",
       });
     }
     queryClient.invalidateQueries({ queryKey: ["task", id] });
@@ -298,8 +310,22 @@ export default function TaskDetail() {
   }
 
   async function clearNotUnderstood() {
-    if (!task) return;
-    await supabase.from("tasks").update({ not_understood: false, not_understood_at: null } as any).eq("id", task.id);
+    if (!task || !user) return;
+    await supabase.from("tasks").update({
+      not_understood: false,
+      not_understood_at: null,
+      is_misunderstood: false,
+      misunderstood_by: null,
+      misunderstood_reason: null,
+    } as any).eq("id", task.id);
+    // Log to activity_log
+    await supabase.from("activity_log").insert({
+      user_id: user.id,
+      action: "misunderstood_resolved",
+      entity_type: "task",
+      entity_id: task.id,
+      entity_name: task.title,
+    });
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     toast.success("Oznaczono jako wyjaśnione");
   }
@@ -629,7 +655,7 @@ export default function TaskDetail() {
           ) : null}
           {!isClient && !isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><FileText className="h-3 w-3" />Zastosuj szablon</Button>}
           {!isClient && !isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><Zap className="h-3 w-3" />Uruchom automatyzację</Button>}
-          {!isClient && !isPreviewMode && (task.status === "in_progress" || task.status === "todo") && !(task as any).not_understood && (
+          {!isClient && !isPreviewMode && (task.status === "in_progress" || task.status === "todo") && !(task as any).is_misunderstood && (
             <Button variant="outline" size="sm" className="text-xs gap-1.5 border-amber-500/50 text-amber-600 hover:bg-amber-500/10" onClick={() => setNotUnderstoodOpen(true)}>
               <HelpCircle className="h-3 w-3" />Nie rozumiem polecenia
             </Button>
@@ -637,18 +663,12 @@ export default function TaskDetail() {
           {!isClient && !isPreviewMode && <Button size="sm" className="text-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground"><MessageCircle className="h-3 w-3" />Czat zadania</Button>}
         </div>
 
-        {/* Not understood banner */}
-        {(task as any).not_understood && !isPreviewMode && (
-          <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
-            <div className="flex items-center gap-2">
-              <HelpCircle className="h-5 w-5 text-amber-600" />
-              <div>
-                <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Zadanie oznaczone jako niezrozumiałe</p>
-                <p className="text-xs text-muted-foreground">Przypisana osoba nie rozumie polecenia — wymagane wyjaśnienie od koordynatora.</p>
-              </div>
-            </div>
-            <Button variant="outline" size="sm" className="text-xs" onClick={clearNotUnderstood}>Oznacz jako wyjaśnione</Button>
-          </div>
+        {/* Misunderstood task banner - hidden from clients */}
+        {(task as any).is_misunderstood && !isPreviewMode && !isClient && (
+          <MisunderstoodBanner
+            task={task}
+            onResolve={clearNotUnderstood}
+          />
         )}
 
         {/* Tags row with status dropdown */}
@@ -1187,7 +1207,7 @@ export default function TaskDetail() {
             </Card>
           )}
 
-          {/* Comments - clients only see requires_client_reply comments */}
+          {/* Comments - clients see external/client comments */}
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
@@ -1209,7 +1229,7 @@ export default function TaskDetail() {
                 {(() => {
                   let displayComments = filteredComments;
                   if (isClient) {
-                    displayComments = (comments || []).filter((c: any) => c.requires_client_reply === true);
+                    displayComments = (comments || []).filter((c: any) => c.type !== "internal");
                   } else if (isPreviewMode) {
                     displayComments = filteredComments.filter((c: any) => c.type !== "internal");
                   }
@@ -1278,6 +1298,18 @@ export default function TaskDetail() {
               </div>
               </>
               )}
+              {isClient && !isPreviewMode && (
+              <>
+              <Separator />
+              <div className="flex gap-2 items-end">
+                <div className="flex-1">
+                  <Textarea value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Napisz wiadomość..."
+                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); setCommentType("client"); addComment(); } }} className="min-h-[50px] text-sm" />
+                </div>
+                <Button size="icon" onClick={() => { setCommentType("client"); addComment(); }} className="h-9 w-9"><Send className="h-4 w-4" /></Button>
+              </div>
+              </>
+              )}
             </CardContent>
           </Card>
 
@@ -1286,6 +1318,7 @@ export default function TaskDetail() {
             <StatusTimeline
               statusHistory={statusHistory || []}
               currentStatus={task?.status || "new"}
+              taskId={id}
             />
           )}
         </div>
@@ -1377,6 +1410,43 @@ function ClientReplyInput({ commentId, taskId }: { commentId: string; taskId: st
     <div className="mt-2 flex gap-2">
       <Textarea value={reply} onChange={e => setReply(e.target.value)} placeholder="Napisz odpowiedź..." className="min-h-[40px] text-sm" />
       <Button size="sm" onClick={submitReply} disabled={!reply.trim()} className="self-end"><Send className="h-3 w-3" /></Button>
+    </div>
+  );
+}
+
+// Misunderstood task banner with reporter name
+function MisunderstoodBanner({ task, onResolve }: { task: any; onResolve: () => void }) {
+  const { data: reporter } = useQuery({
+    queryKey: ["misunderstood-reporter", task.misunderstood_by],
+    queryFn: async () => {
+      if (!task.misunderstood_by) return null;
+      const { data } = await supabase.from("profiles").select("full_name").eq("id", task.misunderstood_by).single();
+      return data;
+    },
+    enabled: !!task.misunderstood_by,
+  });
+
+  const reporterName = reporter?.full_name || "Pracownik";
+
+  return (
+    <div className="flex items-start justify-between gap-3 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+      <div className="flex items-start gap-2">
+        <HelpCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+        <div>
+          <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+            {reporterName} zgłosił niezrozumienie zadania
+          </p>
+          {task.misunderstood_reason && (
+            <p className="text-sm text-muted-foreground mt-1">
+              „{task.misunderstood_reason}"
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground mt-1">Wymagane wyjaśnienie od koordynatora.</p>
+        </div>
+      </div>
+      <Button variant="outline" size="sm" className="text-xs shrink-0" onClick={onResolve}>
+        Oznacz jako wyjaśnione
+      </Button>
     </div>
   );
 }

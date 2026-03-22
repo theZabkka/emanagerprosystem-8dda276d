@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { History, Clock, Timer } from "lucide-react";
+import { History, Clock, Timer, HelpCircle, CheckCircle2 } from "lucide-react";
 
 const statusLabels: Record<string, string> = {
   new: "NOWE", todo: "DO ZROBIENIA", in_progress: "W REALIZACJI", review: "WERYFIKACJA",
@@ -60,6 +62,7 @@ interface StatusHistoryEntry {
 interface StatusTimelineProps {
   statusHistory: StatusHistoryEntry[];
   currentStatus: string;
+  taskId?: string;
 }
 
 const TERMINAL_STATUSES = new Set(["closed", "done", "cancelled"]);
@@ -94,7 +97,23 @@ function LiveTimer({ enteredAt, currentStatus }: { enteredAt: string; currentSta
   );
 }
 
-export function StatusTimeline({ statusHistory, currentStatus }: StatusTimelineProps) {
+export function StatusTimeline({ statusHistory, currentStatus, taskId }: StatusTimelineProps) {
+  // Fetch activity log entries for misunderstood events
+  const { data: activityLogs } = useQuery({
+    queryKey: ["task-activity-log", taskId],
+    queryFn: async () => {
+      if (!taskId) return [];
+      const { data } = await supabase
+        .from("activity_log")
+        .select("*, profiles:user_id(full_name)")
+        .eq("entity_id", taskId)
+        .in("action", ["misunderstood_reported", "misunderstood_resolved"])
+        .order("created_at", { ascending: true });
+      return data || [];
+    },
+    enabled: !!taskId,
+  });
+
   // Sort chronologically (oldest first) for timeline display
   const sorted = [...statusHistory].sort(
     (a, b) => new Date(a.status_entered_at || a.created_at).getTime() - new Date(b.status_entered_at || b.created_at).getTime()
@@ -207,7 +226,32 @@ export function StatusTimeline({ statusHistory, currentStatus }: StatusTimelineP
           <p className="text-sm text-muted-foreground">Brak historii statusów.</p>
         )}
 
-        {/* Aggregates */}
+        {/* Misunderstood events from activity log */}
+        {activityLogs && activityLogs.length > 0 && (
+          <div className="space-y-2 pt-2 border-t border-border">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Zdarzenia zadania
+            </p>
+            {activityLogs.map((log: any) => (
+              <div key={log.id} className="flex items-center gap-2 text-sm">
+                {log.action === "misunderstood_reported" ? (
+                  <HelpCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                )}
+                <span className="text-xs">
+                  <span className="font-medium">{(log.profiles as any)?.full_name || "?"}</span>
+                  {" "}
+                  {log.action === "misunderstood_reported" ? "zgłosił niezrozumienie zadania" : "wyjaśnił zadanie"}
+                </span>
+                <span className="text-[10px] text-muted-foreground ml-auto">
+                  {formatDateTime(log.created_at)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {Object.keys(aggregates).length > 0 && (
           <div className="pt-3 border-t border-border">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
