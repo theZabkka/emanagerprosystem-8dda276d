@@ -329,7 +329,21 @@ Tworzy nowego pracownika (konto Auth + profil + user_role). Wymaga roli `superad
 - superadmin → `superadmin` w `user_roles`
 
 ### `create-client-user`
-Tworzy konto klienta z powiązaniem do `clients.id`.
+Tworzy konto klienta z powiązaniem do `clients.id` (wywoływane przez staff z panelu admina).
+
+### `register-client`
+Publiczna Edge Function obsługująca **Self-Service Onboarding** — samodzielną rejestrację nowych klientów.
+
+**Dwie akcje (parametr `action`):**
+1. `lookup-nip` — publiczne wyszukiwanie danych firmy po NIP (CEIDG + MF VAT API). Nie wymaga autoryzacji.
+2. `register` — pełna rejestracja klienta:
+   - Tworzy konto w `auth.users` (email_confirm: true).
+   - Aktualizuje `profiles` (role = `klient`, client_id, full_name).
+   - Tworzy rekord w `clients` (nazwa firmy, NIP, adres, osoba kontaktowa, status = `active`).
+   - Dodaje wpis w `user_roles` (role = `user`).
+   - W razie błędu po utworzeniu użytkownika — cleanup (usunięcie konta auth).
+
+**Przepływ UX:** Klient wypełnia formularz na `/register`, opcjonalnie pobiera dane z NIP → klika "Zarejestruj się" → system automatycznie loguje klienta → przekierowanie na Dashboard Klienta z zielonym toastem powitalnym.
 
 ### `create-superadmin`
 Tworzy konto superadmina.
