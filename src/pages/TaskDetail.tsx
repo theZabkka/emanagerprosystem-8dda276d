@@ -663,18 +663,12 @@ export default function TaskDetail() {
           {!isClient && !isPreviewMode && <Button size="sm" className="text-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground"><MessageCircle className="h-3 w-3" />Czat zadania</Button>}
         </div>
 
-        {/* Not understood banner */}
-        {(task as any).not_understood && !isPreviewMode && (
-          <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
-            <div className="flex items-center gap-2">
-              <HelpCircle className="h-5 w-5 text-amber-600" />
-              <div>
-                <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Zadanie oznaczone jako niezrozumiałe</p>
-                <p className="text-xs text-muted-foreground">Przypisana osoba nie rozumie polecenia — wymagane wyjaśnienie od koordynatora.</p>
-              </div>
-            </div>
-            <Button variant="outline" size="sm" className="text-xs" onClick={clearNotUnderstood}>Oznacz jako wyjaśnione</Button>
-          </div>
+        {/* Misunderstood task banner - hidden from clients */}
+        {(task as any).is_misunderstood && !isPreviewMode && !isClient && (
+          <MisunderstoodBanner
+            task={task}
+            onResolve={clearNotUnderstood}
+          />
         )}
 
         {/* Tags row with status dropdown */}
