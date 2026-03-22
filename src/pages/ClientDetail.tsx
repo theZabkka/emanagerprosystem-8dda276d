@@ -759,6 +759,11 @@ await supabase.from("client_files").delete().eq("id", fileId);
             )}
           </TabsContent>
 
+          {/* ─── VoIP Calls Tab ───────────────────────────────── */}
+          <TabsContent value="voip" className="mt-4">
+            <CallsList clientId={id} />
+          </TabsContent>
+
           {/* ─── Files Tab ────────────────────────────────────── */}
           <TabsContent value="files" className="mt-4 space-y-4">
             <div className="flex gap-2 justify-end">
