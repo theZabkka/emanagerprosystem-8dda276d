@@ -910,12 +910,20 @@ supabase/
 - Używa **darmowego Groq API** zamiast płatnego OpenAI
 - Modele: `whisper-large-v3` (transkrypcja), `llama-3.3-70b-versatile` (podsumowanie)
 - Zabezpieczenie: `try/catch` — w razie błędu API zapisuje `error_note` w bazie
+- **Weryfikacja podpisu Zadarma**: Webhook weryfikuje nagłówek `Signature` za pomocą HMAC-SHA1 + MD5. Algorytm:
+  1. Posortuj parametry alfabetycznie i stwórz query string
+  2. Oblicz MD5 query stringa
+  3. Połącz query string + MD5 hex
+  4. Podpisz HMAC-SHA1 z `ZADARMA_API_SECRET`
+  5. Porównaj z nagłówkiem `Signature` (base64)
+- Jeśli klucze nie są skonfigurowane, weryfikacja jest pomijana (tryb developerski)
 
 ### Sekrety
 | Zmienna | Opis |
 |---|---|
 | `GROQ_API_KEY` | Klucz API do Groq (transkrypcja + podsumowanie) |
-| `ZADARMA_API_KEY` | Klucz API Zadarma |
+| `ZADARMA_API_KEY` | Klucz API Zadarma (identyfikacja) |
+| `ZADARMA_API_SECRET` | Secret API Zadarma (weryfikacja podpisu webhook) |
 
 ### UI — Komponent `CallsList`
 - Zakładka "Rozmowy VoIP" w widoku klienta (`/clients/:id`)
@@ -923,6 +931,7 @@ supabase/
 - Sekcja AI Summary z fioletowym tłem i ikoną błyskawicy
 - Transkrypcja domyślnie zwinięta (Collapsible)
 - Ikony kierunku: przychodzące (zielone), wychodzące (niebieskie), nieodebrane (czerwone)
+- Notatka błędu (`error_note`) z ikoną ostrzeżenia w czerwonym tle
 
 ---
 
