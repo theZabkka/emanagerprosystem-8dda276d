@@ -1318,6 +1318,7 @@ export default function TaskDetail() {
             <StatusTimeline
               statusHistory={statusHistory || []}
               currentStatus={task?.status || "new"}
+              taskId={id}
             />
           )}
         </div>
