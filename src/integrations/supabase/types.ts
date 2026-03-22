@@ -1251,8 +1251,11 @@ export type Database = {
           id: string
           is_archived: boolean
           is_client_visible: boolean | null
+          is_misunderstood: boolean
           is_video_task: boolean | null
           logged_time: number | null
+          misunderstood_by: string | null
+          misunderstood_reason: string | null
           not_understood: boolean | null
           not_understood_at: string | null
           parent_task_id: string | null
@@ -1287,8 +1290,11 @@ export type Database = {
           id?: string
           is_archived?: boolean
           is_client_visible?: boolean | null
+          is_misunderstood?: boolean
           is_video_task?: boolean | null
           logged_time?: number | null
+          misunderstood_by?: string | null
+          misunderstood_reason?: string | null
           not_understood?: boolean | null
           not_understood_at?: string | null
           parent_task_id?: string | null
@@ -1323,8 +1329,11 @@ export type Database = {
           id?: string
           is_archived?: boolean
           is_client_visible?: boolean | null
+          is_misunderstood?: boolean
           is_video_task?: boolean | null
           logged_time?: number | null
+          misunderstood_by?: string | null
+          misunderstood_reason?: string | null
           not_understood?: boolean | null
           not_understood_at?: string | null
           parent_task_id?: string | null
@@ -1348,6 +1357,13 @@ export type Database = {
           {
             foreignKeyName: "tasks_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_misunderstood_by_fkey"
+            columns: ["misunderstood_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
