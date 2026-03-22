@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
+import CallsList from "@/components/calls/CallsList";
 
 const statusLabels: Record<string, string> = {
   active: "AKTYWNY", potential: "POTENCJALNY", negotiations: "NEGOCJACJE", project: "PROJEKT", inactive: "NIEAKTYWNY",
@@ -61,6 +62,7 @@ const convTypeIcons: Record<string, { icon: typeof Phone; label: string }> = {
 const CLIENT_TABS = [
   { key: "tasks", label: "Zadania" },
   { key: "conversations", label: "Rozmowy" },
+  { key: "voip", label: "Rozmowy VoIP" },
   { key: "offers", label: "Oferty" },
   { key: "ideas", label: "Pomysły" },
   { key: "contracts", label: "Umowy" },
@@ -314,6 +316,7 @@ const { data: existing } = await supabase.from("client_invoice_data").select("id
   const tabCounts: Record<string, number> = useMemo(() => ({
     tasks: activeTasks.length,
     conversations: (conversations || []).length,
+    voip: 0,
     offers: (offers || []).length,
     ideas: (ideas || []).length,
     contracts: (contracts || []).length,
@@ -755,6 +758,11 @@ await supabase.from("client_files").delete().eq("id", fileId);
                 })}
               </div>
             )}
+          </TabsContent>
+
+          {/* ─── VoIP Calls Tab ───────────────────────────────── */}
+          <TabsContent value="voip" className="mt-4">
+            <CallsList clientId={id} />
           </TabsContent>
 
           {/* ─── Files Tab ────────────────────────────────────── */}

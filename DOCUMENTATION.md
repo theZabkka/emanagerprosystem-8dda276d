@@ -878,4 +878,52 @@ supabase/
 
 ---
 
+## Moduł VoIP — Integracja Zadarma + Groq AI (2026-03-22)
+
+### Przepływ danych
+1. **Zadarma** → Webhook `NOTIFY_END` → Edge Function `zadarma-webhook`
+2. **Edge Function** pobiera plik audio z `recording_url`
+3. **Groq API** (Whisper Large V3) → Transkrypcja rozmowy (pl)
+4. **Groq API** (Llama 3.3 70B) → Podsumowanie AI + Następne kroki
+5. Wynik zapisywany w tabeli `calls` (Supabase)
+
+### Tabela `calls`
+| Kolumna | Typ | Opis |
+|---|---|---|
+| `id` | UUID | Klucz główny |
+| `client_id` | UUID (FK → clients) | Powiązanie z klientem |
+| `task_id` | UUID (FK → tasks) | Opcjonalne powiązanie z zadaniem |
+| `caller_number` | TEXT | Numer dzwoniącego |
+| `callee_number` | TEXT | Numer odbierającego |
+| `direction` | TEXT | `inbound` / `outbound` |
+| `duration` | INTEGER | Czas trwania (sekundy) |
+| `recording_url` | TEXT | URL nagrania audio |
+| `transcription` | TEXT | Transkrypcja z Whisper |
+| `ai_summary` | TEXT | Podsumowanie z Llama 3 |
+| `zadarma_call_id` | TEXT | ID rozmowy w Zadarma |
+| `status` | TEXT | `completed` / `missed` |
+| `error_note` | TEXT | Opis błędu API (jeśli wystąpił) |
+| `called_at` | TIMESTAMPTZ | Data i godzina rozmowy |
+
+### Edge Function: `zadarma-webhook`
+- Endpoint publiczny (webhook) — odbiera eventy z Zadarmy
+- Używa **darmowego Groq API** zamiast płatnego OpenAI
+- Modele: `whisper-large-v3` (transkrypcja), `llama-3.3-70b-versatile` (podsumowanie)
+- Zabezpieczenie: `try/catch` — w razie błędu API zapisuje `error_note` w bazie
+
+### Sekrety
+| Zmienna | Opis |
+|---|---|
+| `GROQ_API_KEY` | Klucz API do Groq (transkrypcja + podsumowanie) |
+| `ZADARMA_API_KEY` | Klucz API Zadarma |
+
+### UI — Komponent `CallsList`
+- Zakładka "Rozmowy VoIP" w widoku klienta (`/clients/:id`)
+- Odtwarzacz audio `<audio>` dla nagrań
+- Sekcja AI Summary z fioletowym tłem i ikoną błyskawicy
+- Transkrypcja domyślnie zwinięta (Collapsible)
+- Ikony kierunku: przychodzące (zielone), wychodzące (niebieskie), nieodebrane (czerwone)
+
+---
+
 *Koniec dokumentacji. Pamiętaj o ZŁOTEJ ZASADZIE — aktualizuj ten plik po każdej zmianie kodu!*
