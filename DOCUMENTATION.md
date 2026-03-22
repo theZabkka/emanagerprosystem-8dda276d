@@ -141,8 +141,11 @@ Zadania — główna encja systemu.
 | `is_archived` | boolean | Czy zarchiwizowane |
 | `is_client_visible` | boolean | Czy widoczne dla klienta |
 | `is_video_task` | boolean | Czy zadanie wideo |
-| `not_understood` | boolean | Flaga "nie rozumiem" |
-| `not_understood_at` | timestamptz | Kiedy zgłoszono |
+| `not_understood` | boolean | Flaga "nie rozumiem" (legacy) |
+| `not_understood_at` | timestamptz | Kiedy zgłoszono (legacy) |
+| `is_misunderstood` | boolean | Nowa flaga "niezrozumiałe zadanie" — włącza żółty tryb karty |
+| `misunderstood_by` | uuid (FK → profiles) | Kto zgłosił niezrozumienie |
+| `misunderstood_reason` | text | Opis — co jest niejasne |
 | `status_updated_at` | timestamptz | Automatycznie ustawiany na `now()` przy każdej zmianie statusu (przez `change_task_status()`) |
 | `verification_start_time` | timestamptz | Automatycznie ustawiany na `now()` gdy status → review |
 | `accepted_responsibility_by` | uuid | Kto zaakceptował odpowiedzialność |
