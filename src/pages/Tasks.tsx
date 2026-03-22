@@ -72,6 +72,9 @@ export default function Tasks() {
   const reviewCount = allTasks.filter((t: any) => t.status === "review").length;
   const clientReviewCount = allTasks.filter((t: any) => t.status === "client_review").length;
   const notUnderstoodCount = allTasks.filter((t: any) => t.not_understood).length;
+  const misunderstoodTasks = allTasks
+    .filter((t: any) => t.not_understood)
+    .map((t: any) => ({ id: t.id, not_understood_at: t.not_understood_at }));
 
   const handleFilterStatus = (_status: string) => {};
 
@@ -142,6 +145,7 @@ export default function Tasks() {
           reviewCount={reviewCount}
           clientReviewCount={clientReviewCount}
           notUnderstoodCount={notUnderstoodCount}
+          misunderstoodTasks={misunderstoodTasks}
           onFilterStatus={handleFilterStatus}
         />
 

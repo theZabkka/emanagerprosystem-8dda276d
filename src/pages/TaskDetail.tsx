@@ -514,6 +514,15 @@ export default function TaskDetail() {
     toast.success("Komentarz dodany");
   }
 
+  async function handleClientComment() {
+    if (!commentText.trim() || !user) return;
+    const { error } = await supabase.from("comments").insert({ task_id: id!, user_id: user.id, content: commentText, type: "client" });
+    if (error) { toast.error(error.message); return; }
+    setCommentText("");
+    queryClient.invalidateQueries({ queryKey: ["comments", id] });
+    toast.success("Wiadomość wysłana");
+  }
+
   // (toggleClientVisible removed — visibility is now controlled by status)
 
   function formatTimer(s: number) {
@@ -1273,7 +1282,7 @@ export default function TaskDetail() {
                     </div>
                   </div>
                 )) : (
-                  <p className="text-sm text-muted-foreground">{isClient ? "Brak pytań wymagających odpowiedzi." : "Brak komentarzy."}</p>
+                  <p className="text-sm text-muted-foreground">{isClient ? "Brak komentarzy." : "Brak komentarzy."}</p>
                 );
                 })()}
               </div>
@@ -1304,9 +1313,9 @@ export default function TaskDetail() {
               <div className="flex gap-2 items-end">
                 <div className="flex-1">
                   <Textarea value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Napisz wiadomość..."
-                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); setCommentType("client"); addComment(); } }} className="min-h-[50px] text-sm" />
+                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleClientComment(); } }} className="min-h-[50px] text-sm" />
                 </div>
-                <Button size="icon" onClick={() => { setCommentType("client"); addComment(); }} className="h-9 w-9"><Send className="h-4 w-4" /></Button>
+                <Button size="icon" onClick={handleClientComment} className="h-9 w-9"><Send className="h-4 w-4" /></Button>
               </div>
               </>
               )}
