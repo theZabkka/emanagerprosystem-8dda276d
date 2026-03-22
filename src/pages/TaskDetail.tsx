@@ -1282,7 +1282,7 @@ export default function TaskDetail() {
                     </div>
                   </div>
                 )) : (
-                  <p className="text-sm text-muted-foreground">{isClient ? "Brak pytań wymagających odpowiedzi." : "Brak komentarzy."}</p>
+                  <p className="text-sm text-muted-foreground">{isClient ? "Brak komentarzy." : "Brak komentarzy."}</p>
                 );
                 })()}
               </div>
