@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
@@ -488,13 +488,7 @@ export default function TaskDetail() {
     toast.success("Komentarz dodany");
   }
 
-  // Client visibility toggle
-  async function toggleClientVisible() {
-    if (!task) return;
-    const newVal = !(task as any).is_client_visible;
-    await supabase.from("tasks").update({ is_client_visible: newVal } as any).eq("id", task.id);
-    queryClient.invalidateQueries({ queryKey: ["task", id] });
-  }
+  // (toggleClientVisible removed — visibility is now controlled by status)
 
   function formatTimer(s: number) {
     const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); const sec = s % 60;
@@ -955,20 +949,7 @@ export default function TaskDetail() {
             </CardContent>
           </Card>
 
-          {/* Client visible toggle - hidden in preview and for clients */}
-          {!isPreviewMode && !isClient && (
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold">Widoczne dla klienta</p>
-                  <p className="text-xs text-muted-foreground">Klient będzie widział to zadanie w swoim panelu</p>
-                </div>
-                <Switch checked={(task as any).is_client_visible || false} onCheckedChange={toggleClientVisible} />
-              </div>
-            </CardContent>
-          </Card>
-          )}
+          {/* Client visible toggle removed — visibility controlled by status */}
 
           {/* Materials */}
           <Card>
@@ -1300,8 +1281,8 @@ export default function TaskDetail() {
             </CardContent>
           </Card>
 
-          {/* Status history - visible for everyone */}
-          {!isPreviewMode && (
+          {/* Status history - hidden for clients */}
+          {!isPreviewMode && !isClient && (
             <StatusTimeline
               statusHistory={statusHistory || []}
               currentStatus={task?.status || "new"}

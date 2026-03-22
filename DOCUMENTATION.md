@@ -840,4 +840,26 @@ supabase/
 
 ---
 
+## Changelog — Poprawki UX (2026-03-22)
+
+### 1. Wyszukiwarka w Archiwum Zadań
+- Dodano pole tekstowe "Szukaj zadań..." obok filtrów Klient/Projekt na stronie `/tasks/archive`.
+- Przeszukuje tytuły i opisy zadań (case-insensitive), działa niezależnie od wybranych filtrów.
+
+### 2. Usunięcie przełącznika "Widoczne dla klienta"
+- Całkowicie usunięto bloczek z przełącznikiem (Switch) "Widoczne dla klienta" z widoku szczegółów zadania (`/tasks/:id`).
+- Widoczność zadania dla klienta jest teraz sterowana wyłącznie statusem (np. "DO AKCEPTACJI KLIENTA", "ZAMKNIĘTE").
+
+### 3. Timer — zatrzymanie dla statusów końcowych
+- Timer "Czas w statusie" zatrzymuje się dla statusów `closed`, `done` i `cancelled`.
+- W StatusTimeline wyświetla "Zakończone" zamiast nieskończenie rosnącego licznika.
+- W widoku listy (TaskListView) kolumna "Czas w statusie" pokazuje "Zakończone" dla zadań zamkniętych.
+
+### 4. Klikalność zadań na Dashboardzie Klienta
+- Karty "Zadania ogólne / Inne zlecenia" na Dashboardzie Klienta są teraz klikalne i prowadzą do `/tasks/:id`.
+- Widok szczegółów zadania dla roli `klient` działa w trybie read-only: ukrywa stoper, brief, przypisane osoby, podzadania, historię statusów i wewnętrzne komentarze.
+- Klient widzi jedynie: tytuł, opis, status, materiały widoczne dla klienta, komentarze wymagające odpowiedzi, oraz akcje akceptacji/odrzucenia (gdy status = `client_review`).
+
+---
+
 *Koniec dokumentacji. Pamiętaj o ZŁOTEJ ZASADZIE — aktualizuj ten plik po każdej zmianie kodu!*

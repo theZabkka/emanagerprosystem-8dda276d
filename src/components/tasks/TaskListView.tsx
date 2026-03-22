@@ -9,7 +9,10 @@ const statusLabels: Record<string, string> = {
 };
 const priorityLabels: Record<string, string> = { critical: "Pilny", high: "Wysoki", medium: "Średni", low: "Niski" };
 
-function timeSince(dateStr: string) {
+const TERMINAL_STATUSES = new Set(["closed", "done", "cancelled"]);
+
+function timeSince(dateStr: string, status?: string) {
+  if (status && TERMINAL_STATUSES.has(status)) return "Zakończone";
   const diff = Date.now() - new Date(dateStr).getTime();
   const days = Math.floor(diff / 86400000);
   if (days > 0) return `${days}d`;
@@ -58,7 +61,7 @@ export default function TaskListView({ tasks, isLoading }: TaskListViewProps) {
                       {statusLabels[task.status] || task.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{timeSince(task.updated_at || task.created_at)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{timeSince(task.updated_at || task.created_at, task.status)}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="text-xs">
                       {priorityLabels[task.priority] || task.priority}

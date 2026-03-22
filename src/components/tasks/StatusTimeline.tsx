@@ -62,16 +62,29 @@ interface StatusTimelineProps {
   currentStatus: string;
 }
 
-function LiveTimer({ enteredAt }: { enteredAt: string }) {
+const TERMINAL_STATUSES = new Set(["closed", "done", "cancelled"]);
+
+function LiveTimer({ enteredAt, currentStatus }: { enteredAt: string; currentStatus: string }) {
   const [elapsed, setElapsed] = useState(0);
+  const isStopped = TERMINAL_STATUSES.has(currentStatus);
 
   useEffect(() => {
+    if (isStopped) return;
     const start = new Date(enteredAt).getTime();
     const update = () => setElapsed(Math.floor((Date.now() - start) / 1000));
     update();
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-  }, [enteredAt]);
+  }, [enteredAt, isStopped]);
+
+  if (isStopped) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+        <Timer className="h-3 w-3" />
+        Zakończone
+      </span>
+    );
+  }
 
   return (
     <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary animate-pulse">
@@ -125,7 +138,7 @@ export function StatusTimeline({ statusHistory, currentStatus }: StatusTimelineP
                   {statusLabels[current.new_status] || current.new_status}
                 </Badge>
                 <span className="text-xs text-muted-foreground">—</span>
-                <LiveTimer enteredAt={current.status_entered_at} />
+                <LiveTimer enteredAt={current.status_entered_at} currentStatus={currentStatus} />
               </div>
             );
           }
@@ -163,7 +176,7 @@ export function StatusTimeline({ statusHistory, currentStatus }: StatusTimelineP
                         </span>
                       )}
                       {isOpen && h.status_entered_at && (
-                        <LiveTimer enteredAt={h.status_entered_at} />
+                        <LiveTimer enteredAt={h.status_entered_at} currentStatus={currentStatus} />
                       )}
                     </div>
                     <div className="flex items-center gap-2 text-[11px] text-muted-foreground">

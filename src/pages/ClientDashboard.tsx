@@ -312,7 +312,7 @@ export default function ClientDashboard() {
             </h3>
             <div className="grid grid-cols-1 gap-3">
               {orphanedTasks.map((task: any) => (
-                <Card key={task.id} className="border-primary/30">
+                <Card key={task.id} className="border-primary/30 hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/tasks/${task.id}`)}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
@@ -330,8 +330,17 @@ export default function ClientDashboard() {
                       <div className="flex gap-2 flex-shrink-0">
                         <Button
                           size="sm"
+                          variant="outline"
+                          className="text-xs gap-1"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/tasks/${task.id}`); }}
+                        >
+                          <FileText className="h-3 w-3" />
+                          Szczegóły
+                        </Button>
+                        <Button
+                          size="sm"
                           className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs gap-1"
-                          onClick={() => { setSelectedTaskId(task.id); setReviewModalOpen(true); }}
+                          onClick={(e) => { e.stopPropagation(); setSelectedTaskId(task.id); setReviewModalOpen(true); }}
                         >
                           <ShieldCheck className="h-3 w-3" />
                           Sprawdź

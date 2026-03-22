@@ -5,13 +5,15 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Archive, ExternalLink } from "lucide-react";
+import { Archive, ExternalLink, Search } from "lucide-react";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 
 export default function TaskArchive() {
   const [clientFilter, setClientFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [projectFilter, setProjectFilter] = useState("all");
 
   // Fetch closed tasks
@@ -21,7 +23,7 @@ export default function TaskArchive() {
 
       const { data, error } = await supabase
         .from("tasks")
-        .select("id, title, client_id, project_id, updated_at, due_date, status, clients(name), projects(name), task_assignments(user_id, role, profiles:user_id(full_name))")
+        .select("id, title, description, client_id, project_id, updated_at, due_date, status, clients(name), projects(name), task_assignments(user_id, role, profiles:user_id(full_name))")
         .eq("is_archived", true)
         .order("updated_at", { ascending: false });
       if (error) throw error;
@@ -64,8 +66,14 @@ export default function TaskArchive() {
     let result = tasks;
     if (clientFilter !== "all") result = result.filter((t: any) => t.client_id === clientFilter);
     if (projectFilter !== "all") result = result.filter((t: any) => t.project_id === projectFilter);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter((t: any) =>
+        t.title?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q)
+      );
+    }
     return result;
-  }, [tasks, clientFilter, projectFilter]);
+  }, [tasks, clientFilter, projectFilter, searchQuery]);
 
   // Reset project filter when client changes
   const handleClientChange = (value: string) => {
@@ -85,7 +93,17 @@ export default function TaskArchive() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Filters */}
-            <div className="flex gap-3 flex-wrap">
+            <div className="flex gap-3 flex-wrap items-center">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Szukaj zadań..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="pl-9 w-[250px]"
+                />
+              </div>
               <Select value={clientFilter} onValueChange={handleClientChange}>
                 <SelectTrigger className="w-[220px]">
                   <SelectValue placeholder="Wybierz klienta" />
