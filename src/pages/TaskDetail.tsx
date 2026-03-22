@@ -655,7 +655,7 @@ export default function TaskDetail() {
           ) : null}
           {!isClient && !isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><FileText className="h-3 w-3" />Zastosuj szablon</Button>}
           {!isClient && !isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><Zap className="h-3 w-3" />Uruchom automatyzację</Button>}
-          {!isClient && !isPreviewMode && (task.status === "in_progress" || task.status === "todo") && !(task as any).not_understood && (
+          {!isClient && !isPreviewMode && (task.status === "in_progress" || task.status === "todo") && !(task as any).is_misunderstood && (
             <Button variant="outline" size="sm" className="text-xs gap-1.5 border-amber-500/50 text-amber-600 hover:bg-amber-500/10" onClick={() => setNotUnderstoodOpen(true)}>
               <HelpCircle className="h-3 w-3" />Nie rozumiem polecenia
             </Button>
