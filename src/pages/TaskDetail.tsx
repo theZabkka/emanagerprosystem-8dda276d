@@ -1400,3 +1400,40 @@ function ClientReplyInput({ commentId, taskId }: { commentId: string; taskId: st
     </div>
   );
 }
+
+// Misunderstood task banner with reporter name
+function MisunderstoodBanner({ task, onResolve }: { task: any; onResolve: () => void }) {
+  const { data: reporter } = useQuery({
+    queryKey: ["misunderstood-reporter", task.misunderstood_by],
+    queryFn: async () => {
+      if (!task.misunderstood_by) return null;
+      const { data } = await supabase.from("profiles").select("full_name").eq("id", task.misunderstood_by).single();
+      return data;
+    },
+    enabled: !!task.misunderstood_by,
+  });
+
+  const reporterName = reporter?.full_name || "Pracownik";
+
+  return (
+    <div className="flex items-start justify-between gap-3 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+      <div className="flex items-start gap-2">
+        <HelpCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+        <div>
+          <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+            {reporterName} zgłosił niezrozumienie zadania
+          </p>
+          {task.misunderstood_reason && (
+            <p className="text-sm text-muted-foreground mt-1">
+              „{task.misunderstood_reason}"
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground mt-1">Wymagane wyjaśnienie od koordynatora.</p>
+        </div>
+      </div>
+      <Button variant="outline" size="sm" className="text-xs shrink-0" onClick={onResolve}>
+        Oznacz jako wyjaśnione
+      </Button>
+    </div>
+  );
+}

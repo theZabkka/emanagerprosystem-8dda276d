@@ -335,9 +335,12 @@ export default function TaskKanbanBoard({
                                       </div>
 
                                       {/* Flags row */}
-                                      {(task.not_understood || task.correction_severity) && (
+                                      {((task as any).is_misunderstood || task.not_understood || task.correction_severity) && (
                                         <div className="flex items-center gap-1 mt-0.5">
-                                          {task.not_understood && (
+                                          {(task as any).is_misunderstood && (
+                                            <Badge className="text-[7px] h-3 px-0.5 bg-amber-500 text-white">⚠️ Niezrozumiałe</Badge>
+                                          )}
+                                          {task.not_understood && !(task as any).is_misunderstood && (
                                             <Badge className="text-[7px] h-3 px-0.5 bg-warning text-warning-foreground">❓</Badge>
                                           )}
                                           {task.correction_severity && (
