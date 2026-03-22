@@ -514,6 +514,15 @@ export default function TaskDetail() {
     toast.success("Komentarz dodany");
   }
 
+  async function handleClientComment() {
+    if (!commentText.trim() || !user) return;
+    const { error } = await supabase.from("comments").insert({ task_id: id!, user_id: user.id, content: commentText, type: "client" });
+    if (error) { toast.error(error.message); return; }
+    setCommentText("");
+    queryClient.invalidateQueries({ queryKey: ["comments", id] });
+    toast.success("Wiadomość wysłana");
+  }
+
   // (toggleClientVisible removed — visibility is now controlled by status)
 
   function formatTimer(s: number) {
