@@ -145,6 +145,7 @@ export default function Tasks() {
           reviewCount={reviewCount}
           clientReviewCount={clientReviewCount}
           notUnderstoodCount={notUnderstoodCount}
+          misunderstoodTasks={misunderstoodTasks}
           onFilterStatus={handleFilterStatus}
         />
 
