@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
+import CallsList from "@/components/calls/CallsList";
 
 const statusLabels: Record<string, string> = {
   active: "AKTYWNY", potential: "POTENCJALNY", negotiations: "NEGOCJACJE", project: "PROJEKT", inactive: "NIEAKTYWNY",
