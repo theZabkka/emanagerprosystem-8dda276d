@@ -60,7 +60,13 @@ Deno.serve(async (req) => {
       user_metadata: { full_name },
     });
 
-    if (authErr) throw new Error(`Błąd tworzenia użytkownika: ${authErr.message}`);
+    if (authErr) {
+      console.error("Auth create user error:", authErr.message);
+      if (authErr.message?.includes("already") || authErr.message?.includes("exists")) {
+        throw new Error(`Użytkownik z adresem ${email} już istnieje w systemie`);
+      }
+      throw new Error(`Błąd tworzenia użytkownika: ${authErr.message}`);
+    }
 
     const userId = authData.user.id;
 
