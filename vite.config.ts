@@ -12,6 +12,7 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
   },
+  base: mode === "production" ? "/CRM/" : "/",
 
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
 
