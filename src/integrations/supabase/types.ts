@@ -55,6 +55,75 @@ export type Database = {
           },
         ]
       }
+      calls: {
+        Row: {
+          ai_summary: string | null
+          called_at: string | null
+          callee_number: string | null
+          caller_number: string | null
+          client_id: string | null
+          created_at: string | null
+          direction: string
+          duration: number | null
+          error_note: string | null
+          id: string
+          recording_url: string | null
+          status: string
+          task_id: string | null
+          transcription: string | null
+          zadarma_call_id: string | null
+        }
+        Insert: {
+          ai_summary?: string | null
+          called_at?: string | null
+          callee_number?: string | null
+          caller_number?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          direction?: string
+          duration?: number | null
+          error_note?: string | null
+          id?: string
+          recording_url?: string | null
+          status?: string
+          task_id?: string | null
+          transcription?: string | null
+          zadarma_call_id?: string | null
+        }
+        Update: {
+          ai_summary?: string | null
+          called_at?: string | null
+          callee_number?: string | null
+          caller_number?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          direction?: string
+          duration?: number | null
+          error_note?: string | null
+          id?: string
+          recording_url?: string | null
+          status?: string
+          task_id?: string | null
+          transcription?: string | null
+          zadarma_call_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calls_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calls_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channel_members: {
         Row: {
           channel_id: string
