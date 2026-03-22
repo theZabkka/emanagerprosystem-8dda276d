@@ -279,17 +279,29 @@ export default function TaskDetail() {
     toast.success(`Status zmieniony na ${statusLabels[newStatus]}`);
   }
 
-  // "Not understood" handler
+  // "Not understood" / "Misunderstood" handler
   async function handleNotUnderstood(reason: string) {
-    if (!task) return;
+    if (!task || !user) return;
     await supabase.from("tasks").update({
       not_understood: true,
       not_understood_at: new Date().toISOString(),
+      is_misunderstood: true,
+      misunderstood_by: user.id,
+      misunderstood_reason: reason || null,
     } as any).eq("id", task.id);
+    // Log to activity_log
+    await supabase.from("activity_log").insert({
+      user_id: user.id,
+      action: "misunderstood_reported",
+      entity_type: "task",
+      entity_id: task.id,
+      entity_name: task.title,
+      details: { reason: reason || null },
+    });
     // Add a comment about the confusion
     if (reason.trim()) {
       await supabase.from("comments").insert({
-        task_id: task.id, user_id: user?.id!, content: `❓ Nie rozumiem polecenia: ${reason}`, type: "internal",
+        task_id: task.id, user_id: user.id, content: `❓ Nie rozumiem polecenia: ${reason}`, type: "internal",
       });
     }
     queryClient.invalidateQueries({ queryKey: ["task", id] });
@@ -298,8 +310,22 @@ export default function TaskDetail() {
   }
 
   async function clearNotUnderstood() {
-    if (!task) return;
-    await supabase.from("tasks").update({ not_understood: false, not_understood_at: null } as any).eq("id", task.id);
+    if (!task || !user) return;
+    await supabase.from("tasks").update({
+      not_understood: false,
+      not_understood_at: null,
+      is_misunderstood: false,
+      misunderstood_by: null,
+      misunderstood_reason: null,
+    } as any).eq("id", task.id);
+    // Log to activity_log
+    await supabase.from("activity_log").insert({
+      user_id: user.id,
+      action: "misunderstood_resolved",
+      entity_type: "task",
+      entity_id: task.id,
+      entity_name: task.title,
+    });
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     toast.success("Oznaczono jako wyjaśnione");
   }
