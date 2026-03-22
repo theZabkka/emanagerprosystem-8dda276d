@@ -488,13 +488,7 @@ export default function TaskDetail() {
     toast.success("Komentarz dodany");
   }
 
-  // Client visibility toggle
-  async function toggleClientVisible() {
-    if (!task) return;
-    const newVal = !(task as any).is_client_visible;
-    await supabase.from("tasks").update({ is_client_visible: newVal } as any).eq("id", task.id);
-    queryClient.invalidateQueries({ queryKey: ["task", id] });
-  }
+  // (toggleClientVisible removed — visibility is now controlled by status)
 
   function formatTimer(s: number) {
     const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); const sec = s % 60;
