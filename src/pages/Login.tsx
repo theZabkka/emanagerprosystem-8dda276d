@@ -63,6 +63,12 @@ export default function Login() {
             </Button>
           </form>
 
+          <div className="text-center">
+            <a href="/register" className="text-sm font-medium text-destructive hover:text-destructive/80 transition-colors">
+              Jesteś nowym klientem? Zarejestruj się
+            </a>
+          </div>
+
           {/* Test accounts info */}
           <div className="border-t border-border pt-4">
             <p className="text-xs text-muted-foreground mb-2 font-medium">Konta testowe (hasło: haslo1234):</p>
