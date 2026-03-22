@@ -1281,8 +1281,8 @@ export default function TaskDetail() {
             </CardContent>
           </Card>
 
-          {/* Status history - visible for everyone */}
-          {!isPreviewMode && (
+          {/* Status history - hidden for clients */}
+          {!isPreviewMode && !isClient && (
             <StatusTimeline
               statusHistory={statusHistory || []}
               currentStatus={task?.status || "new"}
