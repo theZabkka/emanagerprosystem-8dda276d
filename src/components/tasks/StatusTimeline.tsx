@@ -62,16 +62,29 @@ interface StatusTimelineProps {
   currentStatus: string;
 }
 
-function LiveTimer({ enteredAt }: { enteredAt: string }) {
+const TERMINAL_STATUSES = new Set(["closed", "done", "cancelled"]);
+
+function LiveTimer({ enteredAt, currentStatus }: { enteredAt: string; currentStatus: string }) {
   const [elapsed, setElapsed] = useState(0);
+  const isStopped = TERMINAL_STATUSES.has(currentStatus);
 
   useEffect(() => {
+    if (isStopped) return;
     const start = new Date(enteredAt).getTime();
     const update = () => setElapsed(Math.floor((Date.now() - start) / 1000));
     update();
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-  }, [enteredAt]);
+  }, [enteredAt, isStopped]);
+
+  if (isStopped) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+        <Timer className="h-3 w-3" />
+        Zakończone
+      </span>
+    );
+  }
 
   return (
     <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary animate-pulse">
