@@ -1187,7 +1187,7 @@ export default function TaskDetail() {
             </Card>
           )}
 
-          {/* Comments - clients only see requires_client_reply comments */}
+          {/* Comments - clients see external/client comments */}
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
@@ -1209,7 +1209,7 @@ export default function TaskDetail() {
                 {(() => {
                   let displayComments = filteredComments;
                   if (isClient) {
-                    displayComments = (comments || []).filter((c: any) => c.requires_client_reply === true);
+                    displayComments = (comments || []).filter((c: any) => c.type !== "internal");
                   } else if (isPreviewMode) {
                     displayComments = filteredComments.filter((c: any) => c.type !== "internal");
                   }
