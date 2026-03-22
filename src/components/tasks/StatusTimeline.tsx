@@ -226,7 +226,32 @@ export function StatusTimeline({ statusHistory, currentStatus, taskId }: StatusT
           <p className="text-sm text-muted-foreground">Brak historii statusów.</p>
         )}
 
-        {/* Aggregates */}
+        {/* Misunderstood events from activity log */}
+        {activityLogs && activityLogs.length > 0 && (
+          <div className="space-y-2 pt-2 border-t border-border">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Zdarzenia zadania
+            </p>
+            {activityLogs.map((log: any) => (
+              <div key={log.id} className="flex items-center gap-2 text-sm">
+                {log.action === "misunderstood_reported" ? (
+                  <HelpCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                )}
+                <span className="text-xs">
+                  <span className="font-medium">{(log.profiles as any)?.full_name || "?"}</span>
+                  {" "}
+                  {log.action === "misunderstood_reported" ? "zgłosił niezrozumienie zadania" : "wyjaśnił zadanie"}
+                </span>
+                <span className="text-[10px] text-muted-foreground ml-auto">
+                  {formatDateTime(log.created_at)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {Object.keys(aggregates).length > 0 && (
           <div className="pt-3 border-t border-border">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
