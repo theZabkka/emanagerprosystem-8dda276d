@@ -1298,6 +1298,18 @@ export default function TaskDetail() {
               </div>
               </>
               )}
+              {isClient && !isPreviewMode && (
+              <>
+              <Separator />
+              <div className="flex gap-2 items-end">
+                <div className="flex-1">
+                  <Textarea value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Napisz wiadomość..."
+                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); setCommentType("client"); addComment(); } }} className="min-h-[50px] text-sm" />
+                </div>
+                <Button size="icon" onClick={() => { setCommentType("client"); addComment(); }} className="h-9 w-9"><Send className="h-4 w-4" /></Button>
+              </div>
+              </>
+              )}
             </CardContent>
           </Card>
 
