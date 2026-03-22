@@ -5,13 +5,15 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Archive, ExternalLink } from "lucide-react";
+import { Archive, ExternalLink, Search } from "lucide-react";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 
 export default function TaskArchive() {
   const [clientFilter, setClientFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [projectFilter, setProjectFilter] = useState("all");
 
   // Fetch closed tasks
