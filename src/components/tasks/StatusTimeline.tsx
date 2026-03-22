@@ -176,7 +176,7 @@ export function StatusTimeline({ statusHistory, currentStatus }: StatusTimelineP
                         </span>
                       )}
                       {isOpen && h.status_entered_at && (
-                        <LiveTimer enteredAt={h.status_entered_at} />
+                        <LiveTimer enteredAt={h.status_entered_at} currentStatus={currentStatus} />
                       )}
                     </div>
                     <div className="flex items-center gap-2 text-[11px] text-muted-foreground">

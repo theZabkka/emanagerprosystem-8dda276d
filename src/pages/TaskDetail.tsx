@@ -949,20 +949,7 @@ export default function TaskDetail() {
             </CardContent>
           </Card>
 
-          {/* Client visible toggle - hidden in preview and for clients */}
-          {!isPreviewMode && !isClient && (
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold">Widoczne dla klienta</p>
-                  <p className="text-xs text-muted-foreground">Klient będzie widział to zadanie w swoim panelu</p>
-                </div>
-                <Switch checked={(task as any).is_client_visible || false} onCheckedChange={toggleClientVisible} />
-              </div>
-            </CardContent>
-          </Card>
-          )}
+          {/* Client visible toggle removed — visibility controlled by status */}
 
           {/* Materials */}
           <Card>
