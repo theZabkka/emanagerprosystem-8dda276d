@@ -138,7 +138,7 @@ export function StatusTimeline({ statusHistory, currentStatus }: StatusTimelineP
                   {statusLabels[current.new_status] || current.new_status}
                 </Badge>
                 <span className="text-xs text-muted-foreground">—</span>
-                <LiveTimer enteredAt={current.status_entered_at} />
+                <LiveTimer enteredAt={current.status_entered_at} currentStatus={currentStatus} />
               </div>
             );
           }
