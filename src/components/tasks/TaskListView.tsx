@@ -61,7 +61,7 @@ export default function TaskListView({ tasks, isLoading }: TaskListViewProps) {
                       {statusLabels[task.status] || task.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{timeSince(task.updated_at || task.created_at)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{timeSince(task.updated_at || task.created_at, task.status)}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="text-xs">
                       {priorityLabels[task.priority] || task.priority}
