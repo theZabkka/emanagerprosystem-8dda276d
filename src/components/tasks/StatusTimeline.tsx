@@ -62,6 +62,7 @@ interface StatusHistoryEntry {
 interface StatusTimelineProps {
   statusHistory: StatusHistoryEntry[];
   currentStatus: string;
+  taskId?: string;
 }
 
 const TERMINAL_STATUSES = new Set(["closed", "done", "cancelled"]);
