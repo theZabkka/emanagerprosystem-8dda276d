@@ -9,7 +9,10 @@ const statusLabels: Record<string, string> = {
 };
 const priorityLabels: Record<string, string> = { critical: "Pilny", high: "Wysoki", medium: "Średni", low: "Niski" };
 
-function timeSince(dateStr: string) {
+const TERMINAL_STATUSES = new Set(["closed", "done", "cancelled"]);
+
+function timeSince(dateStr: string, status?: string) {
+  if (status && TERMINAL_STATUSES.has(status)) return "Zakończone";
   const diff = Date.now() - new Date(dateStr).getTime();
   const days = Math.floor(diff / 86400000);
   if (days > 0) return `${days}d`;
