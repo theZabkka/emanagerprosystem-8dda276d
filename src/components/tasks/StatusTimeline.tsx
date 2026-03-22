@@ -97,7 +97,23 @@ function LiveTimer({ enteredAt, currentStatus }: { enteredAt: string; currentSta
   );
 }
 
-export function StatusTimeline({ statusHistory, currentStatus }: StatusTimelineProps) {
+export function StatusTimeline({ statusHistory, currentStatus, taskId }: StatusTimelineProps) {
+  // Fetch activity log entries for misunderstood events
+  const { data: activityLogs } = useQuery({
+    queryKey: ["task-activity-log", taskId],
+    queryFn: async () => {
+      if (!taskId) return [];
+      const { data } = await supabase
+        .from("activity_log")
+        .select("*, profiles:user_id(full_name)")
+        .eq("entity_id", taskId)
+        .in("action", ["misunderstood_reported", "misunderstood_resolved"])
+        .order("created_at", { ascending: true });
+      return data || [];
+    },
+    enabled: !!taskId,
+  });
+
   // Sort chronologically (oldest first) for timeline display
   const sorted = [...statusHistory].sort(
     (a, b) => new Date(a.status_entered_at || a.created_at).getTime() - new Date(b.status_entered_at || b.created_at).getTime()
