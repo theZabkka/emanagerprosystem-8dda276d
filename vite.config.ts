@@ -13,8 +13,6 @@ export default defineConfig(({ mode }) => ({
     },
   },
 
-  base: "/CRM/",
-
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
 
   resolve: {
