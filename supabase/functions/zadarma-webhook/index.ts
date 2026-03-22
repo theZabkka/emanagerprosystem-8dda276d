@@ -5,6 +5,52 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+async function verifyZadarmaSignature(
+  body: string,
+  signature: string | null,
+  apiKey: string,
+  apiSecret: string
+): Promise<boolean> {
+  if (!signature) {
+    console.warn("No signature provided, skipping verification");
+    return true; // Allow unsigned requests for now during development
+  }
+
+  try {
+    const params = JSON.parse(body);
+    const sortedKeys = Object.keys(params).sort();
+    const pairs = sortedKeys.map(
+      (k) => `${encodeURIComponent(k)}=${encodeURIComponent(params[k] ?? "")}`
+    );
+    const paramsStr = pairs.join("&");
+
+    // Zadarma signature: base64(hmac_sha1(params_string + md5(params_string), secret))
+    const md5Buf = await crypto.subtle.digest(
+      "MD5",
+      new TextEncoder().encode(paramsStr)
+    );
+    const md5Hex = Array.from(new Uint8Array(md5Buf))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    const signData = paramsStr + md5Hex;
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(apiSecret),
+      { name: "HMAC", hash: "SHA-1" },
+      false,
+      ["sign"]
+    );
+    const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(signData));
+    const computed = btoa(String.fromCharCode(...new Uint8Array(sig)));
+
+    return computed === signature;
+  } catch (e) {
+    console.error("Signature verification error:", e);
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -16,8 +62,24 @@ Deno.serve(async (req) => {
   );
 
   try {
-    const body = await req.json();
+    const rawBody = await req.text();
+    const body = JSON.parse(rawBody);
     const event = body.event;
+
+    // Verify signature if keys are configured
+    const zadarmaKey = Deno.env.get("ZADARMA_API_KEY");
+    const zadarmaSecret = Deno.env.get("ZADARMA_API_SECRET");
+    if (zadarmaKey && zadarmaSecret) {
+      const signature = req.headers.get("Signature");
+      const valid = await verifyZadarmaSignature(rawBody, signature, zadarmaKey, zadarmaSecret);
+      if (!valid) {
+        console.error("Invalid Zadarma signature");
+        return new Response(JSON.stringify({ error: "Invalid signature" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     // Only process NOTIFY_END events
     if (event !== "NOTIFY_END") {
