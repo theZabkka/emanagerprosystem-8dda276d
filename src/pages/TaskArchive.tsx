@@ -66,8 +66,14 @@ export default function TaskArchive() {
     let result = tasks;
     if (clientFilter !== "all") result = result.filter((t: any) => t.client_id === clientFilter);
     if (projectFilter !== "all") result = result.filter((t: any) => t.project_id === projectFilter);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter((t: any) =>
+        t.title?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q)
+      );
+    }
     return result;
-  }, [tasks, clientFilter, projectFilter]);
+  }, [tasks, clientFilter, projectFilter, searchQuery]);
 
   // Reset project filter when client changes
   const handleClientChange = (value: string) => {
