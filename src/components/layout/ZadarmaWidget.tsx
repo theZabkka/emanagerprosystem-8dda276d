@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
+import { supabase } from "@/integrations/supabase/client";
 
 declare global {
   interface Window {
@@ -15,14 +16,11 @@ declare global {
   }
 }
 
-const ZADARMA_PUBLIC_KEY = "6abdee0bb08c787de712";
-
 export function ZadarmaWidget() {
   const { profile, loading } = useAuth();
   const { isClient } = useRole();
   const initialized = useRef(false);
 
-  // Strict guard: wait until profile is fully loaded and SIP is a non-empty string
   const sipLogin = profile?.zadarma_sip_login;
   const hasSip = typeof sipLogin === "string" && sipLogin.trim().length > 0;
 
@@ -46,6 +44,24 @@ export function ZadarmaWidget() {
 
     (async () => {
       try {
+        // 1. Pobierz dynamiczny klucz WebRTC z Edge Function
+        const { data, error } = await supabase.functions.invoke('zadarma-webrtc-key', {
+          body: { sip: currentSip }
+        });
+
+        if (error) {
+          console.error("[ZadarmaWidget] Edge Function error:", error);
+          return;
+        }
+
+        if (!data?.success || !data?.key) {
+          console.error("[ZadarmaWidget] Nie udało się pobrać klucza WebRTC:", data?.details || data?.error);
+          return;
+        }
+
+        console.log("[ZadarmaWidget] Klucz WebRTC pobrany pomyślnie");
+
+        // 2. Załaduj skrypty Zadarmy dopiero po otrzymaniu klucza
         await loadScript("https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-lib.js?sub_v=1");
         await loadScript("https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-fn.js?sub_v=1");
 
@@ -57,9 +73,9 @@ export function ZadarmaWidget() {
           check();
         });
 
-        console.log("[ZadarmaWidget] Initializing with SIP:", currentSip);
+        // 3. Inicjalizacja widgetu z dynamicznym kluczem
         window.zadarmaWidgetFn!(
-          ZADARMA_PUBLIC_KEY,
+          data.key,
           currentSip,
           "square",
           "pl",
@@ -67,8 +83,9 @@ export function ZadarmaWidget() {
           { right: "10px", bottom: "5px" }
         );
         initialized.current = true;
+        console.log("[ZadarmaWidget] Widget zainicjalizowany pomyślnie");
       } catch (e) {
-        console.error("[ZadarmaWidget] Nie udało się załadować widgetu:", e);
+        console.error("[ZadarmaWidget] Błąd ładowania widgetu:", e);
       }
     })();
   }, [loading, hasSip, sipLogin, isClient]);
