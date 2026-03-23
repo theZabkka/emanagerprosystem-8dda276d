@@ -1,7 +1,8 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 
 declare global {
   interface Window {
@@ -9,68 +10,42 @@ declare global {
       key: string,
       sip: string,
       style: string,
-      lang: string
+      lang: string,
+      showFlag: boolean,
+      position: { right: string; bottom: string }
     ) => void;
   }
 }
 
 export function ZadarmaWidget() {
-  const { profile, user } = useAuth();
+  const { user } = useAuth();
   const { isClient } = useRole();
   const [sipLogin, setSipLogin] = useState<string | null>(null);
-  const [webrtcKey, setWebrtcKey] = useState<string | null>(null);
   const initialized = useRef(false);
 
-  // 1. Fetch SIP login from profile
   useEffect(() => {
     if (!user || isClient) return;
 
     async function fetchSip() {
-      const { data } = await supabase
-        .from("profiles")
-        .select("zadarma_sip_login")
-        .eq("id", user!.id)
-        .single();
-
-      if (data?.zadarma_sip_login) {
-        setSipLogin(data.zadarma_sip_login);
+      try {
+        const { data } = await supabase
+          .from("profiles")
+          .select("zadarma_sip_login")
+          .eq("id", user!.id)
+          .single();
+        if (data?.zadarma_sip_login) {
+          setSipLogin(data.zadarma_sip_login);
+        }
+      } catch (e) {
+        console.warn("[ZadarmaWidget] Nie udało się pobrać SIP login:", e);
       }
     }
 
     fetchSip();
   }, [user, isClient]);
 
-  // 2. Fetch WebRTC key when SIP is available
   useEffect(() => {
-    if (!sipLogin) return;
-
-    async function fetchKey() {
-      try {
-        const { data, error } = await supabase.functions.invoke(
-          "zadarma-webrtc-key"
-        );
-        if (error) {
-          console.warn("[ZadarmaWidget] Nie udało się pobrać klucza WebRTC:", error.message);
-          return;
-        }
-        if (data?.error) {
-          console.warn("[ZadarmaWidget] API Zadarma zwróciło błąd:", data.error);
-          return;
-        }
-        if (data?.key) {
-          setWebrtcKey(data.key);
-        }
-      } catch (e) {
-        console.warn("[ZadarmaWidget] Nie udało się załadować widgetu telefonu. Sprawdź konfigurację API.", e);
-      }
-    }
-
-    fetchKey();
-  }, [sipLogin]);
-
-  // 3. Load scripts and initialize widget
-  useEffect(() => {
-    if (!webrtcKey || !sipLogin || initialized.current) return;
+    if (!sipLogin || initialized.current) return;
 
     function loadScript(src: string): Promise<void> {
       return new Promise((resolve, reject) => {
@@ -84,7 +59,7 @@ export function ZadarmaWidget() {
         script.async = true;
         script.onload = () => resolve();
         script.onerror = () => reject(new Error(`Failed to load ${src}`));
-        document.head.appendChild(script);
+        document.body.appendChild(script);
       });
     }
 
@@ -97,7 +72,6 @@ export function ZadarmaWidget() {
           "https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-fn.js?sub_v=1"
         );
 
-        // Wait for zadarmaWidgetFn to be available
         const waitForWidget = () =>
           new Promise<void>((resolve) => {
             const check = () => {
@@ -112,16 +86,22 @@ export function ZadarmaWidget() {
 
         await waitForWidget();
 
-        window.zadarmaWidgetFn!(webrtcKey!, sipLogin!, "square", "pl");
+        window.zadarmaWidgetFn!(
+          "6abdee0bb08c787de712",
+          sipLogin!,
+          "square",
+          "pl",
+          true,
+          { right: "10px", bottom: "5px" }
+        );
         initialized.current = true;
       } catch (e) {
-        console.error("Zadarma widget init error:", e);
+        console.warn("[ZadarmaWidget] Nie udało się załadować widgetu telefonu:", e);
       }
     }
 
     initWidget();
-  }, [webrtcKey, sipLogin]);
+  }, [sipLogin]);
 
-  // Widget renders itself via Zadarma scripts — no JSX needed
   return null;
 }
