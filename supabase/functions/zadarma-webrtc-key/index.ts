@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { crypto as stdCrypto } from "https://deno.land/std@0.224.0/crypto/mod.ts";
+import { encodeHex } from "https://deno.land/std@0.224.0/encoding/hex.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,12 +39,9 @@ Deno.serve(async (req) => {
     // Zadarma auth: sort params, md5, hmac-sha1
     // For GET with no params, paramsStr is empty
     const paramsStr = "";
-    const md5Data = new TextEncoder().encode(paramsStr);
-    const md5Hash = Array.from(
-      new Uint8Array(await crypto.subtle.digest("MD5", md5Data))
-    )
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
+    const md5Hash = encodeHex(
+      new Uint8Array(await stdCrypto.subtle.digest("MD5", new TextEncoder().encode(paramsStr)))
+    );
 
     const signData = apiPath + paramsStr + md5Hash;
     const key = await crypto.subtle.importKey(
