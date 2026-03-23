@@ -49,12 +49,19 @@ export function ZadarmaWidget() {
         const { data, error } = await supabase.functions.invoke(
           "zadarma-webrtc-key"
         );
-        if (error) throw error;
+        if (error) {
+          console.warn("[ZadarmaWidget] Nie udało się pobrać klucza WebRTC:", error.message);
+          return;
+        }
+        if (data?.error) {
+          console.warn("[ZadarmaWidget] API Zadarma zwróciło błąd:", data.error);
+          return;
+        }
         if (data?.key) {
           setWebrtcKey(data.key);
         }
       } catch (e) {
-        console.error("Zadarma WebRTC key error:", e);
+        console.warn("[ZadarmaWidget] Nie udało się załadować widgetu telefonu. Sprawdź konfigurację API.", e);
       }
     }
 

@@ -62,20 +62,38 @@ Deno.serve(async (req) => {
 
     const authHeaderValue = `${apiKey}:${signature}`;
 
-    const response = await fetch(
-      `https://api.zadarma.com${apiPath}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: authHeaderValue,
-        },
-      }
-    );
+    let response: Response;
+    try {
+      response = await fetch(
+        `https://api.zadarma.com${apiPath}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: authHeaderValue,
+          },
+        }
+      );
+    } catch (fetchErr) {
+      return new Response(
+        JSON.stringify({ error: "Zadarma API unreachable", details: String(fetchErr) }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!response.ok) {
+      return new Response(
+        JSON.stringify({ error: "Zadarma API error", status: response.status }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const data = await response.json();
 
     if (data.status !== "success") {
-      throw new Error(data.message || "Błąd API Zadarma");
+      return new Response(
+        JSON.stringify({ error: data.message || "Błąd API Zadarma", zadarma_status: data.status }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     return new Response(JSON.stringify({ key: data.key }), {
