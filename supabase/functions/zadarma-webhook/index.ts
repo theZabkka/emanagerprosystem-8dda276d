@@ -52,6 +52,15 @@ async function verifyZadarmaSignature(
 }
 
 Deno.serve(async (req) => {
+  // Zadarma webhook verification - echo back zd_echo parameter
+  if (req.method === "GET") {
+    const url = new URL(req.url);
+    const zdEcho = url.searchParams.get("zd_echo");
+    if (zdEcho) {
+      return new Response(zdEcho, { status: 200 });
+    }
+  }
+
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
