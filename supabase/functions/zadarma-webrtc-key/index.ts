@@ -22,10 +22,10 @@ serve(async (req) => {
       throw new Error("Missing Zadarma API keys in environment");
     }
 
-    // Algorytm HMAC-SHA1 wg dokumentacji Zadarmy
-    const params = new URLSearchParams({ sip: sip });
-    params.sort(); // Wymagane sortowanie alfabetyczne
-    const paramsString = params.toString(); 
+    const cleanSip = sip.trim();
+
+    // Budujemy surowy string ręcznie, gwarantując absolutny brak kodowania znaków typu myślnik
+    const paramsString = `sip=${cleanSip}`;
 
     const md5Hash = createHash('md5').update(paramsString).digest('hex');
     const dataToSign = '/v1/webrtc/get_key/' + paramsString + md5Hash;
@@ -40,11 +40,16 @@ serve(async (req) => {
 
     const data = await zadarmaResponse.json();
 
-    // Zwracamy status 200 nawet przy błędzie Zadarmy, żeby nie wywalać klienta Supabase
     return new Response(JSON.stringify({
         success: zadarmaResponse.ok,
         key: data.key || null,
-        details: data
+        details: data,
+        debug: {
+            sipUsed: cleanSip,
+            paramsStr: paramsString,
+            dataSigned: dataToSign,
+            signatureGenerated: signature
+        }
     }), { 
         status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -52,7 +57,7 @@ serve(async (req) => {
 
   } catch (err) {
     return new Response(JSON.stringify({ success: false, error: err.message }), { 
-        status: 200, // ratunkowe 200
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
     });
   }
