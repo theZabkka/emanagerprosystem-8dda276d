@@ -18,14 +18,18 @@ declare global {
 const ZADARMA_PUBLIC_KEY = "6abdee0bb08c787de712";
 
 export function ZadarmaWidget() {
-  const { profile } = useAuth();
+  const { profile, loading } = useAuth();
   const { isClient } = useRole();
   const initialized = useRef(false);
 
-  const sipLogin = profile?.zadarma_sip_login ?? null;
+  // Strict guard: wait until profile is fully loaded and SIP is a non-empty string
+  const sipLogin = profile?.zadarma_sip_login;
+  const hasSip = typeof sipLogin === "string" && sipLogin.trim().length > 0;
 
   useEffect(() => {
-    if (!sipLogin || isClient || initialized.current) return;
+    if (loading || !hasSip || isClient || initialized.current) return;
+
+    const currentSip = sipLogin!.trim();
 
     function loadScript(src: string): Promise<void> {
       return new Promise((resolve, reject) => {
@@ -53,9 +57,10 @@ export function ZadarmaWidget() {
           check();
         });
 
+        console.log("[ZadarmaWidget] Initializing with SIP:", currentSip);
         window.zadarmaWidgetFn!(
           ZADARMA_PUBLIC_KEY,
-          sipLogin,
+          currentSip,
           "square",
           "pl",
           true,
@@ -66,7 +71,7 @@ export function ZadarmaWidget() {
         console.error("[ZadarmaWidget] Nie udało się załadować widgetu:", e);
       }
     })();
-  }, [sipLogin, isClient]);
+  }, [loading, hasSip, sipLogin, isClient]);
 
   return null;
 }
