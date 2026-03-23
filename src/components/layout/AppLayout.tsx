@@ -5,6 +5,7 @@ import { ClientSidebar } from "./ClientSidebar";
 import { Topbar } from "./Topbar";
 import { AIAssistantButton } from "./AIAssistantButton";
 import { ZadarmaWidget } from "./ZadarmaWidget";
+import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { useRoutePrefetch } from "@/hooks/useRoutePrefetch";
 import { CoordinatorFreezeOverlay } from "@/components/tasks/CoordinatorFreezeOverlay";
@@ -15,6 +16,7 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children, title }: AppLayoutProps) {
+  const { profile } = useAuth();
   const { isClient } = useRole();
   useRoutePrefetch();
 
@@ -30,7 +32,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
         </div>
       </div>
       <AIAssistantButton />
-      {!isClient && <ZadarmaWidget />}
+      {!isClient && <ZadarmaWidget sipLogin={profile?.zadarma_sip_login} />}
       <CoordinatorFreezeOverlay />
     </SidebarProvider>
   );
