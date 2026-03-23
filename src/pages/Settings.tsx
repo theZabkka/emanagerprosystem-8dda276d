@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Eye, Bell, Briefcase, Users, Shield, Bot, Settings2, Clock, LayoutList, RotateCcw, Phone } from "lucide-react";
 import { useRole } from "@/hooks/useRole";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
+import { SipLoginManager } from "@/components/settings/SipLoginManager";
 
 function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
   return (

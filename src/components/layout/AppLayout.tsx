@@ -30,6 +30,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
         </div>
       </div>
       <AIAssistantButton />
+      {!isClient && <ZadarmaWidget />}
       <CoordinatorFreezeOverlay />
     </SidebarProvider>
   );
