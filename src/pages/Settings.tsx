@@ -11,7 +11,10 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Eye, Bell, Briefcase, Users, Shield, Bot, Settings2, Clock, LayoutList, RotateCcw } from "lucide-react";
+import { Eye, Bell, Briefcase, Users, Shield, Bot, Settings2, Clock, LayoutList, RotateCcw, Phone } from "lucide-react";
+import { useRole } from "@/hooks/useRole";
+import { useStaffMembers } from "@/hooks/useStaffMembers";
+import { SipLoginManager } from "@/components/settings/SipLoginManager";
 
 function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
   return (
@@ -36,6 +39,7 @@ function SettingRow({ label, description, children }: { label: string; descripti
 
 export default function Settings() {
   const { profile, user } = useAuth();
+  const { currentRole } = useRole();
   // Appearance
   const [theme, setTheme] = useState("system");
   const [compactSidebar, setCompactSidebar] = useState(false);
@@ -320,7 +324,15 @@ export default function Settings() {
 
             <Separator className="my-2" />
 
-            {/* Security */}
+            {/* VoIP / Zadarma */}
+            {(currentRole === "superadmin" || currentRole === "boss") && (
+              <>
+                <SectionHeader icon={Phone} title="VoIP — Zadarma" />
+                <SipLoginManager />
+              </>
+            )}
+
+            <Separator className="my-2" />
             <SectionHeader icon={Shield} title="Bezpieczeństwo" />
             <SettingRow label="Timeout sesji" description="Automatyczne wylogowanie po braku aktywności">
               <div className="flex items-center gap-2">
