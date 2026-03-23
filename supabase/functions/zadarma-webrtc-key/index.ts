@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
       throw new Error(data.message || "Błąd API Zadarma");
     }
 
-    return new Response(JSON.stringify({ key: data.webrtc_key }), {
+    return new Response(JSON.stringify({ key: data.key }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
