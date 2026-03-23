@@ -946,16 +946,20 @@ supabase/
 ### Komponent React: `ZadarmaWidget`
 - Plik: `src/components/layout/ZadarmaWidget.tsx`
 - Montowany w `AppLayout` — widoczny tylko dla użytkowników staff (nie klientów)
-- **Architektura: Client-Side** — widget autoryzuje się bezpośrednio u Zadarmy za pomocą publicznego klucza API (`6abdee0bb08c787de712`). Bezpieczeństwo opiera się na restrykcjach domenowych (CORS/Origin) skonfigurowanych w panelu Zadarma.
-- **Edge Function `zadarma-webrtc-key` nie jest już używana** do inicjalizacji widgetu.
-- **Logika inicjalizacji** (2 etapy):
+- **Architektura: Server-Side (Edge Function)** — klucz WebRTC jest generowany dynamicznie przez Edge Function `zadarma-webrtc-key` z użyciem sygnatury HMAC-SHA1. Klucze API (`ZADARMA_API_KEY`, `ZADARMA_API_SECRET`) są przechowywane jako sekrety Supabase.
+- **Logika inicjalizacji** (3 etapy):
   1. Pobiera `zadarma_sip_login` z profilu użytkownika (przez `useAuth`) — jeśli puste, widget się nie renderuje
-  2. Dynamicznie ładuje skrypty Zadarma do `document.body`:
-     - `loader-phone-lib.js` (biblioteka WebRTC)
-     - `loader-phone-fn.js` (funkcje widgetu)
-  3. Inicjalizuje `zadarmaWidgetFn(PUBLIC_KEY, sip, 'square', 'pl', true, {right:'10px', bottom:'5px'})`
+  2. Wywołuje `supabase.functions.invoke('zadarma-webrtc-key', { body: { sip } })` aby pobrać dynamiczny klucz WebRTC
+  3. Dopiero po otrzymaniu klucza ładuje skrypty Zadarma (`loader-phone-lib.js`, `loader-phone-fn.js`)
+  4. Inicjalizuje `zadarmaWidgetFn(DYNAMIC_KEY, sip, 'square', 'pl', true, {right:'10px', bottom:'5px'})`
 - Pełna izolacja błędów — try/catch, brak crashu aplikacji
 - Widget renderuje się sam przez skrypty Zadarma — komponent React zwraca `null`
+
+### Edge Function: `zadarma-webrtc-key`
+- Endpoint: POST, przyjmuje `{ sip: string }`
+- Generuje sygnaturę HMAC-SHA1 wg dokumentacji Zadarma API (`.trim()` na kluczach eliminuje ukryte znaki białe)
+- Wywołuje `GET /v1/webrtc/get_key/` na API Zadarma
+- Zawsze zwraca status 200 (nawet przy błędzie Zadarma) aby nie crashować klienta Supabase
 
 ---
 
