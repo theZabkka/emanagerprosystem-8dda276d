@@ -27,12 +27,12 @@ export function ZadarmaWidget() {
   useEffect(() => {
     if (!user || isClient) return;
 
-    async function fetchSip() {
+    (async () => {
       try {
         const { data } = await supabase
           .from("profiles")
           .select("zadarma_sip_login")
-          .eq("id", user!.id)
+          .eq("id", user.id)
           .single();
         if (data?.zadarma_sip_login) {
           setSipLogin(data.zadarma_sip_login);
@@ -40,16 +40,14 @@ export function ZadarmaWidget() {
       } catch (e) {
         console.warn("[ZadarmaWidget] Nie udało się pobrać SIP login:", e);
       }
-    }
-
-    fetchSip();
+    })();
   }, [user, isClient]);
 
-  // 2. Fetch WebRTC key from Edge Function
+  // 2. Fetch WebRTC key from Edge Function — NEVER throw
   useEffect(() => {
     if (!sipLogin) return;
 
-    async function fetchKey() {
+    (async () => {
       try {
         const { data, error } = await supabase.functions.invoke(
           "zadarma-webrtc-key",
@@ -57,27 +55,27 @@ export function ZadarmaWidget() {
         );
 
         if (error) {
-          console.warn("[ZadarmaWidget] Edge Function error:", error);
+          console.error("[ZadarmaWidget] Supabase invoke error:", error);
           return;
         }
 
         if (data?.error) {
-          console.warn("[ZadarmaWidget] Zadarma API error:", data.error, data);
+          console.error("[ZadarmaWidget] Zadarma API error:", data.message, data);
           return;
         }
 
         if (data?.key) {
           setWebrtcKey(data.key);
+        } else {
+          console.warn("[ZadarmaWidget] Brak klucza w odpowiedzi:", data);
         }
       } catch (e) {
-        console.warn("[ZadarmaWidget] Nie udało się pobrać klucza WebRTC:", e);
+        console.error("[ZadarmaWidget] Nie udało się pobrać klucza WebRTC:", e);
       }
-    }
-
-    fetchKey();
+    })();
   }, [sipLogin]);
 
-  // 3. Load scripts & initialize widget
+  // 3. Load scripts & initialize widget — NEVER throw
   useEffect(() => {
     if (!webrtcKey || !sipLogin || initialized.current) return;
 
@@ -97,7 +95,7 @@ export function ZadarmaWidget() {
       });
     }
 
-    async function initWidget() {
+    (async () => {
       try {
         await loadScript(
           "https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-lib.js?sub_v=1"
@@ -106,7 +104,6 @@ export function ZadarmaWidget() {
           "https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-fn.js?sub_v=1"
         );
 
-        // Wait for global function to be available
         await new Promise<void>((resolve) => {
           const check = () => {
             if (window.zadarmaWidgetFn) resolve();
@@ -116,8 +113,8 @@ export function ZadarmaWidget() {
         });
 
         window.zadarmaWidgetFn!(
-          webrtcKey!,
-          sipLogin!,
+          webrtcKey,
+          sipLogin,
           "square",
           "pl",
           true,
@@ -125,11 +122,9 @@ export function ZadarmaWidget() {
         );
         initialized.current = true;
       } catch (e) {
-        console.warn("[ZadarmaWidget] Nie udało się załadować widgetu:", e);
+        console.error("[ZadarmaWidget] Nie udało się załadować widgetu:", e);
       }
-    }
-
-    initWidget();
+    })();
   }, [webrtcKey, sipLogin]);
 
   return null;
