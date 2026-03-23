@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
-import { supabase } from "@/integrations/supabase/client";
 
 declare global {
   interface Window {
@@ -16,71 +15,22 @@ declare global {
   }
 }
 
+const ZADARMA_PUBLIC_KEY = "6abdee0bb08c787de712";
+
 export function ZadarmaWidget() {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const { isClient } = useRole();
-  const [sipLogin, setSipLogin] = useState<string | null>(null);
-  const [webrtcKey, setWebrtcKey] = useState<string | null>(null);
   const initialized = useRef(false);
 
-  // 1. Fetch SIP login from profile
+  const sipLogin = profile?.zadarma_sip_login ?? null;
+
   useEffect(() => {
-    if (!user || isClient) return;
-
-    (async () => {
-      try {
-        const { data } = await supabase
-          .from("profiles")
-          .select("zadarma_sip_login")
-          .eq("id", user.id)
-          .single();
-        if (data?.zadarma_sip_login) {
-          setSipLogin(data.zadarma_sip_login);
-        }
-      } catch (e) {
-        console.error("[ZadarmaWidget] Nie udało się pobrać SIP login:", e);
-      }
-    })();
-  }, [user, isClient]);
-
-  // 2. Fetch WebRTC key from Edge Function
-  useEffect(() => {
-    if (!sipLogin) return;
-
-    (async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke(
-          "zadarma-webrtc-key",
-          { body: { sip: sipLogin } }
-        );
-
-        if (error) {
-          console.error("[ZadarmaWidget] Supabase invoke error:", error);
-          return;
-        }
-
-        if (data?.success && data?.key) {
-          setWebrtcKey(data.key);
-        } else {
-          console.error("[ZadarmaWidget] Nie udało się pobrać klucza WebRTC:", data);
-        }
-      } catch (e) {
-        console.error("[ZadarmaWidget] Błąd fetch WebRTC key:", e);
-      }
-    })();
-  }, [sipLogin]);
-
-  // 3. Load scripts & initialize widget
-  useEffect(() => {
-    if (!webrtcKey || !sipLogin || initialized.current) return;
+    if (!sipLogin || isClient || initialized.current) return;
 
     function loadScript(src: string): Promise<void> {
       return new Promise((resolve, reject) => {
         const existing = document.querySelector(`script[src="${src}"]`);
-        if (existing) {
-          resolve();
-          return;
-        }
+        if (existing) { resolve(); return; }
         const script = document.createElement("script");
         script.src = src;
         script.async = true;
@@ -92,12 +42,8 @@ export function ZadarmaWidget() {
 
     (async () => {
       try {
-        await loadScript(
-          "https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-lib.js?sub_v=1"
-        );
-        await loadScript(
-          "https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-fn.js?sub_v=1"
-        );
+        await loadScript("https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-lib.js?sub_v=1");
+        await loadScript("https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-fn.js?sub_v=1");
 
         await new Promise<void>((resolve) => {
           const check = () => {
@@ -108,7 +54,7 @@ export function ZadarmaWidget() {
         });
 
         window.zadarmaWidgetFn!(
-          webrtcKey,
+          ZADARMA_PUBLIC_KEY,
           sipLogin,
           "square",
           "pl",
@@ -120,7 +66,7 @@ export function ZadarmaWidget() {
         console.error("[ZadarmaWidget] Nie udało się załadować widgetu:", e);
       }
     })();
-  }, [webrtcKey, sipLogin]);
+  }, [sipLogin, isClient]);
 
   return null;
 }
