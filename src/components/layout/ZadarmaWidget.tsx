@@ -1,6 +1,4 @@
 import { useEffect, useRef } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { useRole } from "@/hooks/useRole";
 import { supabase } from "@/integrations/supabase/client";
 
 declare global {
@@ -16,18 +14,18 @@ declare global {
   }
 }
 
-export function ZadarmaWidget() {
-  const { profile, loading } = useAuth();
-  const { isClient } = useRole();
+interface ZadarmaWidgetProps {
+  sipLogin?: string | null;
+}
+
+export function ZadarmaWidget({ sipLogin }: ZadarmaWidgetProps) {
   const initialized = useRef(false);
 
-  const sipLogin = profile?.zadarma_sip_login;
-  const hasSip = typeof sipLogin === "string" && sipLogin.trim().length > 0;
-
   useEffect(() => {
-    if (loading || !hasSip || isClient || initialized.current) return;
+    if (!sipLogin || initialized.current) return;
 
-    const currentSip = sipLogin!.trim();
+    const currentSip = sipLogin.trim();
+    if (!currentSip) return;
 
     function loadScript(src: string): Promise<void> {
       return new Promise((resolve, reject) => {
@@ -44,24 +42,15 @@ export function ZadarmaWidget() {
 
     (async () => {
       try {
-        // 1. Pobierz dynamiczny klucz WebRTC z Edge Function
-        const { data, error } = await supabase.functions.invoke('zadarma-webrtc-key', {
-          body: { sip: currentSip }
-        });
+        const { data, error } = await supabase.functions.invoke('zadarma-webrtc-key');
 
-        if (error) {
-          console.error("[ZadarmaWidget] Edge Function error:", error);
+        if (error || !data || data.status === 'error' || !data.key) {
+          console.error("[ZadarmaWidget] Błąd pobierania klucza:", error || data);
           return;
         }
 
-        if (!data?.success || !data?.key) {
-          console.error("[ZadarmaWidget] Nie udało się pobrać klucza WebRTC:", data?.details || data?.error);
-          return;
-        }
+        const webrtcKey = data.key;
 
-        console.log("[ZadarmaWidget] Klucz WebRTC pobrany pomyślnie");
-
-        // 2. Załaduj skrypty Zadarmy dopiero po otrzymaniu klucza
         await loadScript("https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-lib.js?sub_v=1");
         await loadScript("https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-fn.js?sub_v=1");
 
@@ -73,9 +62,8 @@ export function ZadarmaWidget() {
           check();
         });
 
-        // 3. Inicjalizacja widgetu z dynamicznym kluczem
         window.zadarmaWidgetFn!(
-          data.key,
+          webrtcKey,
           currentSip,
           "square",
           "pl",
@@ -88,7 +76,7 @@ export function ZadarmaWidget() {
         console.error("[ZadarmaWidget] Błąd ładowania widgetu:", e);
       }
     })();
-  }, [loading, hasSip, sipLogin, isClient]);
+  }, [sipLogin]);
 
   return null;
 }
