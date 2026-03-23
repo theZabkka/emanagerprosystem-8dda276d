@@ -38,12 +38,12 @@ export function ZadarmaWidget() {
           setSipLogin(data.zadarma_sip_login);
         }
       } catch (e) {
-        console.warn("[ZadarmaWidget] Nie udało się pobrać SIP login:", e);
+        console.error("[ZadarmaWidget] Nie udało się pobrać SIP login:", e);
       }
     })();
   }, [user, isClient]);
 
-  // 2. Fetch WebRTC key from Edge Function — NEVER throw
+  // 2. Fetch WebRTC key from Edge Function
   useEffect(() => {
     if (!sipLogin) return;
 
@@ -59,23 +59,18 @@ export function ZadarmaWidget() {
           return;
         }
 
-        if (data?.error) {
-          console.error("[ZadarmaWidget] Zadarma API error:", data.message, data);
-          return;
-        }
-
-        if (data?.key) {
+        if (data?.success && data?.key) {
           setWebrtcKey(data.key);
         } else {
-          console.warn("[ZadarmaWidget] Brak klucza w odpowiedzi:", data);
+          console.error("[ZadarmaWidget] Nie udało się pobrać klucza WebRTC:", data);
         }
       } catch (e) {
-        console.error("[ZadarmaWidget] Nie udało się pobrać klucza WebRTC:", e);
+        console.error("[ZadarmaWidget] Błąd fetch WebRTC key:", e);
       }
     })();
   }, [sipLogin]);
 
-  // 3. Load scripts & initialize widget — NEVER throw
+  // 3. Load scripts & initialize widget
   useEffect(() => {
     if (!webrtcKey || !sipLogin || initialized.current) return;
 
