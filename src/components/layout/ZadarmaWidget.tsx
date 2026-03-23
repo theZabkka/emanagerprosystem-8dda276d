@@ -1,8 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
 
 declare global {
   interface Window {
@@ -21,8 +20,10 @@ export function ZadarmaWidget() {
   const { user } = useAuth();
   const { isClient } = useRole();
   const [sipLogin, setSipLogin] = useState<string | null>(null);
+  const [webrtcKey, setWebrtcKey] = useState<string | null>(null);
   const initialized = useRef(false);
 
+  // 1. Fetch SIP login from profile
   useEffect(() => {
     if (!user || isClient) return;
 
@@ -44,8 +45,41 @@ export function ZadarmaWidget() {
     fetchSip();
   }, [user, isClient]);
 
+  // 2. Fetch WebRTC key from Edge Function
   useEffect(() => {
-    if (!sipLogin || initialized.current) return;
+    if (!sipLogin) return;
+
+    async function fetchKey() {
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          "zadarma-webrtc-key",
+          { body: { sip: sipLogin } }
+        );
+
+        if (error) {
+          console.warn("[ZadarmaWidget] Edge Function error:", error);
+          return;
+        }
+
+        if (data?.error) {
+          console.warn("[ZadarmaWidget] Zadarma API error:", data.error, data);
+          return;
+        }
+
+        if (data?.key) {
+          setWebrtcKey(data.key);
+        }
+      } catch (e) {
+        console.warn("[ZadarmaWidget] Nie udało się pobrać klucza WebRTC:", e);
+      }
+    }
+
+    fetchKey();
+  }, [sipLogin]);
+
+  // 3. Load scripts & initialize widget
+  useEffect(() => {
+    if (!webrtcKey || !sipLogin || initialized.current) return;
 
     function loadScript(src: string): Promise<void> {
       return new Promise((resolve, reject) => {
@@ -72,22 +106,17 @@ export function ZadarmaWidget() {
           "https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-fn.js?sub_v=1"
         );
 
-        const waitForWidget = () =>
-          new Promise<void>((resolve) => {
-            const check = () => {
-              if (window.zadarmaWidgetFn) {
-                resolve();
-              } else {
-                setTimeout(check, 200);
-              }
-            };
-            check();
-          });
-
-        await waitForWidget();
+        // Wait for global function to be available
+        await new Promise<void>((resolve) => {
+          const check = () => {
+            if (window.zadarmaWidgetFn) resolve();
+            else setTimeout(check, 200);
+          };
+          check();
+        });
 
         window.zadarmaWidgetFn!(
-          "6abdee0bb08c787de712",
+          webrtcKey!,
           sipLogin!,
           "square",
           "pl",
@@ -96,12 +125,12 @@ export function ZadarmaWidget() {
         );
         initialized.current = true;
       } catch (e) {
-        console.warn("[ZadarmaWidget] Nie udało się załadować widgetu telefonu:", e);
+        console.warn("[ZadarmaWidget] Nie udało się załadować widgetu:", e);
       }
     }
 
     initWidget();
-  }, [sipLogin]);
+  }, [webrtcKey, sipLogin]);
 
   return null;
 }

@@ -944,25 +944,33 @@ supabase/
 - Komponent UI: `SipLoginManager` (`src/components/settings/SipLoginManager.tsx`)
 
 ### Edge Function: `zadarma-webrtc-key`
-- **Cel**: Generowanie tymczasowego klucza WebRTC do widgetu telefonu
+- **Cel**: Generowanie tymczasowego klucza WebRTC wymaganego przez API Zadarma do inicjalizacji widgetu telefonu
 - **Endpoint**: `POST/GET` z wymaganą autoryzacją JWT
+- **Algorytm podpisu** (node:crypto — HMAC-SHA1 + MD5):
+  1. `paramsString` = `URLSearchParams({ sip }).toString()`
+  2. `md5Hash` = `createHash('md5').update(paramsString).digest('hex')`
+  3. `dataToSign` = `'/v1/webrtc/get_key/' + paramsString + md5Hash`
+  4. `signature` = `createHmac('sha1', ZADARMA_API_SECRET).update(dataToSign).digest('base64')`
+  5. `Authorization` header = `ZADARMA_API_KEY:signature`
 - **Przepływ**:
   1. Weryfikacja tokenu JWT (tylko zalogowani użytkownicy)
-  2. Budowanie podpisu Zadarma API (HMAC-SHA1 + MD5) z `ZADARMA_API_KEY` i `ZADARMA_API_SECRET`
-  3. Wywołanie `GET /v1/webrtc/get_key` do API Zadarma
-  4. Zwrot klucza `webrtc_key` na frontend
-- **Sekrety**: Używa istniejących `ZADARMA_API_KEY` i `ZADARMA_API_SECRET`
+  2. Budowanie podpisu Zadarma API wg algorytmu powyżej
+  3. `GET https://api.zadarma.com/v1/webrtc/get_key/?sip=...`
+  4. Zwrot klucza `key` na frontend (lub strukturalny błąd JSON z CORS headers)
+- **Sekrety**: `ZADARMA_API_KEY`, `ZADARMA_API_SECRET`
+- **CORS**: Każda odpowiedź (w tym błędy) zawiera nagłówki CORS
 
 ### Komponent React: `ZadarmaWidget`
 - Plik: `src/components/layout/ZadarmaWidget.tsx`
 - Montowany w `AppLayout` — widoczny tylko dla użytkowników staff (nie klientów)
-- **Logika inicjalizacji**:
-  1. Sprawdza pole `zadarma_sip_login` w profilu użytkownika — jeśli puste, widget się nie renderuje
-  2. Wywołuje Edge Function `zadarma-webrtc-key` aby pobrać tymczasowy klucz
-  3. Dynamicznie ładuje skrypty Zadarma do `document.head`:
+- **Logika inicjalizacji** (3 etapy):
+  1. Pobiera `zadarma_sip_login` z profilu użytkownika — jeśli puste, widget się nie renderuje
+  2. Wywołuje Edge Function `zadarma-webrtc-key` z parametrem `sip` aby pobrać tymczasowy klucz WebRTC
+  3. Po uzyskaniu klucza dynamicznie ładuje skrypty Zadarma do `document.body`:
      - `loader-phone-lib.js` (biblioteka WebRTC)
      - `loader-phone-fn.js` (funkcje widgetu)
-  4. Inicjalizuje `zadarmaWidgetFn(key, sip, 'square', 'pl')`
+  4. Inicjalizuje `zadarmaWidgetFn(webrtcKey, sip, 'square', 'pl', true, {right:'10px', bottom:'5px'})`
+- Pełna izolacja błędów — try/catch na każdym etapie, brak crashu aplikacji
 - Widget renderuje się sam przez skrypty Zadarma — komponent React zwraca `null`
 
 ---
