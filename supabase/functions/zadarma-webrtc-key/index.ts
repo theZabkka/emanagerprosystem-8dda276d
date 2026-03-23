@@ -7,9 +7,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-function jsonResponse(payload: unknown, status = 200) {
+function jsonOk(payload: unknown) {
   return new Response(JSON.stringify(payload), {
-    status,
+    status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
@@ -20,9 +20,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // --- Auth ---
+    // --- Auth via getClaims ---
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return jsonResponse({ error: "Brak autoryzacji" }, 401);
+    if (!authHeader?.startsWith("Bearer ")) {
+      return jsonOk({ error: true, message: "Brak autoryzacji" });
+    }
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -30,42 +32,37 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } },
     );
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
-      return jsonResponse({ error: "Nieprawidłowy token" }, 401);
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } =
+      await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return jsonOk({ error: true, message: "Nieprawidłowy token" });
     }
 
-    // --- Read sip from body (POST) or query (GET) ---
+    // --- Read sip from POST body ---
     let sip = "";
-    if (req.method === "POST") {
-      try {
-        const body = await req.json();
-        sip = (body?.sip ?? "").toString().trim();
-      } catch {
-        return jsonResponse({ error: "Nieprawidłowe body JSON" }, 400);
-      }
-    } else {
-      sip = new URL(req.url).searchParams.get("sip")?.trim() ?? "";
+    try {
+      const body = await req.json();
+      sip = (body?.sip ?? "").toString().trim();
+    } catch {
+      return jsonOk({ error: true, message: "Nieprawidłowe body JSON" });
     }
 
     if (!sip) {
-      return jsonResponse({ error: "Missing sip parameter" }, 400);
+      return jsonOk({ error: true, message: "Missing sip parameter" });
     }
 
     // --- Zadarma credentials ---
     const apiKey = Deno.env.get("ZADARMA_API_KEY");
     const apiSecret = Deno.env.get("ZADARMA_API_SECRET");
     if (!apiKey || !apiSecret) {
-      return jsonResponse({ error: "Brak kluczy Zadarma" }, 500);
+      return jsonOk({ error: true, message: "Brak kluczy Zadarma na serwerze" });
     }
 
     // --- Build Zadarma signature (node:crypto) ---
     const apiPath = "/v1/webrtc/get_key/";
     const params = new URLSearchParams({ sip });
-    const paramsString = params.toString(); // "sip=504768-100"
+    const paramsString = params.toString();
 
     const md5Hash = createHash("md5").update(paramsString).digest("hex");
     const dataToSign = apiPath + paramsString + md5Hash;
@@ -83,12 +80,14 @@ Deno.serve(async (req) => {
         headers: { Authorization: `${apiKey}:${signature}` },
       });
     } catch (fetchErr) {
-      return jsonResponse(
-        { error: "Zadarma API unreachable", details: String(fetchErr) },
-        502,
-      );
+      return jsonOk({
+        error: true,
+        message: "Zadarma API unreachable",
+        details: String(fetchErr),
+      });
     }
 
+    // Always read response body safely
     const responseText = await zadarmaResponse.text();
     let responseData: any = null;
     try {
@@ -97,33 +96,28 @@ Deno.serve(async (req) => {
       responseData = { raw: responseText };
     }
 
+    // Non-200 from Zadarma — return as normal JSON (status 200) so frontend doesn't crash
     if (!zadarmaResponse.ok) {
-      return jsonResponse(
-        {
-          error: "Zadarma API error",
-          status: zadarmaResponse.status,
-          zadarma: responseData,
-        },
-        zadarmaResponse.status >= 400 && zadarmaResponse.status < 600
-          ? zadarmaResponse.status
-          : 502,
-      );
+      return jsonOk({
+        error: true,
+        message: "Zadarma API error",
+        zadarma_status: zadarmaResponse.status,
+        zadarma: responseData,
+      });
     }
 
     if (responseData?.status !== "success" || !responseData?.key) {
-      return jsonResponse(
-        {
-          error: responseData?.message || "Błąd API Zadarma",
-          zadarma_status: responseData?.status ?? "unknown",
-          zadarma: responseData,
-        },
-        400,
-      );
+      return jsonOk({
+        error: true,
+        message: responseData?.message || "Błąd API Zadarma",
+        zadarma: responseData,
+      });
     }
 
-    return jsonResponse({ key: responseData.key });
+    // Success
+    return jsonOk({ key: responseData.key });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    return jsonResponse({ error: message }, 500);
+    return jsonOk({ error: true, message });
   }
 });
