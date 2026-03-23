@@ -4,9 +4,15 @@ import { encodeHex } from "https://deno.land/std@0.224.0/encoding/hex.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+function jsonResponse(payload: unknown, status = 200) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -14,9 +20,13 @@ Deno.serve(async (req) => {
   }
 
   try {
+    if (req.method !== "POST" && req.method !== "GET") {
+      return jsonResponse({ error: "Method not allowed" }, 405);
+    }
+
     // Verify JWT — only authenticated users
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Brak autoryzacji");
+    if (!authHeader) return jsonResponse({ error: "Brak autoryzacji" }, 401);
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -26,24 +36,46 @@ Deno.serve(async (req) => {
 
     const {
       data: { user },
+      error: userError,
     } = await supabaseClient.auth.getUser();
-    if (!user) throw new Error("Nieprawidłowy token");
+    if (userError || !user) {
+      return jsonResponse({ error: "Nieprawidłowy token" }, 401);
+    }
+
+    // Read sip parameter (POST body preferred, GET query fallback)
+    let sip = "";
+    if (req.method === "POST") {
+      let body: { sip?: string } | null = null;
+      try {
+        body = await req.json();
+      } catch {
+        return jsonResponse({ error: "Nieprawidłowe body JSON" }, 400);
+      }
+      sip = (body?.sip ?? "").toString().trim();
+    } else {
+      sip = new URL(req.url).searchParams.get("sip")?.trim() ?? "";
+    }
+
+    if (!sip) {
+      return jsonResponse({ error: "Missing sip parameter" }, 400);
+    }
 
     // Build Zadarma API request for /v1/webrtc/get_key
     const apiKey = Deno.env.get("ZADARMA_API_KEY");
     const apiSecret = Deno.env.get("ZADARMA_API_SECRET");
-    if (!apiKey || !apiSecret) throw new Error("Brak kluczy Zadarma");
+    if (!apiKey || !apiSecret) {
+      return jsonResponse({ error: "Brak kluczy Zadarma" }, 500);
+    }
 
     const apiPath = "/v1/webrtc/get_key/";
+    const paramsStr = new URLSearchParams({ sip }).toString();
 
-    // Zadarma auth: sort params, md5, hmac-sha1
-    // For GET with no params, paramsStr is empty
-    const paramsStr = "";
+    // Zadarma auth: md5(paramsString) + HMAC-SHA1 + base64
     const md5Hash = encodeHex(
       new Uint8Array(await stdCrypto.subtle.digest("MD5", new TextEncoder().encode(paramsStr)))
     );
 
-    const signData = apiPath + paramsStr + md5Hash;
+    const dataToSign = `${apiPath}${paramsStr}${md5Hash}`;
     const key = await crypto.subtle.importKey(
       "raw",
       new TextEncoder().encode(apiSecret),
@@ -51,61 +83,65 @@ Deno.serve(async (req) => {
       false,
       ["sign"]
     );
-    const sig = await crypto.subtle.sign(
+    const signatureBuffer = await crypto.subtle.sign(
       "HMAC",
       key,
-      new TextEncoder().encode(signData)
+      new TextEncoder().encode(dataToSign)
     );
-    // Zadarma expects base64(hex(hmac_sha1)), not base64(binary(hmac_sha1))
-    const hmacHex = encodeHex(new Uint8Array(sig));
-    const signature = btoa(hmacHex);
+    const signature = btoa(String.fromCharCode(...new Uint8Array(signatureBuffer)));
 
     const authHeaderValue = `${apiKey}:${signature}`;
+    const requestUrl = `https://api.zadarma.com${apiPath}?${paramsStr}`;
 
-    let response: Response;
+    let zadarmaResponse: Response;
     try {
-      response = await fetch(
-        `https://api.zadarma.com${apiPath}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: authHeaderValue,
-          },
-        }
-      );
+      zadarmaResponse = await fetch(requestUrl, {
+        method: "GET",
+        headers: {
+          Authorization: authHeaderValue,
+        },
+      });
     } catch (fetchErr) {
-      return new Response(
-        JSON.stringify({ error: "Zadarma API unreachable", details: String(fetchErr) }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      return jsonResponse(
+        { error: "Zadarma API unreachable", details: String(fetchErr) },
+        502
       );
     }
 
-    if (!response.ok) {
-      return new Response(
-        JSON.stringify({ error: "Zadarma API error", status: response.status }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    const responseText = await zadarmaResponse.text();
+    let responseData: any = null;
+    try {
+      responseData = responseText ? JSON.parse(responseText) : null;
+    } catch {
+      responseData = { raw: responseText };
+    }
+
+    if (!zadarmaResponse.ok) {
+      return jsonResponse(
+        {
+          error: "Zadarma API error",
+          status: zadarmaResponse.status,
+          zadarma: responseData,
+        },
+        zadarmaResponse.status
       );
     }
 
-    const data = await response.json();
-
-    if (data.status !== "success") {
-      return new Response(
-        JSON.stringify({ error: data.message || "Błąd API Zadarma", zadarma_status: data.status }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    if (responseData?.status !== "success" || !responseData?.key) {
+      return jsonResponse(
+        {
+          error: responseData?.message || "Błąd API Zadarma",
+          status: zadarmaResponse.status,
+          zadarma_status: responseData?.status ?? "unknown",
+          zadarma: responseData,
+        },
+        400
       );
     }
 
-    return new Response(JSON.stringify({ key: data.key }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ key: responseData.key });
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return jsonResponse({ error: message }, 500);
   }
 });
