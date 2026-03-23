@@ -1,10 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { crypto as stdCrypto } from "https://deno.land/std@0.224.0/crypto/mod.ts";
-import { encodeHex } from "https://deno.land/std@0.224.0/encoding/hex.ts";
+import { createHash, createHmac } from "node:crypto";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 function jsonResponse(payload: unknown, status = 200) {
@@ -20,18 +20,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    if (req.method !== "POST" && req.method !== "GET") {
-      return jsonResponse({ error: "Method not allowed" }, 405);
-    }
-
-    // Verify JWT — only authenticated users
+    // --- Auth ---
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return jsonResponse({ error: "Brak autoryzacji" }, 401);
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
 
     const {
@@ -42,16 +38,15 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Nieprawidłowy token" }, 401);
     }
 
-    // Read sip parameter (POST body preferred, GET query fallback)
+    // --- Read sip from body (POST) or query (GET) ---
     let sip = "";
     if (req.method === "POST") {
-      let body: { sip?: string } | null = null;
       try {
-        body = await req.json();
+        const body = await req.json();
+        sip = (body?.sip ?? "").toString().trim();
       } catch {
         return jsonResponse({ error: "Nieprawidłowe body JSON" }, 400);
       }
-      sip = (body?.sip ?? "").toString().trim();
     } else {
       sip = new URL(req.url).searchParams.get("sip")?.trim() ?? "";
     }
@@ -60,51 +55,37 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Missing sip parameter" }, 400);
     }
 
-    // Build Zadarma API request for /v1/webrtc/get_key
+    // --- Zadarma credentials ---
     const apiKey = Deno.env.get("ZADARMA_API_KEY");
     const apiSecret = Deno.env.get("ZADARMA_API_SECRET");
     if (!apiKey || !apiSecret) {
       return jsonResponse({ error: "Brak kluczy Zadarma" }, 500);
     }
 
+    // --- Build Zadarma signature (node:crypto) ---
     const apiPath = "/v1/webrtc/get_key/";
-    const paramsStr = new URLSearchParams({ sip }).toString();
+    const params = new URLSearchParams({ sip });
+    const paramsString = params.toString(); // "sip=504768-100"
 
-    // Zadarma auth: md5(paramsString) + HMAC-SHA1 + base64
-    const md5Hash = encodeHex(
-      new Uint8Array(await stdCrypto.subtle.digest("MD5", new TextEncoder().encode(paramsStr)))
-    );
+    const md5Hash = createHash("md5").update(paramsString).digest("hex");
+    const dataToSign = apiPath + paramsString + md5Hash;
+    const signature = createHmac("sha1", apiSecret)
+      .update(dataToSign)
+      .digest("base64");
 
-    const dataToSign = `${apiPath}${paramsStr}${md5Hash}`;
-    const key = await crypto.subtle.importKey(
-      "raw",
-      new TextEncoder().encode(apiSecret),
-      { name: "HMAC", hash: "SHA-1" },
-      false,
-      ["sign"]
-    );
-    const signatureBuffer = await crypto.subtle.sign(
-      "HMAC",
-      key,
-      new TextEncoder().encode(dataToSign)
-    );
-    const signature = btoa(String.fromCharCode(...new Uint8Array(signatureBuffer)));
+    const requestUrl = `https://api.zadarma.com${apiPath}?${paramsString}`;
 
-    const authHeaderValue = `${apiKey}:${signature}`;
-    const requestUrl = `https://api.zadarma.com${apiPath}?${paramsStr}`;
-
+    // --- Call Zadarma API ---
     let zadarmaResponse: Response;
     try {
       zadarmaResponse = await fetch(requestUrl, {
         method: "GET",
-        headers: {
-          Authorization: authHeaderValue,
-        },
+        headers: { Authorization: `${apiKey}:${signature}` },
       });
     } catch (fetchErr) {
       return jsonResponse(
         { error: "Zadarma API unreachable", details: String(fetchErr) },
-        502
+        502,
       );
     }
 
@@ -123,7 +104,9 @@ Deno.serve(async (req) => {
           status: zadarmaResponse.status,
           zadarma: responseData,
         },
-        zadarmaResponse.status
+        zadarmaResponse.status >= 400 && zadarmaResponse.status < 600
+          ? zadarmaResponse.status
+          : 502,
       );
     }
 
@@ -131,11 +114,10 @@ Deno.serve(async (req) => {
       return jsonResponse(
         {
           error: responseData?.message || "Błąd API Zadarma",
-          status: zadarmaResponse.status,
           zadarma_status: responseData?.status ?? "unknown",
           zadarma: responseData,
         },
-        400
+        400,
       );
     }
 
