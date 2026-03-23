@@ -56,7 +56,9 @@ Deno.serve(async (req) => {
       key,
       new TextEncoder().encode(signData)
     );
-    const signature = btoa(String.fromCharCode(...new Uint8Array(sig)));
+    // Zadarma expects base64(hex(hmac_sha1)), not base64(binary(hmac_sha1))
+    const hmacHex = encodeHex(new Uint8Array(sig));
+    const signature = btoa(hmacHex);
 
     const authHeaderValue = `${apiKey}:${signature}`;
 
@@ -76,7 +78,7 @@ Deno.serve(async (req) => {
       throw new Error(data.message || "Błąd API Zadarma");
     }
 
-    return new Response(JSON.stringify({ key: data.webrtc_key }), {
+    return new Response(JSON.stringify({ key: data.key }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
