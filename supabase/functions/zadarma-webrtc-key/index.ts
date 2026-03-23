@@ -56,7 +56,9 @@ Deno.serve(async (req) => {
       key,
       new TextEncoder().encode(signData)
     );
-    const signature = btoa(String.fromCharCode(...new Uint8Array(sig)));
+    // Zadarma expects base64(hex(hmac_sha1)), not base64(binary(hmac_sha1))
+    const hmacHex = encodeHex(new Uint8Array(sig));
+    const signature = btoa(hmacHex);
 
     const authHeaderValue = `${apiKey}:${signature}`;
 
