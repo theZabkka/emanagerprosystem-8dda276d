@@ -10,6 +10,7 @@ interface ProfileData {
   avatar_url: string | null;
   department: string | null;
   client_id: string | null;
+  zadarma_sip_login: string | null;
 }
 
 interface AuthContextType {
