@@ -323,7 +323,15 @@ export default function Settings() {
 
             <Separator className="my-2" />
 
-            {/* Security */}
+            {/* VoIP / Zadarma */}
+            {(currentRole === "superadmin" || currentRole === "boss") && (
+              <>
+                <SectionHeader icon={Phone} title="VoIP — Zadarma" />
+                <SipLoginManager />
+              </>
+            )}
+
+            <Separator className="my-2" />
             <SectionHeader icon={Shield} title="Bezpieczeństwo" />
             <SettingRow label="Timeout sesji" description="Automatyczne wylogowanie po braku aktywności">
               <div className="flex items-center gap-2">
