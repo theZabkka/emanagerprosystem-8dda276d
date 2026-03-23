@@ -952,6 +952,7 @@ export type Database = {
           role: string | null
           status: string | null
           website: string | null
+          zadarma_sip_login: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -966,6 +967,7 @@ export type Database = {
           role?: string | null
           status?: string | null
           website?: string | null
+          zadarma_sip_login?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -980,6 +982,7 @@ export type Database = {
           role?: string | null
           status?: string | null
           website?: string | null
+          zadarma_sip_login?: string | null
         }
         Relationships: [
           {

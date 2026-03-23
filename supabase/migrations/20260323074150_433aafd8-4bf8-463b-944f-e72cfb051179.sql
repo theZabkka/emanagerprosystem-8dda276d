@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS zadarma_sip_login TEXT DEFAULT NULL;
