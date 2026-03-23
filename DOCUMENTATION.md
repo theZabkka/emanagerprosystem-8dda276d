@@ -935,4 +935,36 @@ supabase/
 
 ---
 
+## Moduł VoIP — WebRTC Widget (Telefon w przeglądarce) (2026-03-23)
+
+### Kolumna `zadarma_sip_login` w tabeli `profiles`
+- Typ: `TEXT`, nullable
+- Przechowuje wewnętrzny numer SIP pracownika z centrali PBX Zadarma (np. "100", "101")
+- Edycja dostępna w **Ustawienia → VoIP — Zadarma** (tylko dla ról `superadmin` i `boss`)
+- Komponent UI: `SipLoginManager` (`src/components/settings/SipLoginManager.tsx`)
+
+### Edge Function: `zadarma-webrtc-key`
+- **Cel**: Generowanie tymczasowego klucza WebRTC do widgetu telefonu
+- **Endpoint**: `POST/GET` z wymaganą autoryzacją JWT
+- **Przepływ**:
+  1. Weryfikacja tokenu JWT (tylko zalogowani użytkownicy)
+  2. Budowanie podpisu Zadarma API (HMAC-SHA1 + MD5) z `ZADARMA_API_KEY` i `ZADARMA_API_SECRET`
+  3. Wywołanie `GET /v1/webrtc/get_key` do API Zadarma
+  4. Zwrot klucza `webrtc_key` na frontend
+- **Sekrety**: Używa istniejących `ZADARMA_API_KEY` i `ZADARMA_API_SECRET`
+
+### Komponent React: `ZadarmaWidget`
+- Plik: `src/components/layout/ZadarmaWidget.tsx`
+- Montowany w `AppLayout` — widoczny tylko dla użytkowników staff (nie klientów)
+- **Logika inicjalizacji**:
+  1. Sprawdza pole `zadarma_sip_login` w profilu użytkownika — jeśli puste, widget się nie renderuje
+  2. Wywołuje Edge Function `zadarma-webrtc-key` aby pobrać tymczasowy klucz
+  3. Dynamicznie ładuje skrypty Zadarma do `document.head`:
+     - `loader-phone-lib.js` (biblioteka WebRTC)
+     - `loader-phone-fn.js` (funkcje widgetu)
+  4. Inicjalizuje `zadarmaWidgetFn(key, sip, 'square', 'pl')`
+- Widget renderuje się sam przez skrypty Zadarma — komponent React zwraca `null`
+
+---
+
 *Koniec dokumentacji. Pamiętaj o ZŁOTEJ ZASADZIE — aktualizuj ten plik po każdej zmianie kodu!*
