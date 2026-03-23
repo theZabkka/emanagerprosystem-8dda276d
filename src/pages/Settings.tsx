@@ -38,6 +38,7 @@ function SettingRow({ label, description, children }: { label: string; descripti
 
 export default function Settings() {
   const { profile, user } = useAuth();
+  const { currentRole } = useRole();
   // Appearance
   const [theme, setTheme] = useState("system");
   const [compactSidebar, setCompactSidebar] = useState(false);
