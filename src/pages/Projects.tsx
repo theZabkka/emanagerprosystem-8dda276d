@@ -20,7 +20,8 @@ const statusColors: Record<string, string> = {
 export default function Projects() {
   const navigate = useNavigate();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const { isAdmin } = useRole();
+  const { currentRole } = useRole();
+  const canArchive = ["superadmin", "boss", "koordynator"].includes(currentRole);
 
   const { data: projects, isLoading, refetch } = useQuery({
     queryKey: ["projects"],
