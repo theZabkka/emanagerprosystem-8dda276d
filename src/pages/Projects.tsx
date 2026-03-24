@@ -67,7 +67,7 @@ export default function Projects() {
                 <TableHead>Status</TableHead>
                 <TableHead>Manager</TableHead>
                 <TableHead>Utworzono</TableHead>
-                {isAdmin && <TableHead className="w-[80px]"></TableHead>}
+                {canArchive && <TableHead className="w-[80px]"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -90,7 +90,7 @@ export default function Projects() {
                     </TableCell>
                     <TableCell className="text-sm">{p.profiles?.full_name || "—"}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{new Date(p.created_at).toLocaleDateString("pl-PL")}</TableCell>
-                    {isAdmin && (
+                    {canArchive && (
                       <TableCell>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={(e) => handleArchive(e, p.id, p.name)} title="Archiwizuj">
                           <Archive className="h-4 w-4" />
