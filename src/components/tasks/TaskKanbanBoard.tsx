@@ -7,13 +7,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { Clock, UserPlus, Archive } from "lucide-react";
+import { Clock, UserPlus, Archive, GripVertical } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { toast } from "sonner";
 import { ChecklistBlockModal, ResponsibilityModal } from "./WorkflowModals";
 import { compareRanks, generateMidpointRank, generateRankAfter, generateRankBefore } from "@/lib/lexoRank";
+import { sortTasks, type SortField, type SortDirection } from "@/lib/taskSorting";
 
 const KANBAN_COLUMNS = [
   { key: "todo", label: "DO ZROBIENIA" },
