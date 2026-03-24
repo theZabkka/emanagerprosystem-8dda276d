@@ -7,6 +7,7 @@
 const MIN_CHAR = 'A'; // ASCII 65
 const MAX_CHAR = 'z'; // ASCII 122
 const MID_CHAR = 'U'; // roughly midpoint
+const FLOOR_CHAR = '!'; // ASCII 33 — absolute floor for getBeforeRank
 
 /**
  * Returns a string that sorts between `a` and `b`.
@@ -24,7 +25,8 @@ export function getMidpointRank(a?: string | null, b?: string | null): string {
 
 /** Returns a rank that sorts before `rank` */
 export function getBeforeRank(rank: string): string {
-  return midpoint(MIN_CHAR, rank);
+  // Use FLOOR_CHAR ('!') as lower bound so we can always go below any rank starting with 'A'
+  return midpoint(FLOOR_CHAR, rank);
 }
 
 /** Returns a rank that sorts after `rank` */
