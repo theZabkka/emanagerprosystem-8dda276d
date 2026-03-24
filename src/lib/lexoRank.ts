@@ -9,6 +9,14 @@ const MAX_CHAR = 'z'; // ASCII 122
 const MID_CHAR = 'U'; // roughly midpoint
 const FLOOR_CHAR = '!'; // ASCII 33 — absolute floor for getBeforeRank
 
+/** Stable ASCII comparator for rank strings (avoid locale-dependent ordering). */
+export function compareRanks(a?: string | null, b?: string | null): number {
+  const left = a ?? MID_CHAR;
+  const right = b ?? MID_CHAR;
+  if (left === right) return 0;
+  return left < right ? -1 : 1;
+}
+
 /**
  * Returns a string that sorts between `a` and `b`.
  * - If both null/undefined: returns midpoint
@@ -32,6 +40,21 @@ export function getBeforeRank(rank: string): string {
 /** Returns a rank that sorts after `rank` */
 export function getAfterRank(rank: string): string {
   return midpoint(rank, MAX_CHAR.repeat(rank.length));
+}
+
+/** Alias used by DnD handlers: generate rank before current top item. */
+export function generateRankBefore(currentTopRank: string): string {
+  return getBeforeRank(currentTopRank);
+}
+
+/** Alias used by DnD handlers: generate rank after current last item. */
+export function generateRankAfter(currentBottomRank: string): string {
+  return getAfterRank(currentBottomRank);
+}
+
+/** Alias used by DnD handlers: generate midpoint rank between neighbors. */
+export function generateMidpointRank(rankAbove?: string | null, rankBelow?: string | null): string {
+  return getMidpointRank(rankAbove, rankBelow);
 }
 
 /** Generate an initial rank for position `index` in a list of `total` items */
