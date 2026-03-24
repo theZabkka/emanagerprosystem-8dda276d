@@ -10,7 +10,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import CreateProjectDialog from "@/components/projects/CreateProjectDialog";
 import { toast } from "sonner";
-import { useRole } from "@/hooks/useRole";
+import { useRole, STAFF_ROLES } from "@/hooks/useRole";
 
 const statusColors: Record<string, string> = {
   active: "bg-success/15 text-foreground", completed: "bg-muted text-muted-foreground",
