@@ -1,7 +1,8 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, LayoutGrid, List, Layers, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Plus, Search, LayoutGrid, List, Layers, ArrowUpDown, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
 
 const priorityLabels: Record<string, string> = { critical: "Pilny", high: "Wysoki", medium: "Średni", low: "Niski" };
 
@@ -81,6 +82,22 @@ export function TaskFilters({
               ))}
             </SelectContent>
           </Select>
+
+          {viewMode === "kanban" && sortField !== "manual" && (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1 text-[11px] text-muted-foreground px-2 h-9 border border-dashed border-muted-foreground/30 rounded-md bg-muted/30">
+                    <GripVertical className="h-3 w-3" />
+                    <span>D&D wyłączony</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs max-w-[200px]">
+                  Przeciąganie kart jest dostępne tylko w trybie sortowania „Ręczne"
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
 
           {sortField !== "manual" && (
             <button

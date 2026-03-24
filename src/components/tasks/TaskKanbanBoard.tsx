@@ -7,13 +7,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { Clock, UserPlus, Archive } from "lucide-react";
+import { Clock, UserPlus, Archive, GripVertical } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { toast } from "sonner";
 import { ChecklistBlockModal, ResponsibilityModal } from "./WorkflowModals";
 import { compareRanks, generateMidpointRank, generateRankAfter, generateRankBefore } from "@/lib/lexoRank";
+import { sortTasks } from "@/lib/taskSorting";
+import type { SortField, SortDirection } from "@/components/tasks/TaskFilters";
 
 const KANBAN_COLUMNS = [
   { key: "todo", label: "DO ZROBIENIA" },
@@ -46,12 +48,15 @@ interface TaskKanbanBoardProps {
   onArchive?: (taskId: string) => void;
   onRefresh?: () => void;
   onLexoRankUpdate?: (taskId: string, newRank: string) => void;
+  sortField?: SortField;
+  sortDirection?: SortDirection;
 }
 
 export default function TaskKanbanBoard({
   tasks, profiles, assignments, clients, onStatusChange, onArchive, onRefresh,
-  onLexoRankUpdate,
+  onLexoRankUpdate, sortField = "manual", sortDirection = "asc",
 }: TaskKanbanBoardProps) {
+  const isDragEnabled = sortField === "manual";
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
   const [responsibilityOpen, setResponsibilityOpen] = useState(false);
   const [pendingMove, setPendingMove] = useState<{ taskId: string; newStatus: string } | null>(null);
@@ -160,7 +165,8 @@ export default function TaskKanbanBoard({
     onStatusChange(taskId, newStatus);
   };
 
-  const tasksByColumn = useMemo(() => {
+  // Source of truth: always sorted by lexo_rank (never mutated)
+  const tasksByColumnRaw = useMemo(() => {
     const grouped: Record<string, any[]> = {};
     KANBAN_COLUMNS.forEach((col) => {
       grouped[col.key] = [];
@@ -172,6 +178,7 @@ export default function TaskKanbanBoard({
       }
     });
 
+    // Always sort source of truth by lexo_rank
     KANBAN_COLUMNS.forEach((col) => {
       grouped[col.key].sort((a: any, b: any) => compareRanks(a.lexo_rank, b.lexo_rank));
     });
@@ -179,11 +186,23 @@ export default function TaskKanbanBoard({
     return grouped;
   }, [optimisticTasks]);
 
+  // Derived state: sorted copy for display based on current sortField
+  const tasksByColumn = useMemo(() => {
+    if (sortField === "manual") return tasksByColumnRaw;
+
+    const derived: Record<string, any[]> = {};
+    KANBAN_COLUMNS.forEach((col) => {
+      derived[col.key] = sortTasks([...tasksByColumnRaw[col.key]], sortField, sortDirection);
+    });
+    return derived;
+  }, [tasksByColumnRaw, sortField, sortDirection]);
+
   const getColumnTasks = useCallback((columnKey: string) => {
     return tasksByColumn[columnKey] || [];
   }, [tasksByColumn]);
 
   const handleDragEnd = (result: DropResult) => {
+    if (!isDragEnabled) return;
     if (!result.destination) return;
 
     const { source, destination, draggableId } = result;
@@ -291,13 +310,13 @@ export default function TaskKanbanBoard({
                             const isUnassigned = taskAssignees.length === 0;
 
                             return (
-                              <Draggable key={task.id} draggableId={task.id} index={index}>
+                              <Draggable key={task.id} draggableId={task.id} index={index} isDragDisabled={!isDragEnabled}>
                                 {(provided, snapshot) => (
                                   <div
                                     ref={provided.innerRef}
                                     {...provided.draggableProps}
-                                    {...provided.dragHandleProps}
-                                    className={`rounded-lg border shadow-sm transition-shadow ${isUnassigned ? "bg-destructive/15 border-destructive/50 ring-2 ring-destructive/30" : (task as any).is_misunderstood ? "bg-amber-500/10 border-amber-500/30 ring-2 ring-amber-500/30" : "bg-card"} ${task.not_understood && !(task as any).is_misunderstood ? "ring-2 ring-amber-500/50 border-amber-500/30" : ""} ${task.correction_severity === "critical" ? "ring-2 ring-destructive/50" : ""} ${snapshot.isDragging ? "shadow-lg ring-2 ring-destructive/20" : "hover:shadow-md"}`}
+                                    {...(isDragEnabled ? provided.dragHandleProps : {})}
+                                    className={`rounded-lg border shadow-sm transition-shadow ${!isDragEnabled ? "cursor-default" : ""} ${isUnassigned ? "bg-destructive/15 border-destructive/50 ring-2 ring-destructive/30" : (task as any).is_misunderstood ? "bg-amber-500/10 border-amber-500/30 ring-2 ring-amber-500/30" : "bg-card"} ${task.not_understood && !(task as any).is_misunderstood ? "ring-2 ring-amber-500/50 border-amber-500/30" : ""} ${task.correction_severity === "critical" ? "ring-2 ring-destructive/50" : ""} ${snapshot.isDragging ? "shadow-lg ring-2 ring-destructive/20" : "hover:shadow-md"}`}
                                   >
                                     <Link to={`/tasks/${task.id}`} className="block px-2 pt-1.5 pb-1">
                                       {/* Row 1: Title (left) + Priority+Date (right) */}
