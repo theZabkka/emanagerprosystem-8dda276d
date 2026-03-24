@@ -341,13 +341,13 @@ export default function TaskKanbanBoard({
                             const isUnassigned = taskAssignees.length === 0;
 
                             return (
-                              <Draggable key={task.id} draggableId={task.id} index={index} isDragDisabled={!isDragEnabled}>
+                              <Draggable key={task.id} draggableId={task.id} index={index}>
                                 {(provided, snapshot) => (
                                   <div
                                     ref={provided.innerRef}
                                     {...provided.draggableProps}
-                                    {...(isDragEnabled ? provided.dragHandleProps : {})}
-                                    className={`rounded-lg border shadow-sm transition-shadow ${!isDragEnabled ? "cursor-default" : ""} ${isUnassigned ? "bg-destructive/15 border-destructive/50 ring-2 ring-destructive/30" : (task as any).is_misunderstood ? "bg-amber-500/10 border-amber-500/30 ring-2 ring-amber-500/30" : "bg-card"} ${task.not_understood && !(task as any).is_misunderstood ? "ring-2 ring-amber-500/50 border-amber-500/30" : ""} ${task.correction_severity === "critical" ? "ring-2 ring-destructive/50" : ""} ${snapshot.isDragging ? "shadow-lg ring-2 ring-destructive/20" : "hover:shadow-md"}`}
+                                    {...provided.dragHandleProps}
+                                    className={`rounded-lg border shadow-sm transition-shadow ${isUnassigned ? "bg-destructive/15 border-destructive/50 ring-2 ring-destructive/30" : (task as any).is_misunderstood ? "bg-amber-500/10 border-amber-500/30 ring-2 ring-amber-500/30" : "bg-card"} ${task.not_understood && !(task as any).is_misunderstood ? "ring-2 ring-amber-500/50 border-amber-500/30" : ""} ${task.correction_severity === "critical" ? "ring-2 ring-destructive/50" : ""} ${snapshot.isDragging ? "shadow-lg ring-2 ring-destructive/20" : "hover:shadow-md"}`}
                                   >
                                     <Link to={`/tasks/${task.id}`} className="block px-2 pt-1.5 pb-1">
                                       {/* Row 1: Title (left) + Priority+Date (right) */}
