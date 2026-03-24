@@ -11,7 +11,6 @@ import { TaskAlertBanners } from "@/components/tasks/TaskAlertBanners";
 import { TaskFilters, type SortField, type SortDirection } from "@/components/tasks/TaskFilters";
 import { KanbanSkeleton } from "@/components/skeletons/KanbanSkeleton";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
-import { sortTasks } from "@/lib/taskSorting";
 
 export default function Tasks() {
   const { user } = useAuth();
@@ -31,27 +30,11 @@ export default function Tasks() {
         .from("tasks")
         .select("*, clients(name), projects(name), task_assignments(user_id, role, profiles:user_id(full_name))")
         .eq("is_archived", false)
-        .order("created_at", { ascending: false });
+        .order("lexo_rank" as any, { ascending: true });
       if (priorityFilter !== "all") query = query.eq("priority", priorityFilter as any);
       const { data, error } = await query;
       if (error) throw error;
       return data || [];
-    },
-  });
-
-  // Fetch user task positions for manual sorting
-  const { data: userPositions } = useQuery({
-    queryKey: ["user-task-positions", user?.id],
-    enabled: !!user?.id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_task_positions" as any)
-        .select("task_id, position")
-        .eq("user_id", user!.id);
-      if (error) throw error;
-      const map: Record<string, number> = {};
-      (data || []).forEach((r: any) => { map[r.task_id] = r.position; });
-      return map;
     },
   });
 
@@ -107,28 +90,27 @@ export default function Tasks() {
     refetch();
   }, [priorityFilter, queryClient, user?.id, refetch]);
 
-  const handleReorder = useCallback(async (taskId: string, newPosition: number) => {
-    if (!user?.id) return;
+  const handleLexoRankUpdate = useCallback(async (taskId: string, newRank: string) => {
+    const queryKey = ["tasks", priorityFilter];
+    const previousTasks = queryClient.getQueryData<any[]>(queryKey);
 
     // Optimistic update
-    queryClient.setQueryData<Record<string, number>>(["user-task-positions", user.id], (old) => ({
-      ...(old || {}),
-      [taskId]: newPosition,
-    }));
+    queryClient.setQueryData<any[]>(queryKey, (old) =>
+      (old || []).map((t) =>
+        t.id === taskId ? { ...t, lexo_rank: newRank } : t
+      )
+    );
 
     const { error } = await supabase
-      .from("user_task_positions" as any)
-      .upsert(
-        { user_id: user.id, task_id: taskId, position: newPosition },
-        { onConflict: "user_id,task_id" }
-      );
+      .from("tasks")
+      .update({ lexo_rank: newRank } as any)
+      .eq("id", taskId);
 
     if (error) {
-      // Refetch to rollback
-      queryClient.invalidateQueries({ queryKey: ["user-task-positions", user.id] });
+      queryClient.setQueryData(queryKey, previousTasks);
       toast.error("Nie udało się zapisać kolejności.");
     }
-  }, [user?.id, queryClient]);
+  }, [priorityFilter, queryClient]);
 
   async function handleArchive(taskId: string) {
     const { error } = await supabase.from("tasks").update({ is_archived: true, updated_at: new Date().toISOString() } as any).eq("id", taskId);
@@ -172,10 +154,7 @@ export default function Tasks() {
             onStatusChange={handleStatusChange}
             onArchive={handleArchive}
             onRefresh={() => refetch()}
-            sortField={sortField}
-            sortDirection={sortDirection}
-            positions={userPositions || {}}
-            onReorder={handleReorder}
+            onLexoRankUpdate={handleLexoRankUpdate}
           />
         ) : (
           <TaskListView tasks={filteredTasks} isLoading={isLoading} />

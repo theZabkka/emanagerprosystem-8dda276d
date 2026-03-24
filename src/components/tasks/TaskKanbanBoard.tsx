@@ -1,7 +1,5 @@
 import { useCallback, useState, useMemo } from "react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
-import type { SortField, SortDirection } from "@/components/tasks/TaskFilters";
-import { sortTasks } from "@/lib/taskSorting";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -15,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { toast } from "sonner";
 import { ChecklistBlockModal, ResponsibilityModal } from "./WorkflowModals";
+import { getMidpointRank, getAfterRank, getBeforeRank } from "@/lib/lexoRank";
 
 const KANBAN_COLUMNS = [
   { key: "todo", label: "DO ZROBIENIA" },
@@ -46,16 +45,12 @@ interface TaskKanbanBoardProps {
   onStatusChange: (taskId: string, newStatus: string) => void;
   onArchive?: (taskId: string) => void;
   onRefresh?: () => void;
-  sortField?: SortField;
-  sortDirection?: SortDirection;
-  positions?: Record<string, number>;
-  onReorder?: (taskId: string, newPosition: number) => void;
+  onLexoRankUpdate?: (taskId: string, newRank: string) => void;
 }
 
 export default function TaskKanbanBoard({
   tasks, profiles, assignments, clients, onStatusChange, onArchive, onRefresh,
-  sortField = "due_date", sortDirection = "asc",
-  positions = {}, onReorder,
+  onLexoRankUpdate,
 }: TaskKanbanBoardProps) {
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
   const [responsibilityOpen, setResponsibilityOpen] = useState(false);
@@ -116,11 +111,6 @@ export default function TaskKanbanBoard({
     return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
   };
 
-  const getTaskIndex = (taskId: string) => {
-    const num = taskId.replace(/\D/g, "");
-    return num ? `#T${num}` : `#${taskId.slice(0, 4)}`;
-  };
-
   const getWaitingTime = (updatedAt: string) => {
     const diff = Date.now() - new Date(updatedAt).getTime();
     const days = Math.floor(diff / 86400000);
@@ -165,78 +155,48 @@ export default function TaskKanbanBoard({
     onStatusChange(taskId, newStatus);
   };
 
-  // Helper: build a stable position map for a column's tasks (index-based fallback)
-  const buildPosMap = useCallback((columnTasks: any[]) => {
-    const map: Record<string, number> = {};
-    columnTasks.forEach((t, i) => {
-      map[t.id] = positions[t.id] ?? ((i + 1) * 1000);
-    });
-    return map;
-  }, [positions]);
+  // Sort tasks by lexo_rank within each column
+  const getColumnTasks = useCallback((columnKey: string) => {
+    return tasks
+      .filter((t: any) => t.status === columnKey && !t.is_archived)
+      .sort((a: any, b: any) => (a.lexo_rank || 'U').localeCompare(b.lexo_rank || 'U'));
+  }, [tasks]);
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
 
     const { source, destination, draggableId } = result;
+    const sameColumn = source.droppableId === destination.droppableId;
 
-    // Same column reorder (only in manual mode)
-    if (source.droppableId === destination.droppableId) {
-      if (sortField !== "manual" || !onReorder) return;
+    // Calculate new lexo_rank
+    const destColumnTasks = getColumnTasks(destination.droppableId)
+      .filter((t: any) => t.id !== draggableId);
 
-      const columnTasks = sortTasks(
-        tasks.filter((t: any) => t.status === source.droppableId && !t.is_archived),
-        "manual", "asc", positions
-      );
+    const destIndex = destination.index;
+    let newRank: string;
 
-      // Build stable position map BEFORE removing dragged item
-      const posMap = buildPosMap(columnTasks);
-
-      const withoutDragged = columnTasks.filter((t: any) => t.id !== draggableId);
-      const destIndex = destination.index;
-      let newPosition: number;
-
-      if (withoutDragged.length === 0) {
-        newPosition = 1000;
-      } else if (destIndex === 0) {
-        newPosition = posMap[withoutDragged[0].id] - 1000;
-      } else if (destIndex >= withoutDragged.length) {
-        newPosition = posMap[withoutDragged[withoutDragged.length - 1].id] + 1000;
-      } else {
-        const prevPos = posMap[withoutDragged[destIndex - 1].id];
-        const nextPos = posMap[withoutDragged[destIndex].id];
-        newPosition = (prevPos + nextPos) / 2;
-      }
-
-      onReorder(draggableId, newPosition);
-      return;
+    if (destColumnTasks.length === 0) {
+      newRank = 'U'; // midpoint
+    } else if (destIndex === 0) {
+      // Top of column
+      newRank = getBeforeRank(destColumnTasks[0]?.lexo_rank || 'U');
+    } else if (destIndex >= destColumnTasks.length) {
+      // Bottom of column
+      newRank = getAfterRank(destColumnTasks[destColumnTasks.length - 1]?.lexo_rank || 'U');
+    } else {
+      // Between two tasks
+      const rankAbove = destColumnTasks[destIndex - 1]?.lexo_rank || 'A';
+      const rankBelow = destColumnTasks[destIndex]?.lexo_rank || 'z';
+      newRank = getMidpointRank(rankAbove, rankBelow);
     }
 
-    // Cross-column: change status + set position at destination
-    if (sortField === "manual" && onReorder) {
-      const destColumnTasks = sortTasks(
-        tasks.filter((t: any) => t.status === destination.droppableId && !t.is_archived),
-        "manual", "asc", positions
-      );
-      const posMap = buildPosMap(destColumnTasks);
-      const destIndex = destination.index;
-      let newPosition: number;
+    // Always update lexo_rank (optimistic via callback)
+    onLexoRankUpdate?.(draggableId, newRank);
 
-      if (destColumnTasks.length === 0) {
-        newPosition = 1000;
-      } else if (destIndex === 0) {
-        newPosition = posMap[destColumnTasks[0].id] - 1000;
-      } else if (destIndex >= destColumnTasks.length) {
-        newPosition = posMap[destColumnTasks[destColumnTasks.length - 1].id] + 1000;
-      } else {
-        const prevPos = posMap[destColumnTasks[destIndex - 1].id];
-        const nextPos = posMap[destColumnTasks[destIndex].id];
-        newPosition = (prevPos + nextPos) / 2;
-      }
-
-      onReorder(draggableId, newPosition);
+    // Cross-column: also change status
+    if (!sameColumn) {
+      validateAndMove(draggableId, destination.droppableId);
     }
-
-    validateAndMove(draggableId, destination.droppableId);
   };
 
   const handleAssign = async (taskId: string, userId: string) => {
@@ -270,8 +230,7 @@ export default function TaskKanbanBoard({
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex gap-3 h-[calc(100vh-16rem)] overflow-x-auto pb-4">
           {KANBAN_COLUMNS.map((col) => {
-            const columnTasksRaw = tasks.filter((t: any) => t.status === col.key && !t.is_archived);
-            const columnTasks = sortTasks(columnTasksRaw, sortField, sortDirection, positions);
+            const columnTasks = getColumnTasks(col.key);
             const isEmpty = columnTasks.length === 0;
             return (
               <div key={col.key} className="flex-shrink-0 w-72 flex flex-col">
