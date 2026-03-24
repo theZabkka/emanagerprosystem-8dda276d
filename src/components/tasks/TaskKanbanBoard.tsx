@@ -211,7 +211,7 @@ export default function TaskKanbanBoard({
     if (!isManualSort) {
       if (isSameColumn) {
         // Block vertical reordering in non-manual sort
-        toast.info("Aby zmieniać kolejność, przełącz na sortowanie „Ręczne".");
+        toast.info("Aby zmieniać kolejność, przełącz na sortowanie Ręczne.");
         return;
       }
 
