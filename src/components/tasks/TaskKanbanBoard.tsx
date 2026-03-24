@@ -165,7 +165,8 @@ export default function TaskKanbanBoard({
     onStatusChange(taskId, newStatus);
   };
 
-  const tasksByColumn = useMemo(() => {
+  // Source of truth: always sorted by lexo_rank (never mutated)
+  const tasksByColumnRaw = useMemo(() => {
     const grouped: Record<string, any[]> = {};
     KANBAN_COLUMNS.forEach((col) => {
       grouped[col.key] = [];
@@ -177,12 +178,24 @@ export default function TaskKanbanBoard({
       }
     });
 
+    // Always sort source of truth by lexo_rank
     KANBAN_COLUMNS.forEach((col) => {
       grouped[col.key].sort((a: any, b: any) => compareRanks(a.lexo_rank, b.lexo_rank));
     });
 
     return grouped;
   }, [optimisticTasks]);
+
+  // Derived state: sorted copy for display based on current sortField
+  const tasksByColumn = useMemo(() => {
+    if (sortField === "manual") return tasksByColumnRaw;
+
+    const derived: Record<string, any[]> = {};
+    KANBAN_COLUMNS.forEach((col) => {
+      derived[col.key] = sortTasks([...tasksByColumnRaw[col.key]], sortField, sortDirection);
+    });
+    return derived;
+  }, [tasksByColumnRaw, sortField, sortDirection]);
 
   const getColumnTasks = useCallback((columnKey: string) => {
     return tasksByColumn[columnKey] || [];
