@@ -1332,6 +1332,7 @@ export type Database = {
           is_client_visible: boolean | null
           is_misunderstood: boolean
           is_video_task: boolean | null
+          lexo_rank: string | null
           logged_time: number | null
           misunderstood_by: string | null
           misunderstood_reason: string | null
@@ -1372,6 +1373,7 @@ export type Database = {
           is_client_visible?: boolean | null
           is_misunderstood?: boolean
           is_video_task?: boolean | null
+          lexo_rank?: string | null
           logged_time?: number | null
           misunderstood_by?: string | null
           misunderstood_reason?: string | null
@@ -1412,6 +1414,7 @@ export type Database = {
           is_client_visible?: boolean | null
           is_misunderstood?: boolean
           is_video_task?: boolean | null
+          lexo_rank?: string | null
           logged_time?: number | null
           misunderstood_by?: string | null
           misunderstood_reason?: string | null
