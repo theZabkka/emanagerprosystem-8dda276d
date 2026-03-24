@@ -39,6 +39,7 @@ export function CoordinatorFreezeOverlay() {
           id: h.tasks?.id,
           title: h.tasks?.title,
           priority: h.tasks?.priority,
+          is_archived: h.tasks?.is_archived,
           status_entered_at: h.status_entered_at,
           client_name: h.tasks?.clients?.name,
           assignees: (h.tasks?.task_assignments || []).map((a: any) => ({
@@ -46,7 +47,7 @@ export function CoordinatorFreezeOverlay() {
             role: a.role,
           })),
         }))
-        .filter((t: any) => t.id);
+        .filter((t: any) => t.id && !t.is_archived);
     },
     refetchInterval: 30000,
     enabled: !!user,
