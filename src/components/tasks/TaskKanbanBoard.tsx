@@ -1,4 +1,4 @@
-import { useCallback, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { toast } from "sonner";
 import { ChecklistBlockModal, ResponsibilityModal } from "./WorkflowModals";
-import { getMidpointRank, getAfterRank, getBeforeRank } from "@/lib/lexoRank";
+import { compareRanks, generateMidpointRank, generateRankAfter, generateRankBefore } from "@/lib/lexoRank";
 
 const KANBAN_COLUMNS = [
   { key: "todo", label: "DO ZROBIENIA" },
@@ -55,6 +55,11 @@ export default function TaskKanbanBoard({
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
   const [responsibilityOpen, setResponsibilityOpen] = useState(false);
   const [pendingMove, setPendingMove] = useState<{ taskId: string; newStatus: string } | null>(null);
+  const [optimisticTasks, setOptimisticTasks] = useState<any[]>(tasks);
+
+  useEffect(() => {
+    setOptimisticTasks(tasks);
+  }, [tasks]);
 
   const { data: allProfiles } = useStaffMembers();
 
@@ -125,7 +130,7 @@ export default function TaskKanbanBoard({
   }, [assignments]);
 
   const validateAndMove = (taskId: string, newStatus: string) => {
-    const task = tasks.find((t: any) => t.id === taskId);
+    const task = optimisticTasks.find((t: any) => t.id === taskId);
     if (!task) return;
 
     const taskAssigns = getTaskAssignments(taskId);
@@ -155,12 +160,28 @@ export default function TaskKanbanBoard({
     onStatusChange(taskId, newStatus);
   };
 
-  // Sort tasks by lexo_rank within each column
+  const tasksByColumn = useMemo(() => {
+    const grouped: Record<string, any[]> = {};
+    KANBAN_COLUMNS.forEach((col) => {
+      grouped[col.key] = [];
+    });
+
+    optimisticTasks.forEach((task: any) => {
+      if (!task?.is_archived && task?.status && grouped[task.status]) {
+        grouped[task.status].push(task);
+      }
+    });
+
+    KANBAN_COLUMNS.forEach((col) => {
+      grouped[col.key].sort((a: any, b: any) => compareRanks(a.lexo_rank, b.lexo_rank));
+    });
+
+    return grouped;
+  }, [optimisticTasks]);
+
   const getColumnTasks = useCallback((columnKey: string) => {
-    return tasks
-      .filter((t: any) => t.status === columnKey && !t.is_archived)
-      .sort((a: any, b: any) => (a.lexo_rank || 'U').localeCompare(b.lexo_rank || 'U'));
-  }, [tasks]);
+    return tasksByColumn[columnKey] || [];
+  }, [tasksByColumn]);
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -168,27 +189,36 @@ export default function TaskKanbanBoard({
     const { source, destination, draggableId } = result;
     const sameColumn = source.droppableId === destination.droppableId;
 
-    // Calculate new lexo_rank
-    const destColumnTasks = getColumnTasks(destination.droppableId)
-      .filter((t: any) => t.id !== draggableId);
+    const sourceColumnTasks = [...getColumnTasks(source.droppableId)];
+    const destinationColumnTasks = sameColumn ? sourceColumnTasks : [...getColumnTasks(destination.droppableId)];
 
-    const destIndex = destination.index;
+    const [movedTask] = sourceColumnTasks.splice(source.index, 1);
+    if (!movedTask) return;
+
+    const targetColumnTasks = sameColumn ? sourceColumnTasks : destinationColumnTasks;
+    const destinationIndex = Math.max(0, Math.min(destination.index, targetColumnTasks.length));
+
+    const rankAbove = destinationIndex > 0 ? targetColumnTasks[destinationIndex - 1]?.lexo_rank ?? null : null;
+    const rankBelow = targetColumnTasks[destinationIndex]?.lexo_rank ?? null;
+
     let newRank: string;
 
-    if (destColumnTasks.length === 0) {
-      newRank = 'U'; // midpoint
-    } else if (destIndex === 0) {
-      // Top of column
-      newRank = getBeforeRank(destColumnTasks[0]?.lexo_rank || 'U');
-    } else if (destIndex >= destColumnTasks.length) {
-      // Bottom of column
-      newRank = getAfterRank(destColumnTasks[destColumnTasks.length - 1]?.lexo_rank || 'U');
+    if (targetColumnTasks.length === 0) {
+      newRank = generateMidpointRank(null, null);
+    } else if (destinationIndex === 0) {
+      newRank = rankBelow ? generateRankBefore(rankBelow) : generateMidpointRank(null, null);
+    } else if (destinationIndex >= targetColumnTasks.length) {
+      newRank = rankAbove ? generateRankAfter(rankAbove) : generateMidpointRank(null, null);
     } else {
-      // Between two tasks
-      const rankAbove = destColumnTasks[destIndex - 1]?.lexo_rank || 'A';
-      const rankBelow = destColumnTasks[destIndex]?.lexo_rank || 'z';
-      newRank = getMidpointRank(rankAbove, rankBelow);
+      newRank = generateMidpointRank(rankAbove, rankBelow);
     }
+
+    const optimisticMovedTask = { ...movedTask, lexo_rank: newRank };
+    targetColumnTasks.splice(destinationIndex, 0, optimisticMovedTask);
+
+    setOptimisticTasks((prev) => prev.map((task: any) => (
+      task.id === draggableId ? optimisticMovedTask : task
+    )));
 
     // Always update lexo_rank (optimistic via callback)
     onLexoRankUpdate?.(draggableId, newRank);
