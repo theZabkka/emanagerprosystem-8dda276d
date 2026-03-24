@@ -121,7 +121,7 @@ export default function ClientDetail() {
   const { data: projects } = useQuery({
     queryKey: ["client-projects", id],
     queryFn: async () => {
-      const { data } = await supabase.from("projects").select("*").eq("client_id", id!);
+      const { data } = await supabase.from("projects").select("*").eq("client_id", id!).eq("is_archived", false);
       return data || [];
     },
     enabled: !!id,

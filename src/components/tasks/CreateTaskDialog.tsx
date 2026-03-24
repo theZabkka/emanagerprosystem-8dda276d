@@ -224,7 +224,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
   const { data: allProjects } = useQuery({
     queryKey: ["create-task-projects"],
     queryFn: async () => {
-      const { data } = await supabase.from("projects").select("id, name, client_id").order("name");
+      const { data } = await supabase.from("projects").select("id, name, client_id").eq("is_archived", false).order("name");
       return data || [];
     },
   });
