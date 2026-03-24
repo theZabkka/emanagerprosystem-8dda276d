@@ -14,7 +14,8 @@ import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { toast } from "sonner";
 import { ChecklistBlockModal, ResponsibilityModal } from "./WorkflowModals";
 import { compareRanks, generateMidpointRank, generateRankAfter, generateRankBefore } from "@/lib/lexoRank";
-import { sortTasks, type SortField, type SortDirection } from "@/lib/taskSorting";
+import { sortTasks } from "@/lib/taskSorting";
+import type { SortField, SortDirection } from "@/components/tasks/TaskFilters";
 
 const KANBAN_COLUMNS = [
   { key: "todo", label: "DO ZROBIENIA" },
