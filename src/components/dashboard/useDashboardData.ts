@@ -71,7 +71,7 @@ export function useDashboardData() {
   const { data: correctionTasks } = useQuery({
     queryKey: ["dashboard-correction-tasks"],
     queryFn: async () => {
-      const { data } = await supabase.from("tasks").select("id, title, status, priority, client_id, clients:client_id(name)").eq("status", "corrections");
+      const { data } = await supabase.from("tasks").select("id, title, status, priority, client_id, clients:client_id(name)").eq("status", "corrections").eq("is_archived", false);
       return data || [];
     },
   });
