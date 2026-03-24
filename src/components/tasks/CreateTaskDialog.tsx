@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { getAfterRank } from "@/lib/lexoRank";
 
 const priorityLabels: Record<string, string> = { critical: "Pilny", high: "Wysoki", medium: "Średni", low: "Niski" };
 
