@@ -47,6 +47,8 @@ interface TaskKanbanBoardProps {
   onArchive?: (taskId: string) => void;
   onRefresh?: () => void;
   onLexoRankUpdate?: (taskId: string, newRank: string) => void;
+  sortField?: SortField;
+  sortDirection?: SortDirection;
 }
 
 export default function TaskKanbanBoard({
