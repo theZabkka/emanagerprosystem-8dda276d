@@ -39,7 +39,7 @@ const Permissions = lazy(() => import("./pages/Permissions"));
 const ClientIdeas = lazy(() => import("./pages/ClientIdeas"));
 const StaffIdeas = lazy(() => import("./pages/StaffIdeas"));
 const TaskArchive = lazy(() => import("./pages/TaskArchive"));
-const ProjectArchive = lazy(() => import("./pages/ProjectArchive"));
+// ProjectArchive is now integrated into Projects page as a tab
 
 const queryClient = new QueryClient();
 
@@ -102,7 +102,7 @@ const App = () => (
             <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
             <Route path="/clients/:id" element={<ProtectedRoute><ClientDetail /></ProtectedRoute>} />
             <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
-            <Route path="/projects/archive" element={<ProtectedRoute><ProjectArchive /></ProtectedRoute>} />
+            {/* /projects/archive removed — now a tab inside /projects */}
             <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
             <Route path="/pipeline" element={<ProtectedRoute><Pipeline /></ProtectedRoute>} />
             <Route path="/messenger" element={<ProtectedRoute><Messenger /></ProtectedRoute>} />

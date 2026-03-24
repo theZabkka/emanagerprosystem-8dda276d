@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, ListChecks, Briefcase, FileText, Sparkles, CheckCircle2, Circle, Pencil, Save, X } from "lucide-react";
+import { ArrowLeft, ListChecks, Briefcase, FileText, Sparkles, CheckCircle2, Circle, Pencil, Save, X, Archive, Lock } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -48,7 +48,6 @@ export default function ProjectDetail() {
   const [editingBrief, setEditingBrief] = useState(false);
   const [editedBrief, setEditedBrief] = useState<BriefQuestion[]>([]);
 
-  // Fetch project
   const { data: project, isLoading } = useQuery({
     queryKey: ["project-detail", id],
     queryFn: async () => {
@@ -62,11 +61,11 @@ export default function ProjectDetail() {
     enabled: !!id,
   });
 
-  // Fetch tasks for this project
+  const isArchived = project?.is_archived === true;
+
   const { data: tasks } = useQuery({
     queryKey: ["project-tasks", id],
     queryFn: async () => {
-
       const { data } = await supabase
         .from("tasks")
         .select("*, task_assignments(user_id, role, profiles:user_id(full_name))")
@@ -80,10 +79,8 @@ export default function ProjectDetail() {
     enabled: !!id,
   });
 
-  // Team members for this project
   const teamMembers = (() => {
     if (!tasks) return [];
-    // For Supabase, dedupe from task assignments
     const seen = new Set<string>();
     const members: { full_name: string }[] = [];
     tasks.forEach((t: any) => {
@@ -107,6 +104,7 @@ export default function ProjectDetail() {
   const hasBrief = briefData.length > 0 && briefData.some((q: BriefQuestion) => q.answer?.trim());
 
   const startEdit = () => {
+    if (isArchived) return;
     setEditedBrief(briefData.map(q => ({ ...q })));
     setEditingBrief(true);
   };
@@ -139,13 +137,27 @@ export default function ProjectDetail() {
 
   const tabs = [
     { key: "tasks" as const, label: "Zadania", icon: ListChecks, count: totalTasks },
-    ...(!isClient ? [{ key: "budget" as const, label: "Budżet", icon: Briefcase }] : []),
+    ...(!isClient && !isArchived ? [{ key: "budget" as const, label: "Budżet", icon: Briefcase }] : []),
     { key: "brief" as const, label: "Brief", icon: FileText },
   ];
 
   return (
     <AppLayout title={project.name}>
       <div className="max-w-5xl mx-auto space-y-6">
+        {/* Archived banner */}
+        {isArchived && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-muted/50 border-border">
+            <Lock className="h-5 w-5 text-muted-foreground" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-muted-foreground">Projekt zarchiwizowany</p>
+              <p className="text-xs text-muted-foreground">
+                Tryb tylko do odczytu. Zarchiwizowano: {project.archived_at ? new Date(project.archived_at).toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
+              </p>
+            </div>
+            <Archive className="h-5 w-5 text-muted-foreground" />
+          </div>
+        )}
+
         {/* Header */}
         <div className="space-y-3">
           <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground -ml-2" onClick={() => navigate(isClient ? "/dashboard" : "/projects")}>
@@ -154,6 +166,11 @@ export default function ProjectDetail() {
 
           <div className="flex items-start gap-3 flex-wrap">
             <h1 className="text-2xl font-bold text-foreground">{project.name}</h1>
+            {isArchived && (
+              <Badge variant="outline" className="text-xs font-bold uppercase bg-muted text-muted-foreground border-border">
+                ARCHIWUM
+              </Badge>
+            )}
             <Badge variant="outline" className={`text-xs font-bold uppercase ${statusColors[project.status || "active"]}`}>
               {statusLabels[project.status || "active"]}
             </Badge>
@@ -170,7 +187,6 @@ export default function ProjectDetail() {
         {/* Progress & Team */}
         <Card>
           <CardContent className="pt-5 space-y-4">
-            {/* Progress bar */}
             <div className="space-y-2">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground font-medium">{doneTasks}/{totalTasks} zadań ukończonych</span>
@@ -183,7 +199,6 @@ export default function ProjectDetail() {
               </div>
             </div>
 
-            {/* Team */}
             {teamMembers.length > 0 && (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground font-medium">Zespół:</span>
@@ -230,7 +245,7 @@ export default function ProjectDetail() {
           ))}
         </div>
 
-        {/* Tab content */}
+        {/* Tab content: Tasks */}
         {activeTab === "tasks" && (
           <div className="space-y-2">
             {(() => {
@@ -244,6 +259,52 @@ export default function ProjectDetail() {
                   </CardContent></Card>
                 );
               }
+
+              // Archived: simple read-only list (no Kanban)
+              if (isArchived) {
+                return (
+                  <Card>
+                    <CardContent className="p-0">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/30">
+                            <th className="text-left px-4 py-2 font-medium text-muted-foreground">Zadanie</th>
+                            <th className="text-left px-4 py-2 font-medium text-muted-foreground">Status</th>
+                            <th className="text-left px-4 py-2 font-medium text-muted-foreground">Osoba</th>
+                            <th className="text-left px-4 py-2 font-medium text-muted-foreground">Priorytet</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {displayTasks.map((task: any) => (
+                            <tr key={task.id} className="border-b last:border-0">
+                              <td className="px-4 py-2.5">
+                                <span className={task.status === "done" ? "line-through text-muted-foreground" : "text-foreground"}>
+                                  {task.title}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2.5 text-muted-foreground">
+                                {taskStatusLabels[task.status] || task.status}
+                              </td>
+                              <td className="px-4 py-2.5 text-muted-foreground">
+                                {task.assignee_name || "—"}
+                              </td>
+                              <td className="px-4 py-2.5">
+                                {task.priority && (
+                                  <Badge variant="outline" className={`text-[10px] font-bold ${priorityColors[task.priority] || ""}`}>
+                                    {priorityLabels[task.priority] || task.priority}
+                                  </Badge>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </CardContent>
+                  </Card>
+                );
+              }
+
+              // Active: interactive task cards
               return displayTasks.map((task: any) => {
                 const isDone = task.status === "done";
                 return (
@@ -277,7 +338,8 @@ export default function ProjectDetail() {
           </div>
         )}
 
-        {activeTab === "budget" && (
+        {/* Tab content: Budget */}
+        {activeTab === "budget" && !isArchived && (
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Budżet projektu</CardTitle>
@@ -288,6 +350,7 @@ export default function ProjectDetail() {
           </Card>
         )}
 
+        {/* Tab content: Brief */}
         {activeTab === "brief" && (
           <div className="space-y-4">
             <Card>
@@ -298,7 +361,7 @@ export default function ProjectDetail() {
                     {hasBrief ? "Wypełniony ✓" : "Brak"}
                   </Badge>
                 </div>
-                {!isClient && !editingBrief ? (
+                {!isClient && !editingBrief && !isArchived ? (
                   <Button variant="ghost" size="sm" className="gap-1 text-xs" onClick={startEdit}>
                     <Pencil className="h-3 w-3" /> Edytuj
                   </Button>
@@ -314,7 +377,6 @@ export default function ProjectDetail() {
                 ) : null}
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* AI Summary */}
                 {project.ai_summary && (
                   <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4">
                     <div className="flex items-center gap-2 mb-2">
@@ -325,7 +387,6 @@ export default function ProjectDetail() {
                   </div>
                 )}
 
-                {/* Q&A */}
                 {editingBrief ? (
                   <div className="space-y-4">
                     {editedBrief.map((q, i) => (
@@ -347,7 +408,9 @@ export default function ProjectDetail() {
                 ) : (
                   <div className="space-y-4">
                     {briefData.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">Brak pytań w briefie. Kliknij "Edytuj" aby dodać.</p>
+                      <p className="text-sm text-muted-foreground">
+                        {isArchived ? "Brak pytań w briefie." : "Brak pytań w briefie. Kliknij \"Edytuj\" aby dodać."}
+                      </p>
                     ) : (
                       briefData.map((q: BriefQuestion, i: number) => (
                         <div key={i} className="space-y-1">

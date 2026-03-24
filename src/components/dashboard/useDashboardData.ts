@@ -33,7 +33,7 @@ export function useDashboardData() {
   const { data: taskStats } = useQuery({
     queryKey: ["task-stats"],
     queryFn: async () => {
-      const { data: tasks } = await supabase.from("tasks").select("status");
+      const { data: tasks } = await supabase.from("tasks").select("status, is_archived").eq("is_archived", false);
       const corrections = tasks?.filter((t) => t.status === "corrections").length || 0;
       const clientReview = tasks?.filter((t) => t.status === "client_review").length || 0;
       return { overdue: 0, corrections, clientReview };
@@ -63,7 +63,7 @@ export function useDashboardData() {
   const { data: clientReviewTasks } = useQuery({
     queryKey: ["dashboard-client-review-tasks"],
     queryFn: async () => {
-      const { data } = await supabase.from("tasks").select("id, title, status, priority, client_id, clients:client_id(name)").eq("status", "client_review");
+      const { data } = await supabase.from("tasks").select("id, title, status, priority, client_id, clients:client_id(name)").eq("status", "client_review").eq("is_archived", false);
       return data || [];
     },
   });
@@ -71,7 +71,7 @@ export function useDashboardData() {
   const { data: correctionTasks } = useQuery({
     queryKey: ["dashboard-correction-tasks"],
     queryFn: async () => {
-      const { data } = await supabase.from("tasks").select("id, title, status, priority, client_id, clients:client_id(name)").eq("status", "corrections");
+      const { data } = await supabase.from("tasks").select("id, title, status, priority, client_id, clients:client_id(name)").eq("status", "corrections").eq("is_archived", false);
       return data || [];
     },
   });
