@@ -53,8 +53,9 @@ interface TaskKanbanBoardProps {
 
 export default function TaskKanbanBoard({
   tasks, profiles, assignments, clients, onStatusChange, onArchive, onRefresh,
-  onLexoRankUpdate,
+  onLexoRankUpdate, sortField = "manual", sortDirection = "asc",
 }: TaskKanbanBoardProps) {
+  const isDragEnabled = sortField === "manual";
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
   const [responsibilityOpen, setResponsibilityOpen] = useState(false);
   const [pendingMove, setPendingMove] = useState<{ taskId: string; newStatus: string } | null>(null);
