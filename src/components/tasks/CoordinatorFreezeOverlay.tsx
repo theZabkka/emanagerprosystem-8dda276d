@@ -26,7 +26,7 @@ export function CoordinatorFreezeOverlay() {
           task_id,
           status_entered_at,
           tasks:task_id(
-            id, title, priority,
+            id, title, priority, is_archived,
             clients:client_id(name),
             task_assignments(user_id, role, profiles:user_id(full_name))
           )
