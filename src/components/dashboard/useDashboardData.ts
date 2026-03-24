@@ -63,7 +63,7 @@ export function useDashboardData() {
   const { data: clientReviewTasks } = useQuery({
     queryKey: ["dashboard-client-review-tasks"],
     queryFn: async () => {
-      const { data } = await supabase.from("tasks").select("id, title, status, priority, client_id, clients:client_id(name)").eq("status", "client_review");
+      const { data } = await supabase.from("tasks").select("id, title, status, priority, client_id, clients:client_id(name)").eq("status", "client_review").eq("is_archived", false);
       return data || [];
     },
   });
