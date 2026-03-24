@@ -56,7 +56,7 @@ export default function TaskKanbanBoard({
   tasks, profiles, assignments, clients, onStatusChange, onArchive, onRefresh,
   onLexoRankUpdate, sortField = "manual", sortDirection = "asc",
 }: TaskKanbanBoardProps) {
-  const isDragEnabled = sortField === "manual";
+  const isManualSort = sortField === "manual";
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
   const [responsibilityOpen, setResponsibilityOpen] = useState(false);
   const [pendingMove, setPendingMove] = useState<{ taskId: string; newStatus: string } | null>(null);
@@ -202,19 +202,52 @@ export default function TaskKanbanBoard({
   }, [tasksByColumn]);
 
   const handleDragEnd = (result: DropResult) => {
-    if (!isDragEnabled) return;
     if (!result.destination) return;
 
     const { source, destination, draggableId } = result;
-    const sameColumn = source.droppableId === destination.droppableId;
+    const isSameColumn = source.droppableId === destination.droppableId;
 
+    // --- SMART DROP: non-manual sort mode ---
+    if (!isManualSort) {
+      if (isSameColumn) {
+        // Block vertical reordering in non-manual sort
+        toast.info("Aby zmieniać kolejność, przełącz na sortowanie Ręczne.");
+        return;
+      }
+
+      // Cross-column move (status change) — allowed in any sort mode
+      // Use tasksByColumnRaw (lexo_rank source of truth) for rank calculation
+      const rawDestTasks = tasksByColumnRaw[destination.droppableId] || [];
+      const movedTask = optimisticTasks.find((t: any) => t.id === draggableId);
+      if (!movedTask) return;
+
+      // Calculate rank: append to bottom of destination column
+      let newRank: string;
+      if (rawDestTasks.length === 0) {
+        newRank = generateMidpointRank(null, null);
+      } else {
+        const lastRank = rawDestTasks[rawDestTasks.length - 1]?.lexo_rank;
+        newRank = lastRank ? generateRankAfter(lastRank) : generateMidpointRank(null, null);
+      }
+
+      // Optimistic update — useMemo will auto-sort by active sortField
+      setOptimisticTasks((prev) => prev.map((task: any) =>
+        task.id === draggableId ? { ...task, lexo_rank: newRank, status: destination.droppableId } : task
+      ));
+
+      onLexoRankUpdate?.(draggableId, newRank);
+      validateAndMove(draggableId, destination.droppableId);
+      return;
+    }
+
+    // --- MANUAL SORT MODE: full LexoRank reordering ---
     const sourceColumnTasks = [...getColumnTasks(source.droppableId)];
-    const destinationColumnTasks = sameColumn ? sourceColumnTasks : [...getColumnTasks(destination.droppableId)];
+    const destinationColumnTasks = isSameColumn ? sourceColumnTasks : [...getColumnTasks(destination.droppableId)];
 
     const [movedTask] = sourceColumnTasks.splice(source.index, 1);
     if (!movedTask) return;
 
-    const targetColumnTasks = sameColumn ? sourceColumnTasks : destinationColumnTasks;
+    const targetColumnTasks = isSameColumn ? sourceColumnTasks : destinationColumnTasks;
     const destinationIndex = Math.max(0, Math.min(destination.index, targetColumnTasks.length));
 
     const rankAbove = destinationIndex > 0 ? targetColumnTasks[destinationIndex - 1]?.lexo_rank ?? null : null;
@@ -239,11 +272,9 @@ export default function TaskKanbanBoard({
       task.id === draggableId ? optimisticMovedTask : task
     )));
 
-    // Always update lexo_rank (optimistic via callback)
     onLexoRankUpdate?.(draggableId, newRank);
 
-    // Cross-column: also change status
-    if (!sameColumn) {
+    if (!isSameColumn) {
       validateAndMove(draggableId, destination.droppableId);
     }
   };
@@ -310,13 +341,13 @@ export default function TaskKanbanBoard({
                             const isUnassigned = taskAssignees.length === 0;
 
                             return (
-                              <Draggable key={task.id} draggableId={task.id} index={index} isDragDisabled={!isDragEnabled}>
+                              <Draggable key={task.id} draggableId={task.id} index={index}>
                                 {(provided, snapshot) => (
                                   <div
                                     ref={provided.innerRef}
                                     {...provided.draggableProps}
-                                    {...(isDragEnabled ? provided.dragHandleProps : {})}
-                                    className={`rounded-lg border shadow-sm transition-shadow ${!isDragEnabled ? "cursor-default" : ""} ${isUnassigned ? "bg-destructive/15 border-destructive/50 ring-2 ring-destructive/30" : (task as any).is_misunderstood ? "bg-amber-500/10 border-amber-500/30 ring-2 ring-amber-500/30" : "bg-card"} ${task.not_understood && !(task as any).is_misunderstood ? "ring-2 ring-amber-500/50 border-amber-500/30" : ""} ${task.correction_severity === "critical" ? "ring-2 ring-destructive/50" : ""} ${snapshot.isDragging ? "shadow-lg ring-2 ring-destructive/20" : "hover:shadow-md"}`}
+                                    {...provided.dragHandleProps}
+                                    className={`rounded-lg border shadow-sm transition-shadow ${isUnassigned ? "bg-destructive/15 border-destructive/50 ring-2 ring-destructive/30" : (task as any).is_misunderstood ? "bg-amber-500/10 border-amber-500/30 ring-2 ring-amber-500/30" : "bg-card"} ${task.not_understood && !(task as any).is_misunderstood ? "ring-2 ring-amber-500/50 border-amber-500/30" : ""} ${task.correction_severity === "critical" ? "ring-2 ring-destructive/50" : ""} ${snapshot.isDragging ? "shadow-lg ring-2 ring-destructive/20" : "hover:shadow-md"}`}
                                   >
                                     <Link to={`/tasks/${task.id}`} className="block px-2 pt-1.5 pb-1">
                                       {/* Row 1: Title (left) + Priority+Date (right) */}
