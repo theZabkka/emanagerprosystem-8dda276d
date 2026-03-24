@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { getAfterRank } from "@/lib/lexoRank";
 
 const priorityLabels: Record<string, string> = { critical: "Pilny", high: "Wysoki", medium: "Średni", low: "Niski" };
 
@@ -328,6 +329,21 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
 
   const handleCreate = async () => {
     if (!form.title.trim()) { toast.error("Podaj nazwę zadania"); return; }
+
+    // Get the last lexo_rank in todo column to place new task at the end
+    const { data: lastTask } = await supabase
+      .from("tasks")
+      .select("lexo_rank")
+      .eq("status", "todo" as any)
+      .eq("is_archived", false)
+      .order("lexo_rank" as any, { ascending: false })
+      .limit(1)
+      .single();
+
+    const newRank = lastTask?.lexo_rank
+      ? getAfterRank(lastTask.lexo_rank as string)
+      : 'U';
+
     const taskPayload: any = {
       title: form.title,
       description: form.description || null,
@@ -343,6 +359,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
       brief_format: form.brief_format || null,
       brief_inspiration: form.brief_inspiration || null,
       created_by: user?.id,
+      lexo_rank: newRank,
     };
 
     const { data: newTask, error } = await supabase.from("tasks").insert(taskPayload).select("id").single();

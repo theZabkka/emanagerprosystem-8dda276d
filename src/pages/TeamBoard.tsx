@@ -8,11 +8,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { sortTasks } from "@/lib/taskSorting";
-import type { SortField, SortDirection } from "@/components/tasks/TaskFilters";
+import { getMidpointRank, getAfterRank, getBeforeRank } from "@/lib/lexoRank";
 
 const statusLabels: Record<string, string> = {
   new: "NOWE", todo: "DO ZROBIENIA", in_progress: "W REALIZACJI", review: "WERYFIKACJA",
@@ -32,21 +31,11 @@ const priorityColors: Record<string, string> = {
 
 const AVATAR_COLORS = ["bg-green-600", "bg-blue-600", "bg-purple-600", "bg-orange-600", "bg-pink-600", "bg-teal-600"];
 
-const sortOptions: { value: SortField; label: string }[] = [
-  { value: "due_date", label: "Termin / Deadline" },
-  { value: "created_at", label: "Data utworzenia" },
-  { value: "status_updated_at", label: "Czas w statusie" },
-  { value: "priority", label: "Priorytet" },
-  { value: "manual", label: "Ręczne" },
-];
-
 export default function TeamBoard() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("all");
-  const [sortField, setSortField] = useState<SortField>("due_date");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   const STAFF_ROLES = ["superadmin", "boss", "koordynator", "specjalista", "praktykant"];
 
@@ -65,7 +54,12 @@ export default function TeamBoard() {
   const { data: tasks = [] } = useQuery({
     queryKey: ["tb-tasks"],
     queryFn: async () => {
-      const { data } = await supabase.from("tasks").select("*, clients(name)").not("status", "in", "(done,cancelled)").order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("tasks")
+        .select("*, clients(name)")
+        .not("status", "in", "(done,cancelled)")
+        .eq("is_archived", false)
+        .order("lexo_rank" as any, { ascending: true });
       return data || [];
     },
   });
@@ -75,21 +69,6 @@ export default function TeamBoard() {
     queryFn: async () => {
       const { data } = await supabase.from("task_assignments").select("task_id, user_id, role");
       return data || [];
-    },
-  });
-
-  const { data: userPositions } = useQuery({
-    queryKey: ["user-task-positions", user?.id],
-    enabled: !!user?.id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_task_positions")
-        .select("task_id, position")
-        .eq("user_id", user!.id);
-      if (error) throw error;
-      const map: Record<string, number> = {};
-      (data || []).forEach((r) => { map[r.task_id] = r.position; });
-      return map;
     },
   });
 
@@ -113,26 +92,26 @@ export default function TeamBoard() {
     let filtered = tasks.filter(t => userTaskIds.includes(t.id));
     if (search) filtered = filtered.filter(t => t.title.toLowerCase().includes(search.toLowerCase()));
     if (priorityFilter !== "all") filtered = filtered.filter(t => t.priority === priorityFilter);
-    return sortTasks(filtered, sortField, sortDirection, userPositions || {});
-  }, [tasks, assignments, search, priorityFilter, sortField, sortDirection, userPositions]);
+    // Already sorted by lexo_rank from query
+    return filtered.sort((a: any, b: any) => (a.lexo_rank || 'U').localeCompare(b.lexo_rank || 'U'));
+  }, [tasks, assignments, search, priorityFilter]);
 
-  const handleReorder = useCallback(async (taskId: string, newPosition: number) => {
-    if (!user?.id) return;
-    queryClient.setQueryData<Record<string, number>>(["user-task-positions", user.id], (old) => ({
-      ...(old || {}),
-      [taskId]: newPosition,
-    }));
+  const handleLexoRankUpdate = useCallback(async (taskId: string, newRank: string) => {
+    // Optimistic update
+    queryClient.setQueryData<any[]>(["tb-tasks"], (old) =>
+      (old || []).map((t) => t.id === taskId ? { ...t, lexo_rank: newRank } : t)
+    );
+
     const { error } = await supabase
-      .from("user_task_positions")
-      .upsert(
-        { user_id: user.id, task_id: taskId, position: newPosition },
-        { onConflict: "user_id,task_id" }
-      );
+      .from("tasks")
+      .update({ lexo_rank: newRank } as any)
+      .eq("id", taskId);
+
     if (error) {
-      queryClient.invalidateQueries({ queryKey: ["user-task-positions", user.id] });
+      queryClient.invalidateQueries({ queryKey: ["tb-tasks"] });
       toast.error("Nie udało się zapisać kolejności.");
     }
-  }, [user?.id, queryClient]);
+  }, [queryClient]);
 
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
@@ -141,69 +120,54 @@ export default function TeamBoard() {
     const oldDropId = result.source.droppableId;
     const sameColumn = newDropId === oldDropId;
 
-    // Manual reorder within same column
-    if (sameColumn && sortField === "manual") {
-      const colUserId = oldDropId === "unassigned" ? null : oldDropId;
-      const columnTasks = getUserTasks(colUserId);
-      const srcIdx = result.source.index;
-      const destIdx = result.destination.index;
-      if (srcIdx === destIdx) return;
+    // Calculate new lexo_rank
+    const colUserId = newDropId === "unassigned" ? null : newDropId;
+    const destColumnTasks = getUserTasks(colUserId).filter(t => t.id !== taskId);
+    const destIdx = result.destination.index;
 
-      // Build effective positions: use saved position or stable index-based fallback
-      const positions = userPositions || {};
-      const effectivePositions: Record<string, number> = {};
-      columnTasks.forEach((t, i) => {
-        effectivePositions[t.id] = positions[t.id] ?? (i * 1000);
-      });
-
-      // Calculate fractional position between neighbors
-      const reordered = [...columnTasks];
-      const [moved] = reordered.splice(srcIdx, 1);
-      reordered.splice(destIdx, 0, moved);
-
-      let newPos: number;
-      if (destIdx === 0) {
-        const nextPos = effectivePositions[reordered[1]?.id] ?? 1000;
-        newPos = nextPos - 1000;
-      } else if (destIdx >= reordered.length - 1) {
-        const prevPos = effectivePositions[reordered[reordered.length - 2]?.id] ?? (reordered.length - 2) * 1000;
-        newPos = prevPos + 1000;
-      } else {
-        const prevPos = effectivePositions[reordered[destIdx - 1]?.id] ?? (destIdx - 1) * 1000;
-        const nextPos = effectivePositions[reordered[destIdx + 1]?.id] ?? (destIdx + 1) * 1000;
-        newPos = (prevPos + nextPos) / 2;
-      }
-
-      handleReorder(taskId, newPos);
-      return;
+    let newRank: string;
+    if (destColumnTasks.length === 0) {
+      newRank = 'U';
+    } else if (destIdx === 0) {
+      newRank = getBeforeRank(destColumnTasks[0]?.lexo_rank || 'U');
+    } else if (destIdx >= destColumnTasks.length) {
+      newRank = getAfterRank(destColumnTasks[destColumnTasks.length - 1]?.lexo_rank || 'U');
+    } else {
+      const rankAbove = destColumnTasks[destIdx - 1]?.lexo_rank || 'A';
+      const rankBelow = destColumnTasks[destIdx]?.lexo_rank || 'z';
+      newRank = getMidpointRank(rankAbove, rankBelow);
     }
+
+    // Always update rank
+    handleLexoRankUpdate(taskId, newRank);
 
     // Cross-column: reassign primary
-    if (sameColumn) return;
-    const newUserId = newDropId === "unassigned" ? null : newDropId;
-    const oldUserId = oldDropId === "unassigned" ? null : oldDropId;
-    if (newUserId === oldUserId) return;
+    if (!sameColumn) {
+      const newUserId = newDropId === "unassigned" ? null : newDropId;
+      const oldUserId = oldDropId === "unassigned" ? null : oldDropId;
+      if (newUserId === oldUserId) return;
 
-    const previousAssignments = queryClient.getQueryData<any[]>(["tb-assignments"]);
-    queryClient.setQueryData<any[]>(["tb-assignments"], (old) => {
-      const filtered = (old || []).filter((a) => !(a.task_id === taskId && a.role === "primary"));
+      const previousAssignments = queryClient.getQueryData<any[]>(["tb-assignments"]);
+      queryClient.setQueryData<any[]>(["tb-assignments"], (old) => {
+        const filtered = (old || []).filter((a) => !(a.task_id === taskId && a.role === "primary"));
+        if (newUserId) {
+          filtered.push({ task_id: taskId, user_id: newUserId, role: "primary" });
+        }
+        return filtered;
+      });
+
+      await supabase.from("task_assignments").delete().eq("task_id", taskId).eq("role", "primary" as any);
       if (newUserId) {
-        filtered.push({ task_id: taskId, user_id: newUserId, role: "primary" });
+        const { error } = await supabase.from("task_assignments").insert({ task_id: taskId, user_id: newUserId, role: "primary" as any });
+        if (error) {
+          queryClient.setQueryData(["tb-assignments"], previousAssignments);
+          toast.error("Nie udało się przypisać zadania.");
+          return;
+        }
       }
-      return filtered;
-    });
-
-    await supabase.from("task_assignments").delete().eq("task_id", taskId).eq("role", "primary" as any);
-    if (newUserId) {
-      const { error } = await supabase.from("task_assignments").insert({ task_id: taskId, user_id: newUserId, role: "primary" as any });
-      if (error) {
-        queryClient.setQueryData(["tb-assignments"], previousAssignments);
-        toast.error("Nie udało się przypisać zadania.");
-        return;
-      }
+      toast.success("Zadanie przypisane");
+      queryClient.invalidateQueries({ queryKey: ["tb-assignments"] });
     }
-    toast.success("Zadanie przypisane");
-    queryClient.invalidateQueries({ queryKey: ["tb-assignments"] });
   };
 
   return (
@@ -224,30 +188,6 @@ export default function TeamBoard() {
               {Object.entries(priorityLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
             </SelectContent>
           </Select>
-
-          <Select value={sortField} onValueChange={(v) => setSortField(v as SortField)}>
-            <SelectTrigger className="w-[180px] h-9 text-sm">
-              <div className="flex items-center gap-1.5">
-                <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
-                <SelectValue placeholder="Sortuj po..." />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              {sortOptions.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {sortField !== "manual" && (
-            <button
-              onClick={() => setSortDirection(d => d === "asc" ? "desc" : "asc")}
-              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground px-2 h-9 border rounded-md bg-card transition-colors"
-              title={sortDirection === "asc" ? "Rosnąco" : "Malejąco"}
-            >
-              {sortDirection === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
-            </button>
-          )}
         </div>
 
         {/* Board */}
