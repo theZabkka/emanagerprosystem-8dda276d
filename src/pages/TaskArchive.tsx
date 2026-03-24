@@ -48,7 +48,7 @@ export default function TaskArchive() {
   const { data: allProjects } = useQuery({
     queryKey: ["archive-projects"],
     queryFn: async () => {
-      const { data } = await supabase.from("projects").select("id, name, client_id").order("name");
+      const { data } = await supabase.from("projects").select("id, name, client_id").eq("is_archived", false).order("name");
       return data || [];
     },
   });

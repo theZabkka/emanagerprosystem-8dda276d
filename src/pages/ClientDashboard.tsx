@@ -28,6 +28,7 @@ export default function ClientDashboard() {
         .from("projects")
         .select("id, name, status, description, start_date, end_date")
         .eq("client_id", clientId)
+        .eq("is_archived", false)
         .order("created_at", { ascending: false });
       return data || [];
     },

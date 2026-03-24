@@ -5,10 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus } from "lucide-react";
+import { Plus, Archive } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import CreateProjectDialog from "@/components/projects/CreateProjectDialog";
+import { toast } from "sonner";
+import { useRole, STAFF_ROLES } from "@/hooks/useRole";
 
 const statusColors: Record<string, string> = {
   active: "bg-success/15 text-foreground", completed: "bg-muted text-muted-foreground",
@@ -18,6 +20,8 @@ const statusColors: Record<string, string> = {
 export default function Projects() {
   const navigate = useNavigate();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const { currentRole } = useRole();
+  const canArchive = ["superadmin", "boss", "koordynator"].includes(currentRole);
 
   const { data: projects, isLoading, refetch } = useQuery({
     queryKey: ["projects"],
@@ -25,17 +29,32 @@ export default function Projects() {
       const { data } = await supabase
         .from("projects")
         .select("*, clients(name), profiles:manager_id(full_name)")
+        .eq("is_archived", false)
         .order("created_at", { ascending: false });
       return data || [];
     },
   });
+
+  const handleArchive = async (e: React.MouseEvent, projectId: string, projectName: string) => {
+    e.stopPropagation();
+    if (!confirm(`Archiwizować projekt "${projectName}" wraz z otwartymi zadaniami?`)) return;
+    const { error } = await supabase.rpc("archive_project_with_tasks", { p_project_id: projectId });
+    if (error) { toast.error("Błąd archiwizacji", { description: error.message }); return; }
+    toast.success(`Projekt "${projectName}" zarchiwizowano`);
+    refetch();
+  };
 
   return (
     <AppLayout title="Projekty">
       <div className="space-y-4 max-w-7xl mx-auto">
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold">Wszystkie projekty</h2>
-          <Button onClick={() => setIsCreateOpen(true)}><Plus className="h-4 w-4 mr-1" /> Nowy projekt</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <Link to="/projects/archive"><Archive className="h-4 w-4 mr-1" /> Archiwum</Link>
+            </Button>
+            <Button onClick={() => setIsCreateOpen(true)}><Plus className="h-4 w-4 mr-1" /> Nowy projekt</Button>
+          </div>
           <CreateProjectDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} onCreated={() => refetch()} />
         </div>
 
@@ -48,13 +67,14 @@ export default function Projects() {
                 <TableHead>Status</TableHead>
                 <TableHead>Manager</TableHead>
                 <TableHead>Utworzono</TableHead>
+                {canArchive && <TableHead className="w-[80px]"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={5} className="p-0 border-0"><TableSkeleton columns={5} rows={5} /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="p-0 border-0"><TableSkeleton columns={6} rows={5} /></TableCell></TableRow>
               ) : (projects || []).length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Brak projektów</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Brak projektów</TableCell></TableRow>
               ) : (
                 projects?.map((p: any) => (
                   <TableRow key={p.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/projects/${p.id}`)}>
@@ -70,6 +90,13 @@ export default function Projects() {
                     </TableCell>
                     <TableCell className="text-sm">{p.profiles?.full_name || "—"}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{new Date(p.created_at).toLocaleDateString("pl-PL")}</TableCell>
+                    {canArchive && (
+                      <TableCell>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={(e) => handleArchive(e, p.id, p.name)} title="Archiwizuj">
+                          <Archive className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}

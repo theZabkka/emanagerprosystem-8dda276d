@@ -997,12 +997,14 @@ export type Database = {
       projects: {
         Row: {
           ai_summary: string | null
+          archived_at: string | null
           brief_data: Json | null
           client_id: string | null
           created_at: string | null
           description: string | null
           end_date: string | null
           id: string
+          is_archived: boolean
           manager_id: string | null
           name: string
           start_date: string | null
@@ -1010,12 +1012,14 @@ export type Database = {
         }
         Insert: {
           ai_summary?: string | null
+          archived_at?: string | null
           brief_data?: Json | null
           client_id?: string | null
           created_at?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
+          is_archived?: boolean
           manager_id?: string | null
           name: string
           start_date?: string | null
@@ -1023,12 +1027,14 @@ export type Database = {
         }
         Update: {
           ai_summary?: string | null
+          archived_at?: string | null
           brief_data?: Json | null
           client_id?: string | null
           created_at?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
+          is_archived?: boolean
           manager_id?: string | null
           name?: string
           start_date?: string | null
@@ -1303,6 +1309,7 @@ export type Database = {
       tasks: {
         Row: {
           accepted_responsibility_by: string | null
+          archived_at: string | null
           brief_deliverable: string | null
           brief_dont_do: string | null
           brief_format: string | null
@@ -1342,6 +1349,7 @@ export type Database = {
         }
         Insert: {
           accepted_responsibility_by?: string | null
+          archived_at?: string | null
           brief_deliverable?: string | null
           brief_dont_do?: string | null
           brief_format?: string | null
@@ -1381,6 +1389,7 @@ export type Database = {
         }
         Update: {
           accepted_responsibility_by?: string | null
+          archived_at?: string | null
           brief_deliverable?: string | null
           brief_dont_do?: string | null
           brief_format?: string | null
@@ -1560,6 +1569,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      archive_project_with_tasks: {
+        Args: { p_project_id: string }
+        Returns: undefined
+      }
       change_task_status: {
         Args: {
           _changed_by: string
@@ -1584,6 +1597,10 @@ export type Database = {
       is_task_member: {
         Args: { _task_id: string; _user_id: string }
         Returns: boolean
+      }
+      restore_project_with_tasks: {
+        Args: { p_project_id: string }
+        Returns: undefined
       }
     }
     Enums: {

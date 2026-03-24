@@ -963,4 +963,39 @@ supabase/
 
 ---
 
+## Archiwizacja Projektów — Timestamp Restore (2026-03-24)
+
+### Mechanizm Soft Delete z korelacją czasową
+
+Projekty mogą być archiwizowane (soft delete) wraz z powiązanymi otwartymi zadaniami. Przywracanie wykorzystuje mechanizm **Timestamp Restore** — korelację czasową `archived_at`, która zapobiega przywracaniu tzw. "zombie tasks" (zadań zamkniętych na długo przed archiwizacją projektu).
+
+### Kolumny bazodanowe
+| Tabela | Kolumna | Typ | Opis |
+|---|---|---|---|
+| `projects` | `is_archived` | BOOLEAN DEFAULT false | Flaga archiwum |
+| `projects` | `archived_at` | TIMESTAMPTZ | Dokładny czas archiwizacji |
+| `tasks` | `archived_at` | TIMESTAMPTZ | Czas archiwizacji (korelacja) |
+
+### Indeks
+- `idx_projects_active` — Partial Index na `projects(id) WHERE is_archived = false` — optymalizacja odczytu aktywnych projektów.
+
+### Funkcje RPC (SECURITY DEFINER)
+
+**`archive_project_with_tasks(p_project_id UUID)`**
+1. Zapisuje `v_now := NOW()`
+2. Ustawia na projekcie `is_archived = true`, `archived_at = v_now`
+3. Ustawia `is_archived = true`, `archived_at = v_now` na WSZYSTKICH zadaniach projektu, które miały `is_archived = false`
+
+**`restore_project_with_tasks(p_project_id UUID)`**
+1. Odczytuje `archived_at` przywracanego projektu
+2. Ustawia na projekcie `is_archived = false`, `archived_at = NULL`
+3. **KRYTYCZNE**: Przywraca TYLKO zadania, których `archived_at` zgadza się idealnie z `archived_at` projektu (korelacja czasowa). Zadania zarchiwizowane w innym czasie (np. ręcznie zamknięte wcześniej) NIE są przywracane.
+
+### Widoki
+- `/projects` — filtruje `.eq('is_archived', false)` — brak wycieków zarchiwizowanych projektów
+- `/projects/archive` — Data Table z wyszukiwarką i przyciskiem "Przywróć Projekt"
+- Wszystkie dropdown'y projektów (CreateTask, TaskArchive, ClientDetail, ClientDashboard) filtrują `is_archived = false`
+
+---
+
 *Koniec dokumentacji. Pamiętaj o ZŁOTEJ ZASADZIE — aktualizuj ten plik po każdej zmianie kodu!*
