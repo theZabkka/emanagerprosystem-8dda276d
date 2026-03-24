@@ -7,6 +7,7 @@
 const MIN_CHAR = 'A'; // ASCII 65
 const MAX_CHAR = 'z'; // ASCII 122
 const MID_CHAR = 'U'; // roughly midpoint
+const FLOOR_CHAR = '!'; // ASCII 33 — absolute floor for getBeforeRank
 
 /**
  * Returns a string that sorts between `a` and `b`.
