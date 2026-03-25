@@ -122,6 +122,39 @@ export default function CrmBoard() {
           .sort((a, b) => compareRanks(a.lexo_rank, b.lexo_rank))
       );
       mutations.updateDealRank.mutate({ id: draggableId, lexo_rank: newRank, column_id: isSameColumn ? undefined : destColumnId });
+
+      // Log stage change to crm_stage_logs when column changes
+      if (!isSameColumn) {
+        // Close previous stage log
+        supabase
+          .from("crm_stage_logs" as any)
+          .update({ exited_at: new Date().toISOString() } as any)
+          .eq("deal_id", draggableId)
+          .eq("column_id", srcColumnId)
+          .is("exited_at", null)
+          .then(() => {
+            // Insert new stage log
+            supabase
+              .from("crm_stage_logs" as any)
+              .insert({ deal_id: draggableId, column_id: destColumnId } as any)
+              .then();
+          });
+
+        // Check if destination column is won/lost → set closed_at
+        const destCol = columns.find((c) => c.id === destColumnId);
+        if (destCol) {
+          const colNameLower = destCol.name.toLowerCase();
+          const isClosedStage =
+            colNameLower.includes("wygran") || colNameLower.includes("sukces") || colNameLower.includes("won") ||
+            colNameLower.includes("przegran") || colNameLower.includes("lost") || colNameLower.includes("strat");
+          if (isClosedStage) {
+            supabase.from("crm_deals" as any).update({ closed_at: new Date().toISOString() } as any).eq("id", draggableId).then();
+          } else {
+            // Returning to active stage → clear closed_at
+            supabase.from("crm_deals" as any).update({ closed_at: null } as any).eq("id", draggableId).then();
+          }
+        }
+      }
     },
     [columns, dealsByColumn, qc, mutations]
   );
