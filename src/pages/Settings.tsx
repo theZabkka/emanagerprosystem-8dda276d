@@ -11,10 +11,11 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Eye, Bell, Briefcase, Users, Shield, Bot, Settings2, Clock, LayoutList, RotateCcw, Phone } from "lucide-react";
+import { Eye, Bell, Briefcase, Users, Shield, Bot, Settings2, Clock, LayoutList, RotateCcw, Phone, Tag } from "lucide-react";
 import { useRole } from "@/hooks/useRole";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { SipLoginManager } from "@/components/settings/SipLoginManager";
+import { CrmLabelManager } from "@/components/crm/CrmLabelManager";
 
 function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
   return (
@@ -331,6 +332,12 @@ export default function Settings() {
                 <SipLoginManager />
               </>
             )}
+
+            <Separator className="my-2" />
+
+            {/* CRM Labels */}
+            <SectionHeader icon={Tag} title="Etykiety (Lejek sprzedaży)" />
+            <CrmLabelManager />
 
             <Separator className="my-2" />
             <SectionHeader icon={Shield} title="Bezpieczeństwo" />
