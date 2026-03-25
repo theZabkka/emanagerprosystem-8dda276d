@@ -63,19 +63,36 @@ Deno.serve(async (req) => {
   );
 
   try {
-    // Extract email fields from verified payload
-    const senderEmail: string =
-      body.from_email || body.from || body.sender_email || body.envelope?.from || "";
-    const subject: string = body.subject || body.title || "(Brak tematu)";
-    const htmlBody: string = body.html || body.body_html || "";
-    const textBody: string = body.text || body.body_plain || body.body || "";
+    // 1. Ignorowanie eventów systemowych (np. ping od Resend)
+    const eventType = body.type;
+    if (eventType !== "email.received") {
+      console.log("Ignorowanie eventu systemowego:", eventType);
+      return new Response(JSON.stringify({ ok: true, message: "Event ignored" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 2. Rozpakowanie "koperty" Resend
+    const emailData = body.data || body;
+
+    const rawFrom: string = emailData.from || emailData.from_email || "";
+    const subject: string = emailData.subject || "(Brak tematu)";
+    const htmlBody: string = emailData.html || "";
+    const textBody: string = emailData.text || "";
     const description = htmlBody || textBody || "";
-    if (!senderEmail) {
+
+    if (!rawFrom) {
+      console.error("Brak nadawcy w payloadzie:", emailData);
       return new Response(
         JSON.stringify({ error: "Missing sender email in payload" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // 3. Ekstrakcja czystego e-maila za pomocą Regex
+    const emailMatch = rawFrom.match(/<([^>]+)>/);
+    const senderEmail = emailMatch ? emailMatch[1].trim().toLowerCase() : rawFrom.trim().toLowerCase();
 
     // Step 1: Find existing client by email
     const { data: existingClient } = await supabaseAdmin
