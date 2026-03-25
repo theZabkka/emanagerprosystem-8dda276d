@@ -7,7 +7,7 @@ import {
   Users, Calendar as CalendarIcon, Video, PalmtreeIcon, Monitor,
   BarChart3, Activity, FileBarChart, Clock, Award, StickyNote,
   Bot, Workflow, Lock, RefreshCcw, Sparkles, Bell, Settings, BookOpen, FileQuestion,
-  LogOut, ChevronDown
+  LogOut, ChevronDown, Bug
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -95,6 +95,7 @@ const sections = [
       { title: "Centrum automatyzacji", url: "/automation-center", icon: Workflow },
       { title: "Analityka zespołu 🔒", url: "/team-analytics", icon: Lock },
       { title: "Zadania cykliczne", url: "/recurring-tasks", icon: RefreshCcw },
+      { title: "Zgłoszenia błędów", url: "/admin/bugs", icon: Bug, roles: ["koordynator", "boss", "superadmin"] as string[] },
       { title: "Sugestie", url: "/suggestions", icon: Sparkles },
       { title: "Co nowego", url: "/whats-new", icon: Bell },
       { title: "Ustawienia", url: "/settings", icon: Settings },
@@ -109,7 +110,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { profile, signOut, user } = useAuth();
-  const { canViewModule } = useRole();
+  const { canViewModule, currentRole } = useRole();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
 
@@ -166,7 +167,10 @@ export function AppSidebar() {
       <SidebarContent className="overflow-hidden">
         <ScrollArea className="h-full">
           {sections.map((section) => {
-            const visibleItems = section.items.filter(item => canViewModule(item.title));
+            const visibleItems = section.items.filter(item => {
+              if ((item as any).roles && !(item as any).roles.includes(currentRole)) return false;
+              return canViewModule(item.title);
+            });
             if (visibleItems.length === 0) return null;
             return (
             <SidebarGroup key={section.label}>
