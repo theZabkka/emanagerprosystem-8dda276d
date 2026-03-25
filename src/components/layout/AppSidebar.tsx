@@ -7,7 +7,7 @@ import {
   Users, Calendar as CalendarIcon, Video, PalmtreeIcon, Monitor,
   BarChart3, Activity, FileBarChart, Clock, Award, StickyNote,
   Bot, Workflow, Lock, RefreshCcw, Sparkles, Bell, Settings, BookOpen, FileQuestion,
-  LogOut, ChevronDown
+  LogOut, ChevronDown, Bug
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -95,6 +95,7 @@ const sections = [
       { title: "Centrum automatyzacji", url: "/automation-center", icon: Workflow },
       { title: "Analityka zespołu 🔒", url: "/team-analytics", icon: Lock },
       { title: "Zadania cykliczne", url: "/recurring-tasks", icon: RefreshCcw },
+      { title: "Zgłoszenia błędów", url: "/admin/bugs", icon: Bug, roles: ["koordynator", "boss", "superadmin"] as string[] },
       { title: "Sugestie", url: "/suggestions", icon: Sparkles },
       { title: "Co nowego", url: "/whats-new", icon: Bell },
       { title: "Ustawienia", url: "/settings", icon: Settings },
