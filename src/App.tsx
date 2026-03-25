@@ -47,6 +47,7 @@ const AdminTickets = lazy(() => import("./pages/AdminTickets"));
 const ClientTickets = lazy(() => import("./pages/ClientTickets"));
 const AdminTicketDetails = lazy(() => import("./pages/AdminTicketDetails"));
 const ClientTicketDetails = lazy(() => import("./pages/ClientTicketDetails"));
+const AdminBugs = lazy(() => import("./pages/AdminBugs"));
 
 const queryClient = new QueryClient();
 
@@ -134,6 +135,7 @@ const App = () => (
             <Route path="/client/tickets" element={<ProtectedRoute><ClientTickets /></ProtectedRoute>} />
             <Route path="/client/tickets/new" element={<ProtectedRoute><ClientNewTicket /></ProtectedRoute>} />
             <Route path="/client/tickets/:id" element={<ProtectedRoute><ClientTicketDetails /></ProtectedRoute>} />
+            <Route path="/admin/bugs" element={<ProtectedRoute><AdminBugs /></ProtectedRoute>} />
             {stubRoutes.map((r) => (
               <Route key={r.path} path={r.path} element={<ProtectedRoute><StubPage title={r.title} /></ProtectedRoute>} />
             ))}
