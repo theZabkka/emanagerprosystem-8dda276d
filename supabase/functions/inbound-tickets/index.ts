@@ -75,10 +75,22 @@ Deno.serve(async (req) => {
     // 2. Rozpakowanie "koperty" Resend
     const emailData = body.data || body;
 
-    // 3. Wyciągnięcie treści bezpośrednio z payloadu webhooka
-    const htmlBody = emailData.html || "";
-    const textBody = emailData.text || "";
-    const description = htmlBody || textBody || "(Brak treści wiadomości)";
+    // 3. Agresywne szukanie treści pod różnymi kluczami używanymi przez webhooki
+    console.log("Szukam treści. Dostępne klucze w emailData:", Object.keys(emailData));
+
+    const htmlBody = emailData.html || emailData.html_body || emailData.content_html || emailData.body_html || "";
+    const textBody = emailData.text || emailData.text_body || emailData.content_plain || emailData.body_plain || emailData.body || emailData.raw || "";
+    
+    let description = htmlBody || textBody || "";
+
+    if (!description || description.trim() === "") {
+      description = "(Brak treści wiadomości)";
+      const debugData = { ...emailData };
+      delete debugData.attachments; 
+      console.warn("UWAGA: Nie znaleziono treści! Zrzut emailData:", JSON.stringify(debugData));
+    } else {
+      console.log(`Złapano treść. Długość: ${description.length} znaków.`);
+    }
     const subject = emailData.subject || "(Brak tematu)";
 
     // 4. Ekstrakcja nadawcy
