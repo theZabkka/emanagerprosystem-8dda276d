@@ -48,15 +48,19 @@ export function Topbar({ title = "Pulpit" }: TopbarProps) {
     setSearching(true);
     try {
       const q = `%${query}%`;
-      const [tasksRes, clientsRes, projectsRes] = await Promise.all([
-        supabase.from("tasks").select("id, title, status").ilike("title", q).limit(5),
+      const [tasksRes, clientsRes, projectsRes, profilesRes, ticketsRes] = await Promise.all([
+        supabase.from("tasks").select("id, title, status").ilike("title", q).eq("is_archived", false).limit(5),
         supabase.from("clients").select("id, name").ilike("name", q).limit(5),
         supabase.from("projects").select("id, name").ilike("name", q).eq("is_archived", false).limit(5),
+        supabase.from("profiles").select("id, full_name, role").ilike("full_name", q).limit(5),
+        supabase.from("tickets").select("id, title, status").ilike("title", q).limit(5),
       ]);
       const results: any[] = [];
       (tasksRes.data || []).forEach(t => results.push({ type: "task", id: t.id, label: t.title, sub: t.status, url: `/tasks/${t.id}` }));
       (clientsRes.data || []).forEach(c => results.push({ type: "client", id: c.id, label: c.name, sub: "Klient", url: `/clients/${c.id}` }));
       (projectsRes.data || []).forEach(p => results.push({ type: "project", id: p.id, label: p.name, sub: "Projekt", url: `/projects/${p.id}` }));
+      (profilesRes.data || []).forEach(u => results.push({ type: "user", id: u.id, label: u.full_name, sub: u.role, url: `/team` }));
+      (ticketsRes.data || []).forEach(t => results.push({ type: "ticket", id: t.id, label: t.title, sub: t.status, url: `/admin/tickets` }));
       setSearchResults(results);
       setSearchOpen(results.length > 0);
     } catch { /* silent */ }
@@ -87,11 +91,13 @@ export function Topbar({ title = "Pulpit" }: TopbarProps) {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const typeLabels: Record<string, string> = { task: "Zadanie", client: "Klient", project: "Projekt" };
+  const typeLabels: Record<string, string> = { task: "Zadanie", client: "Klient", project: "Projekt", user: "Osoba", ticket: "Zgłoszenie" };
   const typeColors: Record<string, string> = {
     task: "bg-primary/10 text-primary",
     client: "bg-emerald-500/10 text-emerald-700",
     project: "bg-blue-500/10 text-blue-700",
+    user: "bg-violet-500/10 text-violet-700",
+    ticket: "bg-amber-500/10 text-amber-700",
   };
 
   return (
