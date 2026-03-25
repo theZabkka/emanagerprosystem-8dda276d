@@ -1417,6 +1417,30 @@ export default function TaskDetail() {
           }
         }}
       />
+
+      {/* Reject from review modal */}
+      <Dialog open={rejectReviewOpen} onOpenChange={setRejectReviewOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Odrzuć zadanie z weryfikacji</DialogTitle>
+            <DialogDescription>Podaj powód odrzucenia. Zadanie zostanie przeniesione do statusu POPRAWKI, a komentarz zostanie dodany automatycznie.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Textarea
+              value={rejectReviewText}
+              onChange={e => setRejectReviewText(e.target.value)}
+              placeholder="Powód odrzucenia / uwagi..."
+              className="min-h-[100px] text-sm"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setRejectReviewOpen(false); setRejectReviewText(""); }}>Anuluj</Button>
+            <Button variant="destructive" onClick={handleRejectFromReview} disabled={!rejectReviewText.trim()}>
+              Odrzuć i przenieś do poprawek
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
