@@ -64,7 +64,7 @@ const sections = [
     items: [
       { title: "Komunikator", url: "/messenger", icon: MessagesSquare },
       { title: "Skrzynka klientów", url: "/client-inbox", icon: Inbox },
-      { title: "Zgłoszenia", url: "/tickets", icon: TicketCheck },
+      { title: "Zgłoszenia", url: "/admin/tickets", icon: TicketCheck },
     ],
   },
   {
