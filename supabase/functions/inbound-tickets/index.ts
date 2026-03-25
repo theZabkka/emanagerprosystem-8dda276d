@@ -147,42 +147,56 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 7. Dekodowanie załączników bezpośrednio z payloadu webhooka
-    const attachments = emailData.attachments || [];
+    // 7. Pobranie załączników przez dedykowany endpoint Inbound Resend
+    const attachmentsMetadata = emailData.attachments || [];
+    const emailId = emailData.email_id;
 
-    if (attachments.length > 0) {
-      console.log(`Znaleziono ${attachments.length} załączników w payloadzie. Rozpoczynam bezpośrednie dekodowanie...`);
+    if (attachmentsMetadata.length > 0 && emailId) {
+      console.log(`Mail ${emailId} posiada ${attachmentsMetadata.length} załączników. Uderzam do API Inbound Resend...`);
 
-      for (const att of attachments) {
-        try {
-          // Resend może używać różnych kluczy w zależności od struktury JSON
-          const rawContent = att.content || att.contentBytes || att.data || att.raw;
+      try {
+        const resendApiKey = Deno.env.get("RESEND_API_KEY");
+        if (!resendApiKey) throw new Error("Brak klucza RESEND_API_KEY");
 
-          if (!rawContent) {
-            console.warn(`Załącznik ${att.filename || 'nieznany'} jest pusty. Zrzut dostępnych kluczy obiektu z Resend:`, Object.keys(att));
+        // KROK 1: Uderzenie w prawidłowy endpoint INBOUND
+        const apiRes = await fetch(`https://api.resend.com/emails/receiving/${emailId}/attachments`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!apiRes.ok) {
+           throw new Error(`Błąd API Inbound Resend: ${apiRes.status} ${await apiRes.text()}`);
+        }
+
+        const apiData = await apiRes.json();
+        const fullAttachments = apiData.data || [];
+
+        // KROK 2: Pobranie plików przez udostępnione linki CDN
+        for (const att of fullAttachments) {
+          if (!att.download_url) {
+            console.warn(`Załącznik ${att.filename} nie posiada download_url. Pomijam.`);
             continue;
           }
 
-          let fileData;
-
-          // Rozpoznawanie formatu danych (Array vs Buffer Object vs Base64)
-          if (Array.isArray(rawContent)) {
-            fileData = new Uint8Array(rawContent);
-          } else if (rawContent.type === 'Buffer' && Array.isArray(rawContent.data)) {
-            fileData = new Uint8Array(rawContent.data);
-          } else if (typeof rawContent === 'string') {
-            const binary = atob(rawContent);
-            fileData = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) fileData[i] = binary.charCodeAt(i);
-          } else {
-            console.error(`Nieznany format danych załącznika ${att.filename}. Typ:`, typeof rawContent);
+          console.log(`Pobieranie fizycznego pliku: ${att.filename}...`);
+          const fileRes = await fetch(att.download_url);
+          
+          if (!fileRes.ok) {
+            console.error(`Błąd pobierania pliku ${att.filename} z serwera CDN Resend.`);
             continue;
           }
+
+          const arrayBuffer = await fileRes.arrayBuffer();
+          const fileData = new Uint8Array(arrayBuffer);
 
           const fileNameSafe = att.filename ? att.filename.replace(/[^a-zA-Z0-9.\-_]/g, '') : `file-${crypto.randomUUID()}`;
           const filePath = `${ticket.id}/${crypto.randomUUID()}-${fileNameSafe}`;
 
-          console.log(`Wgrywanie pliku: ${fileNameSafe} do Storage...`);
+          console.log(`Wgrywanie ${fileNameSafe} do Storage...`);
+
           const { error: uploadErr } = await supabaseAdmin.storage
             .from('ticket_attachments')
             .upload(filePath, fileData, {
@@ -191,7 +205,7 @@ Deno.serve(async (req) => {
             });
 
           if (uploadErr) {
-            console.error(`Błąd wgrywania pliku ${fileNameSafe} do Supabase:`, uploadErr);
+            console.error(`Błąd wgrywania do Supabase dla ${fileNameSafe}:`, uploadErr);
             continue;
           }
 
@@ -205,13 +219,13 @@ Deno.serve(async (req) => {
             file_url: publicUrlData.publicUrl
           });
 
-          console.log(`Sukces: Zapisano i podpięto załącznik ${att.filename}`);
-        } catch (attErr) {
-          console.error(`Krytyczny błąd podczas przetwarzania załącznika ${att.filename}:`, attErr);
+          console.log(`Sukces: Wgrano ${att.filename}`);
         }
+      } catch (err) {
+        console.error("Krytyczny błąd podczas pobierania załączników przez API:", err);
       }
     } else {
-      console.log("Mail nie zawierał informacji o załącznikach w payloadzie.");
+      console.log("Mail nie posiadał załączników.");
     }
 
     console.log(`Ticket created: ${ticket.id} for client: ${clientId} from: ${senderEmail}`);
