@@ -41,10 +41,30 @@ export function AnalyticsTasksTab({ fromDate, projectId, userId }: Props) {
     },
   });
 
+  const { data: healthData, isLoading: isLoadingHealth } = useQuery({
+    queryKey: ["project-health", projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_project_health_score", {
+        p_project_id: projectId,
+      } as any);
+      if (error) throw error;
+      return data as any;
+    },
+  });
+
   const avgHours = leadTimeStats?.overall_avg_hours ?? 0;
   const avgDays = (avgHours / 24).toFixed(1);
   const ontimePercent = extraStats?.ontime_percentage ?? 0;
   const backlogCount = extraStats?.backlog_count ?? 0;
+
+  const healthScore = healthData?.score ?? null;
+  const healthColor = healthScore === null ? "text-muted-foreground" :
+    healthScore >= 80 ? "text-green-600" :
+    healthScore >= 50 ? "text-yellow-500" : "text-destructive";
+  const healthBg = healthScore === null ? "bg-muted" :
+    healthScore >= 80 ? "bg-green-500/10" :
+    healthScore >= 50 ? "bg-yellow-500/10" : "bg-destructive/10";
 
   return (
     <div className="space-y-6">
