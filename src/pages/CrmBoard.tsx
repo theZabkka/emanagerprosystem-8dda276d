@@ -45,7 +45,7 @@ export default function CrmBoard() {
   const [newDeal, setNewDeal] = useState({ title: "", column_id: "", priority: "medium", due_date: "" });
 
   // All labels for each deal - fetch via batch query 
-  const { data: allDealLabelsMap } = useCrmLabelsForDeals(deals);
+  const { data: allDealLabelsMap } = useCrmLabelsForDeals(deals.map(d => d.id));
 
   // Filtered deals
   const filteredDeals = useMemo(() => {
