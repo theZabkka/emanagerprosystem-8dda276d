@@ -722,6 +722,180 @@ export type Database = {
           },
         ]
       }
+      crm_columns: {
+        Row: {
+          created_at: string | null
+          id: string
+          lexo_rank: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          lexo_rank?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          lexo_rank?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      crm_deal_comments: {
+        Row: {
+          content: string
+          created_at: string | null
+          deal_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          deal_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          deal_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_deal_comments_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "crm_deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deal_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_deal_labels: {
+        Row: {
+          deal_id: string
+          label_id: string
+        }
+        Insert: {
+          deal_id: string
+          label_id: string
+        }
+        Update: {
+          deal_id?: string
+          label_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_deal_labels_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "crm_deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deal_labels_label_id_fkey"
+            columns: ["label_id"]
+            isOneToOne: false
+            referencedRelation: "crm_labels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_deals: {
+        Row: {
+          assigned_to: string | null
+          column_id: string
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          is_archived: boolean
+          lexo_rank: string
+          priority: string
+          reminder_active: boolean
+          reminder_trigger_date: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          column_id: string
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_archived?: boolean
+          lexo_rank?: string
+          priority?: string
+          reminder_active?: boolean
+          reminder_trigger_date?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          column_id?: string
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_archived?: boolean
+          lexo_rank?: string
+          priority?: string
+          reminder_active?: boolean
+          reminder_trigger_date?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_deals_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_column_id_fkey"
+            columns: ["column_id"]
+            isOneToOne: false
+            referencedRelation: "crm_columns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_labels: {
+        Row: {
+          color: string
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          color?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       internal_task_ratings: {
         Row: {
           created_at: string
