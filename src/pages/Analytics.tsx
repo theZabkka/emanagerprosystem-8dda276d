@@ -7,6 +7,8 @@ import { Users, Briefcase, TrendingUp, Headphones, ListChecks, ShieldCheck } fro
 import { AnalyticsFilters } from "@/components/analytics/AnalyticsFilters";
 import { AnalyticsTasksTab } from "@/components/analytics/AnalyticsTasksTab";
 import { AnalyticsQualityTab } from "@/components/analytics/AnalyticsQualityTab";
+import { AnalyticsTeamTab } from "@/components/analytics/AnalyticsTeamTab";
+import { AnalyticsPipelineTab } from "@/components/analytics/AnalyticsPipelineTab";
 import { AnalyticsPlaceholderTab } from "@/components/analytics/AnalyticsPlaceholderTab";
 
 const TABS = [
@@ -44,7 +46,6 @@ export default function Analytics() {
   return (
     <AppLayout title="Analizy">
       <div className="space-y-6 mx-auto max-w-7xl">
-        {/* Global filters above tabs */}
         <AnalyticsFilters
           days={days} setDays={setDays}
           projectId={projectId} setProjectId={setProjectId}
@@ -77,7 +78,9 @@ export default function Analytics() {
           </TabsContent>
 
           <TabsContent value="team" className="mt-4">
-            {activeTab === "team" && <AnalyticsPlaceholderTab icon={Users} label="Zespół" />}
+            {activeTab === "team" && (
+              <AnalyticsTeamTab projectId={rpcProjectId} userId={rpcUserId} />
+            )}
           </TabsContent>
 
           <TabsContent value="clients" className="mt-4">
@@ -85,7 +88,7 @@ export default function Analytics() {
           </TabsContent>
 
           <TabsContent value="pipeline" className="mt-4">
-            {activeTab === "pipeline" && <AnalyticsPlaceholderTab icon={TrendingUp} label="Pipeline" />}
+            {activeTab === "pipeline" && <AnalyticsPipelineTab />}
           </TabsContent>
 
           <TabsContent value="support" className="mt-4">
