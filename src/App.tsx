@@ -43,6 +43,8 @@ const StaffIdeas = lazy(() => import("./pages/StaffIdeas"));
 const TaskArchive = lazy(() => import("./pages/TaskArchive"));
 const AdminNewTicket = lazy(() => import("./pages/AdminNewTicket"));
 const ClientNewTicket = lazy(() => import("./pages/ClientNewTicket"));
+const AdminTickets = lazy(() => import("./pages/AdminTickets"));
+const ClientTickets = lazy(() => import("./pages/ClientTickets"));
 // ProjectArchive is now integrated into Projects page as a tab
 
 const queryClient = new QueryClient();
@@ -125,7 +127,9 @@ const App = () => (
             <Route path="/client-ideas" element={<ProtectedRoute><ClientIdeas /></ProtectedRoute>} />
             <Route path="/staff-ideas" element={<ProtectedRoute><StaffIdeas /></ProtectedRoute>} />
             <Route path="/docs" element={<ProtectedRoute><Documentation /></ProtectedRoute>} />
+            <Route path="/admin/tickets" element={<ProtectedRoute><AdminTickets /></ProtectedRoute>} />
             <Route path="/admin/tickets/new" element={<ProtectedRoute><AdminNewTicket /></ProtectedRoute>} />
+            <Route path="/client/tickets" element={<ProtectedRoute><ClientTickets /></ProtectedRoute>} />
             <Route path="/client/tickets/new" element={<ProtectedRoute><ClientNewTicket /></ProtectedRoute>} />
             {stubRoutes.map((r) => (
               <Route key={r.path} path={r.path} element={<ProtectedRoute><StubPage title={r.title} /></ProtectedRoute>} />
