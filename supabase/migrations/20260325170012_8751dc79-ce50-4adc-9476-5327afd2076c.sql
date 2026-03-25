@@ -1,0 +1,1 @@
+ALTER TABLE public.bug_reports ADD COLUMN IF NOT EXISTS is_read BOOLEAN NOT NULL DEFAULT false;

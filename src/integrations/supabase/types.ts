@@ -92,6 +92,7 @@ export type Database = {
           created_at: string
           description: string
           id: string
+          is_read: boolean
           location: string | null
           reporter_id: string
           status: string
@@ -102,6 +103,7 @@ export type Database = {
           created_at?: string
           description: string
           id?: string
+          is_read?: boolean
           location?: string | null
           reporter_id: string
           status?: string
@@ -112,6 +114,7 @@ export type Database = {
           created_at?: string
           description?: string
           id?: string
+          is_read?: boolean
           location?: string | null
           reporter_id?: string
           status?: string

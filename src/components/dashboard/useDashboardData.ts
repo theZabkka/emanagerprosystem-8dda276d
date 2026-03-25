@@ -76,6 +76,14 @@ export function useDashboardData() {
     },
   });
 
+  const { data: unreadBugsCount } = useQuery({
+    queryKey: ["dashboard-unread-bugs"],
+    queryFn: async () => {
+      const { count } = await supabase.from("bug_reports").select("*", { count: "exact", head: true }).eq("is_read", false);
+      return count || 0;
+    },
+  });
+
   useEffect(() => {
     const channel = supabase
       .channel("dashboard-activity")
@@ -111,5 +119,6 @@ export function useDashboardData() {
     pipeline,
     clientReviewTasks: clientReviewTasks || [],
     correctionTasks: correctionTasks || [],
+    unreadBugs: unreadBugsCount ?? 0,
   };
 }

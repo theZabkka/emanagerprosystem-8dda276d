@@ -1,5 +1,5 @@
 import { AppLayout } from "@/components/layout/AppLayout";
-import { AlertTriangle, Users, TrendingUp, Clock, TicketCheck, RefreshCcw, CheckCircle2, Eye } from "lucide-react";
+import { AlertTriangle, Users, TrendingUp, Clock, TicketCheck, RefreshCcw, CheckCircle2, Eye, Bug } from "lucide-react";
 import { AlertBanner } from "@/components/dashboard/AlertBanner";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { TaskListCard } from "@/components/dashboard/TaskListCard";
@@ -7,15 +7,19 @@ import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { PipelineOverview } from "@/components/dashboard/PipelineOverview";
 import { TeamLoadCard } from "@/components/dashboard/TeamLoadCard";
 import { useDashboardData } from "@/components/dashboard/useDashboardData";
+import { useRole } from "@/hooks/useRole";
 
 export default function StaffDashboard() {
   const data = useDashboardData();
+  const { currentRole } = useRole();
+  const canSeeBugs = ["superadmin", "boss", "koordynator"].includes(currentRole);
 
   return (
     <AppLayout title="Pulpit">
       <div className="space-y-6 max-w-7xl mx-auto">
-        {(data.overdue > 0 || data.corrections > 0 || data.clientReview > 0) && (
+        {(data.overdue > 0 || data.corrections > 0 || data.clientReview > 0 || (canSeeBugs && data.unreadBugs > 0)) && (
         <div className="space-y-2">
+          {canSeeBugs && data.unreadBugs > 0 && <AlertBanner color="red" icon={Bug} text={`Masz ${data.unreadBugs} nowe, nieodczytane zgłoszenia błędów.`} actionText="Zobacz" navigateTo="/admin/bugs" />}
           {data.overdue > 0 && <AlertBanner color="red" icon={AlertTriangle} text={`Masz ${data.overdue} zaległych zadań`} actionText="Zobacz" navigateTo="/tasks?filter=overdue" />}
           {data.corrections > 0 && <AlertBanner color="orange" icon={RefreshCcw} text={`${data.corrections} zadań w poprawkach`} actionText="Zobacz" navigateTo="/tasks?status=corrections" />}
           {data.clientReview > 0 && <AlertBanner color="orange" icon={CheckCircle2} text={`${data.clientReview} zadań oczekuje na weryfikację`} actionText="Zobacz" navigateTo="/tasks?status=client_review" />}
