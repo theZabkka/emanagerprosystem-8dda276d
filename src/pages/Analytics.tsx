@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,14 +13,9 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer } from "recharts";
-
-const DATE_RANGES = [
-  { value: "7", label: "Ostatnie 7 dni" },
-  { value: "30", label: "Ostatnie 30 dni" },
-  { value: "90", label: "Ostatnie 90 dni" },
-  { value: "365", label: "Ostatni rok" },
-];
+import { PieChart as RechartsPie, Pie, Cell } from "recharts";
+import { AnalyticsFilters } from "@/components/analytics/AnalyticsFilters";
+import { QualityRankingTable } from "@/components/analytics/QualityRankingTable";
 
 const DONUT_COLORS = [
   "hsl(var(--primary))",
@@ -34,6 +28,7 @@ const DONUT_COLORS = [
 export default function Analytics() {
   const [days, setDays] = useState("30");
   const [projectId, setProjectId] = useState<string>("all");
+  const [userId, setUserId] = useState<string>("all");
 
   const fromDate = useMemo(() => {
     const d = new Date();
@@ -50,14 +45,16 @@ export default function Analytics() {
   });
 
   const rpcProjectId = projectId === "all" ? null : projectId;
+  const rpcUserId = userId === "all" ? null : userId;
 
   const { data: rejectionStats, isLoading: loadingRejections } = useQuery({
-    queryKey: ["rejection-stats", fromDate, rpcProjectId],
+    queryKey: ["rejection-stats", fromDate, rpcProjectId, rpcUserId],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_rejection_stats", {
         _from_date: fromDate,
         _to_date: new Date().toISOString(),
         _project_id: rpcProjectId,
+        _user_id: rpcUserId,
       } as any);
       if (error) throw error;
       return data as any;
@@ -65,12 +62,13 @@ export default function Analytics() {
   });
 
   const { data: leadTimeStats, isLoading: loadingLeadTime } = useQuery({
-    queryKey: ["lead-time-stats", fromDate, rpcProjectId],
+    queryKey: ["lead-time-stats", fromDate, rpcProjectId, rpcUserId],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_lead_time_stats", {
         _from_date: fromDate,
         _to_date: new Date().toISOString(),
         _project_id: rpcProjectId,
+        _user_id: rpcUserId,
       } as any);
       if (error) throw error;
       return data as any;
@@ -95,70 +93,39 @@ export default function Analytics() {
   return (
     <AppLayout title="Analizy">
       <div className="space-y-6 mx-auto max-w-7xl">
-        {/* Filters */}
-        <div className="flex flex-wrap gap-3">
-          <Select value={days} onValueChange={setDays}>
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {DATE_RANGES.map((r) => (
-                <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={projectId} onValueChange={setProjectId}>
-            <SelectTrigger className="w-56">
-              <SelectValue placeholder="Wszystkie projekty" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Wszystkie projekty</SelectItem>
-              {(projects || []).map((p) => (
-                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <AnalyticsFilters
+          days={days} setDays={setDays}
+          projectId={projectId} setProjectId={setProjectId}
+          userId={userId} setUserId={setUserId}
+          projects={projects || []}
+        />
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Lead Time */}
           <Card>
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground font-medium">Średni czas realizacji</p>
-                  <p className="text-4xl font-bold text-foreground mt-1">
-                    {loadingLeadTime ? "—" : `${avgDays}`}
-                  </p>
+                  <p className="text-4xl font-bold text-foreground mt-1">{loadingLeadTime ? "—" : avgDays}</p>
                   <p className="text-xs text-muted-foreground mt-1">dni ({avgHours}h)</p>
                 </div>
-                <div className="p-3 rounded-xl bg-primary/10">
-                  <Clock className="h-6 w-6 text-primary" />
-                </div>
+                <div className="p-3 rounded-xl bg-primary/10"><Clock className="h-6 w-6 text-primary" /></div>
               </div>
             </CardContent>
           </Card>
-
-          {/* Total Rejections */}
           <Card>
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground font-medium">Odrzucenia łącznie</p>
-                  <p className="text-4xl font-bold text-foreground mt-1">
-                    {loadingRejections ? "—" : totalRejections}
-                  </p>
+                  <p className="text-4xl font-bold text-foreground mt-1">{loadingRejections ? "—" : totalRejections}</p>
                   <p className="text-xs text-muted-foreground mt-1">w wybranym okresie</p>
                 </div>
-                <div className="p-3 rounded-xl bg-destructive/10">
-                  <TrendingDown className="h-6 w-6 text-destructive" />
-                </div>
+                <div className="p-3 rounded-xl bg-destructive/10"><TrendingDown className="h-6 w-6 text-destructive" /></div>
               </div>
             </CardContent>
           </Card>
-
-          {/* Top Rejection Category */}
           <Card>
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
@@ -167,13 +134,9 @@ export default function Analytics() {
                   <p className="text-lg font-bold text-foreground mt-1 leading-tight">
                     {loadingRejections ? "—" : (categoryData[0]?.reason_category || "Brak danych")}
                   </p>
-                  {categoryData[0] && (
-                    <p className="text-xs text-muted-foreground mt-1">{categoryData[0].count} przypadków</p>
-                  )}
+                  {categoryData[0] && <p className="text-xs text-muted-foreground mt-1">{categoryData[0].count} przypadków</p>}
                 </div>
-                <div className="p-3 rounded-xl bg-amber-500/10">
-                  <AlertTriangle className="h-6 w-6 text-amber-600" />
-                </div>
+                <div className="p-3 rounded-xl bg-amber-500/10"><AlertTriangle className="h-6 w-6 text-amber-600" /></div>
               </div>
             </CardContent>
           </Card>
@@ -181,7 +144,6 @@ export default function Analytics() {
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Donut Chart */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -196,14 +158,7 @@ export default function Analytics() {
                 <div className="flex items-center gap-6">
                   <ChartContainer config={chartConfig} className="h-[200px] w-[200px] flex-shrink-0">
                     <RechartsPie>
-                      <Pie
-                        data={categoryData}
-                        dataKey="count"
-                        nameKey="reason_category"
-                        innerRadius={50}
-                        outerRadius={85}
-                        paddingAngle={2}
-                      >
+                      <Pie data={categoryData} dataKey="count" nameKey="reason_category" innerRadius={50} outerRadius={85} paddingAngle={2}>
                         {categoryData.map((_, i) => (
                           <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
                         ))}
@@ -214,10 +169,7 @@ export default function Analytics() {
                   <div className="space-y-2 flex-1 min-w-0">
                     {categoryData.map((c, i) => (
                       <div key={c.reason_category} className="flex items-center gap-2 text-sm">
-                        <div
-                          className="h-3 w-3 rounded-sm flex-shrink-0"
-                          style={{ backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length] }}
-                        />
+                        <div className="h-3 w-3 rounded-sm flex-shrink-0" style={{ backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length] }} />
                         <span className="truncate text-muted-foreground">{c.reason_category}</span>
                         <Badge variant="secondary" className="ml-auto text-xs">{c.count}</Badge>
                       </div>
@@ -228,7 +180,6 @@ export default function Analytics() {
             </CardContent>
           </Card>
 
-          {/* Top Rejected Tasks Table */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -251,17 +202,10 @@ export default function Analytics() {
                     {topRejected.map((t) => (
                       <TableRow key={t.task_id}>
                         <TableCell>
-                          <Link
-                            to={`/tasks/${t.task_id}`}
-                            className="text-sm font-medium hover:underline text-foreground"
-                          >
-                            {t.title}
-                          </Link>
+                          <Link to={`/tasks/${t.task_id}`} className="text-sm font-medium hover:underline text-foreground">{t.title}</Link>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Badge variant="destructive" className="text-xs">
-                            {t.rejection_count}
-                          </Badge>
+                          <Badge variant="destructive" className="text-xs">{t.rejection_count}</Badge>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -305,6 +249,9 @@ export default function Analytics() {
             </CardContent>
           </Card>
         )}
+
+        {/* Quality Ranking */}
+        <QualityRankingTable fromDate={fromDate} projectId={rpcProjectId} />
       </div>
     </AppLayout>
   );
