@@ -818,6 +818,7 @@ export type Database = {
       crm_deals: {
         Row: {
           assigned_to: string | null
+          closed_at: string | null
           column_id: string
           created_at: string | null
           description: string | null
@@ -833,6 +834,7 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          closed_at?: string | null
           column_id: string
           created_at?: string | null
           description?: string | null
@@ -848,6 +850,7 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          closed_at?: string | null
           column_id?: string
           created_at?: string | null
           description?: string | null
@@ -898,6 +901,45 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      crm_stage_logs: {
+        Row: {
+          column_id: string
+          deal_id: string
+          entered_at: string
+          exited_at: string | null
+          id: string
+        }
+        Insert: {
+          column_id: string
+          deal_id: string
+          entered_at?: string
+          exited_at?: string | null
+          id?: string
+        }
+        Update: {
+          column_id?: string
+          deal_id?: string
+          entered_at?: string
+          exited_at?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_stage_logs_column_id_fkey"
+            columns: ["column_id"]
+            isOneToOne: false
+            referencedRelation: "crm_columns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_stage_logs_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "crm_deals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       internal_task_ratings: {
         Row: {
@@ -1928,7 +1970,12 @@ export type Database = {
             }
             Returns: Json
           }
+      get_pipeline_advanced_metrics: { Args: never; Returns: Json }
       get_pipeline_stats: { Args: never; Returns: Json }
+      get_project_health_score: {
+        Args: { p_project_id: string }
+        Returns: Json
+      }
       get_rejection_stats:
         | {
             Args: {
