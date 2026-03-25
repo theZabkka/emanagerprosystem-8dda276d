@@ -31,6 +31,7 @@ const MyDay = lazy(() => import("./pages/MyDay"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Automations = lazy(() => import("./pages/Automations"));
 const AutomationCenter = lazy(() => import("./pages/AutomationCenter"));
+const Analytics = lazy(() => import("./pages/Analytics"));
 const Team = lazy(() => import("./pages/Team"));
 const WhatsNew = lazy(() => import("./pages/WhatsNew"));
 const StubPage = lazy(() => import("./pages/StubPage"));
@@ -69,7 +70,6 @@ const stubRoutes = [
   { path: "/meetings", title: "Spotkania" },
   { path: "/absences", title: "Nieobecności" },
   { path: "/equipment", title: "Sprzęt" },
-  { path: "/analytics", title: "Analityki" },
   { path: "/retention", title: "Retencja" },
   { path: "/reports", title: "Raporty" },
   { path: "/team-results", title: "Wyniki zespołu" },
@@ -117,6 +117,7 @@ const App = () => (
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/automations" element={<ProtectedRoute><Automations /></ProtectedRoute>} />
             <Route path="/automation-center" element={<ProtectedRoute><AutomationCenter /></ProtectedRoute>} />
+            <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
             <Route path="/whats-new" element={<ProtectedRoute><WhatsNew /></ProtectedRoute>} />
             <Route path="/settings/permissions" element={<ProtectedRoute><Permissions /></ProtectedRoute>} />
             <Route path="/client-ideas" element={<ProtectedRoute><ClientIdeas /></ProtectedRoute>} />

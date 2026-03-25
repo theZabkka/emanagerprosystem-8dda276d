@@ -1426,6 +1426,68 @@ export type Database = {
           },
         ]
       }
+      task_rejections: {
+        Row: {
+          assigned_to: string | null
+          comment: string | null
+          created_at: string
+          id: string
+          project_id: string | null
+          reason_category: string
+          rejected_by: string | null
+          task_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          reason_category?: string
+          rejected_by?: string | null
+          task_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          reason_category?: string
+          rejected_by?: string | null
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_rejections_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_rejections_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_rejections_rejected_by_fkey"
+            columns: ["rejected_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_rejections_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_status_history: {
         Row: {
           changed_by: string | null
@@ -1758,6 +1820,14 @@ export type Database = {
           _task_id: string
         }
         Returns: undefined
+      }
+      get_lead_time_stats: {
+        Args: { _from_date?: string; _project_id?: string; _to_date?: string }
+        Returns: Json
+      }
+      get_rejection_stats: {
+        Args: { _from_date?: string; _project_id?: string; _to_date?: string }
+        Returns: Json
       }
       has_role: {
         Args: {
