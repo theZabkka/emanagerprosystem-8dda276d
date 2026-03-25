@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
 
     // 7. Pobranie załączników przez dedykowany endpoint Inbound Resend
     const attachmentsMetadata = emailData.attachments || [];
-    const emailId = emailData.email_id;
+    // emailId already declared above
 
     if (attachmentsMetadata.length > 0 && emailId) {
       console.log(`Mail ${emailId} posiada ${attachmentsMetadata.length} załączników. Uderzam do API Inbound Resend...`);
