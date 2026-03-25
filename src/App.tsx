@@ -20,6 +20,7 @@ const ClientDetail = lazy(() => import("./pages/ClientDetail"));
 const Projects = lazy(() => import("./pages/Projects"));
 const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
 const Pipeline = lazy(() => import("./pages/Pipeline"));
+const CrmBoard = lazy(() => import("./pages/CrmBoard"));
 const Messenger = lazy(() => import("./pages/Messenger"));
 const OKR = lazy(() => import("./pages/OKR"));
 const OperationalBoard = lazy(() => import("./pages/OperationalBoard"));
@@ -105,6 +106,7 @@ const App = () => (
             {/* /projects/archive removed — now a tab inside /projects */}
             <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
             <Route path="/pipeline" element={<ProtectedRoute><Pipeline /></ProtectedRoute>} />
+            <Route path="/crm" element={<ProtectedRoute><CrmBoard /></ProtectedRoute>} />
             <Route path="/messenger" element={<ProtectedRoute><Messenger /></ProtectedRoute>} />
             <Route path="/okr" element={<ProtectedRoute><OKR /></ProtectedRoute>} />
             <Route path="/operational" element={<ProtectedRoute><OperationalBoard /></ProtectedRoute>} />
