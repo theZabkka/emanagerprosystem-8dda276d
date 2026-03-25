@@ -123,6 +123,40 @@ export function AnalyticsTasksTab({ fromDate, projectId, userId }: Props) {
             </div>
           </CardContent>
         </Card>
+
+        {/* Project Health Card */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground font-medium">Kondycja Projektu</p>
+                {!projectId ? (
+                  <>
+                    <p className="text-xl font-bold text-muted-foreground mt-1">—</p>
+                    <p className="text-xs text-muted-foreground mt-1">Wybierz projekt w filtrze</p>
+                  </>
+                ) : isLoadingHealth ? (
+                  <p className="text-4xl font-bold text-foreground mt-1">—</p>
+                ) : (
+                  <>
+                    <p className={cn("text-4xl font-bold mt-1", healthColor)}>
+                      {healthScore ?? 0}
+                    </p>
+                    <div className="mt-2">
+                      <Progress value={healthScore ?? 0} className={cn("h-2", healthScore !== null && healthScore < 50 && "[&>div]:bg-destructive", healthScore !== null && healthScore >= 50 && healthScore < 80 && "[&>div]:bg-yellow-500")} />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {healthData?.overdue ?? 0} opóźnionych / {healthData?.total_active ?? 0} aktywnych
+                    </p>
+                  </>
+                )}
+              </div>
+              <div className={cn("p-3 rounded-xl ml-4", healthBg)}>
+                <HeartPulse className={cn("h-6 w-6", healthColor)} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Lead time by project table */}
