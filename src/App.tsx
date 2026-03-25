@@ -45,6 +45,7 @@ const AdminNewTicket = lazy(() => import("./pages/AdminNewTicket"));
 const ClientNewTicket = lazy(() => import("./pages/ClientNewTicket"));
 const AdminTickets = lazy(() => import("./pages/AdminTickets"));
 const ClientTickets = lazy(() => import("./pages/ClientTickets"));
+const ClientTasks = lazy(() => import("./pages/ClientTasks"));
 const AdminTicketDetails = lazy(() => import("./pages/AdminTicketDetails"));
 const ClientTicketDetails = lazy(() => import("./pages/ClientTicketDetails"));
 const AdminBugs = lazy(() => import("./pages/AdminBugs"));
@@ -132,6 +133,7 @@ const App = () => (
             <Route path="/admin/tickets" element={<ProtectedRoute><AdminTickets /></ProtectedRoute>} />
             <Route path="/admin/tickets/new" element={<ProtectedRoute><AdminNewTicket /></ProtectedRoute>} />
             <Route path="/admin/tickets/:id" element={<ProtectedRoute><AdminTicketDetails /></ProtectedRoute>} />
+            <Route path="/client/tasks" element={<ProtectedRoute><ClientTasks /></ProtectedRoute>} />
             <Route path="/client/tickets" element={<ProtectedRoute><ClientTickets /></ProtectedRoute>} />
             <Route path="/client/tickets/new" element={<ProtectedRoute><ClientNewTicket /></ProtectedRoute>} />
             <Route path="/client/tickets/:id" element={<ProtectedRoute><ClientTicketDetails /></ProtectedRoute>} />
