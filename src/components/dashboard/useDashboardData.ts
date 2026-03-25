@@ -105,22 +105,20 @@ export function useDashboardData() {
   const { data: unassignedTasksCount } = useQuery({
     queryKey: ["dashboard-unassigned-tasks"],
     queryFn: async () => {
-      // Get all non-archived task IDs
+      // Get all non-archived, active tasks with their primary assignments
       const { data: allTasks } = await supabase
         .from("tasks")
-        .select("id")
+        .select("id, task_assignments(task_id, role)")
         .eq("is_archived", false)
         .not("status", "in", '("done","closed","cancelled")');
 
       if (!allTasks || allTasks.length === 0) return 0;
 
-      // Get task IDs that have assignments
-      const { data: assigned } = await supabase
-        .from("task_assignments")
-        .select("task_id");
-
-      const assignedIds = new Set((assigned || []).map((a: any) => a.task_id));
-      return allTasks.filter((t: any) => !assignedIds.has(t.id)).length;
+      // Count tasks that have NO primary assignment
+      return allTasks.filter((t: any) => {
+        const assignments = t.task_assignments || [];
+        return !assignments.some((a: any) => a.role === "primary");
+      }).length;
     },
   });
 
