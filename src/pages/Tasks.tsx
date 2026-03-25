@@ -179,6 +179,7 @@ export default function Tasks() {
           notUnderstoodCount={notUnderstoodCount}
           misunderstoodTasks={misunderstoodTasks}
           onFilterStatus={handleFilterStatus}
+          onFilterUnassigned={handleFilterUnassigned}
         />
 
         <TaskFilters
