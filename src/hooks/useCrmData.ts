@@ -152,7 +152,7 @@ export function useCrmMutations() {
   });
 
   const createDeal = useMutation({
-    mutationFn: async (deal: { title: string; column_id: string; priority?: string; due_date?: string; assigned_to?: string; description?: string; lexo_rank: string }) => {
+    mutationFn: async (deal: { title: string; column_id: string; priority?: string; due_date?: string; assigned_to?: string; description?: string; lexo_rank: string; reminder_active?: boolean }) => {
       const { error } = await supabase.from("crm_deals" as any).insert(deal as any);
       if (error) throw error;
     },
@@ -211,7 +211,7 @@ export function useCrmMutations() {
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
       const update: any = {
         reminder_active: active,
-        reminder_trigger_date: active ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() : null,
+        reminder_trigger_date: active ? new Date(Date.now() + 10 * 60 * 1000).toISOString() : null,
         updated_at: new Date().toISOString(),
       };
       const { error } = await supabase.from("crm_deals" as any).update(update).eq("id", id);
