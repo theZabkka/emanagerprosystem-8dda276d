@@ -55,6 +55,79 @@ export type Database = {
           },
         ]
       }
+      bug_attachments: {
+        Row: {
+          bug_id: string
+          created_at: string
+          file_path: string
+          file_type: string | null
+          id: string
+        }
+        Insert: {
+          bug_id: string
+          created_at?: string
+          file_path: string
+          file_type?: string | null
+          id?: string
+        }
+        Update: {
+          bug_id?: string
+          created_at?: string
+          file_path?: string
+          file_type?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bug_attachments_bug_id_fkey"
+            columns: ["bug_id"]
+            isOneToOne: false
+            referencedRelation: "bug_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bug_reports: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          location: string | null
+          reporter_id: string
+          status: string
+          steps_to_reproduce: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          location?: string | null
+          reporter_id: string
+          status?: string
+          steps_to_reproduce?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          location?: string | null
+          reporter_id?: string
+          status?: string
+          steps_to_reproduce?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bug_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calls: {
         Row: {
           ai_summary: string | null
