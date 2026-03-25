@@ -56,7 +56,7 @@ export default function Tasks() {
     queryFn: async () => {
       let query = supabase
         .from("tasks")
-        .select("*, clients(name), projects(name), task_assignments(user_id, role, profiles:user_id(full_name))")
+        .select("*, clients(name, has_retainer), projects(name), task_assignments(user_id, role, profiles:user_id(full_name))")
         .eq("is_archived", false)
         .order("lexo_rank" as any, { ascending: true });
       if (priorityFilter !== "all") query = query.eq("priority", priorityFilter as any);
@@ -185,7 +185,7 @@ export default function Tasks() {
             tasks={filteredTasks}
             profiles={[]}
             assignments={filteredTasks.flatMap((t: any) => (t.task_assignments || []).map((a: any) => ({ ...a, task_id: t.id })))}
-            clients={filteredTasks.map((t: any) => t.clients ? { id: t.client_id, name: t.clients.name } : null).filter(Boolean)}
+            clients={filteredTasks.map((t: any) => t.clients ? { id: t.client_id, name: t.clients.name, has_retainer: t.clients.has_retainer } : null).filter(Boolean)}
             onStatusChange={handleStatusChange}
             onArchive={handleArchive}
             onRefresh={() => refetch()}
