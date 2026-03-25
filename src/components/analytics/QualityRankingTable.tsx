@@ -37,7 +37,7 @@ export function QualityRankingTable({ fromDate, projectId }: Props) {
         _project_id: projectId,
       } as any);
       if (error) throw error;
-      return (data || []) as RankingRow[];
+      return (data || []) as unknown as RankingRow[];
     },
   });
 
