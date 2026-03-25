@@ -43,7 +43,7 @@ export default function StaffDashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ActivityFeed activities={data.activities} />
+          <ActivityFeed activities={data.activities} isLoading={data.activitiesLoading} />
           <PipelineOverview stages={data.pipeline} />
         </div>
 
