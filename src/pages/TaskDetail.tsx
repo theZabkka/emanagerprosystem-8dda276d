@@ -31,8 +31,8 @@ import {
 import { NotUnderstoodModal, ChecklistBlockModal, ResponsibilityModal } from "@/components/tasks/WorkflowModals";
 import { useRole } from "@/hooks/useRole";
 import { StatusTimeline } from "@/components/tasks/StatusTimeline";
-
 import { statusLabels, statusColors, TERMINAL_STATUSES } from "@/lib/statusConfig";
+import { useTimerStore } from "@/hooks/useTimerStore";
 
 const priorityLabels: Record<string, string> = { critical: "PILNY", high: "WYSOKI", medium: "ŚREDNI", low: "NISKI" };
 const priorityColors: Record<string, string> = {
@@ -192,12 +192,8 @@ export default function TaskDetail() {
     return () => { supabase.removeChannel(channel); };
   }, [id, queryClient]);
 
-  // Timer
-  useEffect(() => {
-    if (!timerRunning) return;
-    const interval = setInterval(() => setTimerSeconds(s => s + 1), 1000);
-    return () => clearInterval(interval);
-  }, [timerRunning]);
+  // Persistent timer via localStorage
+  const timer = useTimerStore(id);
 
   // ─── Actions ─────────────────────────────────────────────────────
 
@@ -243,13 +239,12 @@ export default function TaskDetail() {
     if (!task) return;
 
     // Auto-stop timer when closing/cancelling
-    if ((newStatus === "closed" || newStatus === "cancelled" || newStatus === "done") && timerRunning) {
-      if (timerSeconds >= 60) {
-        const minutes = Math.round(timerSeconds / 60);
+    if ((newStatus === "closed" || newStatus === "cancelled" || newStatus === "done") && timer.isRunning) {
+      const totalSecs = timer.stop();
+      if (totalSecs >= 60) {
+        const minutes = Math.round(totalSecs / 60);
         await logTime(minutes);
       }
-      setTimerRunning(false);
-      setTimerSeconds(0);
     }
 
     const { error } = await supabase.rpc("change_task_status", {
@@ -508,11 +503,10 @@ export default function TaskDetail() {
   }
 
   async function stopTimer() {
-    if (timerSeconds < 60) { setTimerRunning(false); setTimerSeconds(0); return; }
-    const minutes = Math.round(timerSeconds / 60);
+    const totalSecs = timer.stop();
+    if (totalSecs < 60) return;
+    const minutes = Math.round(totalSecs / 60);
     await logTime(minutes);
-    setTimerRunning(false);
-    setTimerSeconds(0);
   }
 
   // 8. Comments
@@ -1093,9 +1087,9 @@ export default function TaskDetail() {
               </div>
               <Separator />
               <div className="flex items-center justify-between">
-                <span className="text-lg font-mono font-bold">{formatTimer(timerSeconds)}</span>
-                {!timerRunning ? (
-                  <Button size="sm" variant="outline" onClick={() => setTimerRunning(true)} className="gap-1.5 text-xs">
+                <span className="text-lg font-mono font-bold">{formatTimer(timer.elapsed)}</span>
+                {!timer.isRunning ? (
+                  <Button size="sm" variant="outline" onClick={() => timer.start()} className="gap-1.5 text-xs">
                     <Play className="h-3 w-3" />Uruchom stoper
                   </Button>
                 ) : (
