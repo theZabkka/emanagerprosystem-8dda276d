@@ -1,6 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Webhook } from "https://esm.sh/svix@1.21.0";
-import { Resend } from "npm:resend";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -63,7 +62,7 @@ Deno.serve(async (req) => {
   );
 
   try {
-    // 1. Ignorowanie eventów systemowych (np. ping od Resend)
+    // 1. Ignorowanie eventów systemowych
     const eventType = body.type;
     if (eventType !== "email.received") {
       console.log("Ignorowanie eventu systemowego:", eventType);
@@ -76,32 +75,9 @@ Deno.serve(async (req) => {
     // 2. Rozpakowanie "koperty" Resend
     const emailData = body.data || body;
 
-    // 3. Inicjalizacja Resend SDK i pobranie pełnej treści maila
-    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-
-    let description = "";
-    let subject = emailData.subject || "(Brak tematu)";
-
-    if (emailData.email_id) {
-      try {
-        const { data: fullEmail, error: emailErr } = await resend.emails.receiving.get(emailData.email_id);
-        if (!emailErr && fullEmail) {
-          description = fullEmail.html || fullEmail.text || "";
-          if (fullEmail.subject) {
-            subject = fullEmail.subject;
-          }
-        } else {
-          console.error("Błąd pobierania pełnego maila z Resend:", emailErr);
-          // Fallback do danych z webhooka
-          description = emailData.html || emailData.text || "";
-        }
-      } catch (fetchErr) {
-        console.error("Wyjątek przy pobieraniu maila z Resend SDK:", fetchErr);
-        description = emailData.html || emailData.text || "";
-      }
-    } else {
-      description = emailData.html || emailData.text || "";
-    }
+    // 3. Pobranie treści bezpośrednio z payloadu
+    const description = emailData.html || emailData.text || "";
+    const subject = emailData.subject || "(Brak tematu)";
 
     // 4. Ekstrakcja nadawcy
     const rawFrom: string = emailData.from || emailData.from_email || "";
@@ -171,56 +147,66 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 7. Pobieranie i wgrywanie załączników
-    if (emailData.email_id) {
-      try {
-        const { data: attachments } = await resend.emails.receiving.attachments.list({
-          emailId: emailData.email_id,
-        });
+    // 7. Pobranie załączników bezpośrednio z payloadu Resend
+    const attachments = emailData.attachments || [];
 
-        if (attachments && attachments.length > 0) {
-          for (const att of attachments) {
-            try {
-              const fileRes = await fetch(att.download_url);
-              if (!fileRes.ok) {
-                console.error(`Nie udało się pobrać załącznika ${att.filename}: HTTP ${fileRes.status}`);
-                continue;
-              }
-              const buffer = await fileRes.arrayBuffer();
+    if (attachments.length > 0) {
+      console.log(`Znaleziono ${attachments.length} załączników do przetworzenia.`);
 
-              const filePath = `${ticket.id}/${crypto.randomUUID()}-${att.filename}`;
+      for (const att of attachments) {
+        try {
+          let fileData;
 
-              const { error: uploadErr } = await supabaseAdmin.storage
-                .from("ticket_attachments")
-                .upload(filePath, buffer, {
-                  contentType: att.content_type,
-                  upsert: false,
-                });
-
-              if (uploadErr) {
-                console.error(`Błąd uploadu załącznika ${att.filename}:`, uploadErr);
-                continue;
-              }
-
-              const { data: publicUrlData } = supabaseAdmin.storage
-                .from("ticket_attachments")
-                .getPublicUrl(filePath);
-
-              await supabaseAdmin.from("ticket_attachments").insert({
-                ticket_id: ticket.id,
-                file_name: att.filename,
-                file_url: publicUrlData.publicUrl,
-              });
-
-              console.log(`Załącznik wgrany: ${att.filename} -> ${filePath}`);
-            } catch (attErr) {
-              console.error(`Wyjątek przy przetwarzaniu załącznika ${att.filename}:`, attErr);
+          // Dekodowanie surowych danych w zależności od formatu przesyłanego przez Resend
+          if (Array.isArray(att.content)) {
+            fileData = new Uint8Array(att.content);
+          } else if (att.content && att.content.type === 'Buffer') {
+            fileData = new Uint8Array(att.content.data);
+          } else if (typeof att.content === 'string') {
+            // Dekodowanie Base64
+            const binary = atob(att.content);
+            fileData = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+              fileData[i] = binary.charCodeAt(i);
             }
           }
+
+          if (fileData) {
+            const fileNameSafe = att.filename ? att.filename.replace(/[^a-zA-Z0-9.\-_]/g, '') : 'attachment.file';
+            const filePath = `${ticket.id}/${crypto.randomUUID()}-${fileNameSafe}`;
+
+            console.log(`Wgrywanie pliku: ${fileNameSafe}...`);
+
+            const { data: uploadData, error: uploadErr } = await supabaseAdmin.storage
+              .from('ticket_attachments')
+              .upload(filePath, fileData, {
+                contentType: att.content_type || 'application/octet-stream',
+                upsert: true
+              });
+
+            if (uploadErr) {
+              console.error(`Błąd wgrywania pliku ${fileNameSafe}:`, uploadErr);
+              continue;
+            }
+
+            const { data: publicUrlData } = supabaseAdmin.storage
+              .from('ticket_attachments')
+              .getPublicUrl(filePath);
+
+            await supabaseAdmin.from('ticket_attachments').insert({
+              ticket_id: ticket.id,
+              file_name: att.filename,
+              file_url: publicUrlData.publicUrl
+            });
+
+            console.log(`Sukces: Zapisano załącznik ${fileNameSafe}`);
+          }
+        } catch (attErr) {
+          console.error(`Wystąpił błąd podczas przetwarzania załącznika ${att.filename}:`, attErr);
         }
-      } catch (attListErr) {
-        console.error("Błąd pobierania listy załączników z Resend:", attListErr);
       }
+    } else {
+      console.log("Brak załączników w mailu.");
     }
 
     console.log(`Ticket created: ${ticket.id} for client: ${clientId} from: ${senderEmail}`);
