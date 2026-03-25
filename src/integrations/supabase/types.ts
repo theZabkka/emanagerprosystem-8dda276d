@@ -1821,14 +1821,46 @@ export type Database = {
         }
         Returns: undefined
       }
-      get_lead_time_stats: {
+      get_individual_quality_ranking: {
         Args: { _from_date?: string; _project_id?: string; _to_date?: string }
         Returns: Json
       }
-      get_rejection_stats: {
-        Args: { _from_date?: string; _project_id?: string; _to_date?: string }
-        Returns: Json
-      }
+      get_lead_time_stats:
+        | {
+            Args: {
+              _from_date?: string
+              _project_id?: string
+              _to_date?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _from_date?: string
+              _project_id?: string
+              _to_date?: string
+              _user_id?: string
+            }
+            Returns: Json
+          }
+      get_rejection_stats:
+        | {
+            Args: {
+              _from_date?: string
+              _project_id?: string
+              _to_date?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _from_date?: string
+              _project_id?: string
+              _to_date?: string
+              _user_id?: string
+            }
+            Returns: Json
+          }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
