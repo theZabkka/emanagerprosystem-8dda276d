@@ -30,7 +30,7 @@ const PRIORITIES = ["Niski", "Średni", "Wysoki"];
 export default function AdminTicketForm() {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const { staffMembers } = useStaffMembers();
+  const { data: staffMembers } = useStaffMembers();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState("");
