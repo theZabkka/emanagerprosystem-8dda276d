@@ -1173,6 +1173,39 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          link: string | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       pipeline_deals: {
         Row: {
           assigned_to: string | null
@@ -2170,6 +2203,7 @@ export type Database = {
         | "negotiations"
         | "project"
         | "inactive"
+      notification_type: "bug" | "message" | "ticket"
       pipeline_stage:
         | "potential"
         | "contact"
@@ -2326,6 +2360,7 @@ export const Constants = {
         "project",
         "inactive",
       ],
+      notification_type: ["bug", "message", "ticket"],
       pipeline_stage: [
         "potential",
         "contact",
