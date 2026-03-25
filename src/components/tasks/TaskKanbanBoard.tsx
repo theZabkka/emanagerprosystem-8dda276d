@@ -392,7 +392,14 @@ export default function TaskKanbanBoard({
                                         <div className="flex-1 min-w-0">
                                           <p className="text-[11px] font-bold text-foreground leading-tight break-words">{task.title}</p>
                                           {client && (
-                                            <p className="text-[9px] text-muted-foreground truncate mt-0.5">{client.name}</p>
+                                            <div className="flex items-center gap-1 mt-0.5">
+                                              <p className="text-[9px] text-muted-foreground truncate">{client.name}</p>
+                                              {client.has_retainer && (
+                                                <Badge className="text-[7px] h-3 px-1 bg-amber-500/90 text-white border-0 shrink-0">
+                                                  STAŁA OPIEKA
+                                                </Badge>
+                                              )}
+                                            </div>
                                           )}
                                         </div>
                                         <div className="flex flex-col items-end gap-0.5 flex-shrink-0 pt-px">
