@@ -1,5 +1,4 @@
 import { Search, Moon, Sun, Bell, User, Settings, LogOut, X, Bug } from "lucide-react";
-import { useState as useStateBug } from "react";
 import { BugReportModal } from "@/components/bugs/BugReportModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -211,5 +210,17 @@ export function Topbar({ title = "Pulpit" }: TopbarProps) {
         </DropdownMenu>
       </div>
     </header>
+  );
+}
+
+function BugReportButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" onClick={() => setOpen(true)} title="Zgłoś błąd">
+        <Bug className="h-4 w-4" />
+      </Button>
+      <BugReportModal open={open} onOpenChange={setOpen} />
+    </>
   );
 }
