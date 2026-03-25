@@ -621,6 +621,7 @@ export type Database = {
           email: string | null
           has_retainer: boolean
           id: string
+          is_auto_created: boolean
           monthly_value: number | null
           name: string
           nip: string | null
@@ -642,6 +643,7 @@ export type Database = {
           email?: string | null
           has_retainer?: boolean
           id?: string
+          is_auto_created?: boolean
           monthly_value?: number | null
           name: string
           nip?: string | null
@@ -663,6 +665,7 @@ export type Database = {
           email?: string | null
           has_retainer?: boolean
           id?: string
+          is_auto_created?: boolean
           monthly_value?: number | null
           name?: string
           nip?: string | null

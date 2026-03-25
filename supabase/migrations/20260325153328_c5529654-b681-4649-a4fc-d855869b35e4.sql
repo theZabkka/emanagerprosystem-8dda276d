@@ -1,0 +1,1 @@
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS is_auto_created BOOLEAN NOT NULL DEFAULT false;
