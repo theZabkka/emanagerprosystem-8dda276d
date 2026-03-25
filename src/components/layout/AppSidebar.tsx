@@ -108,12 +108,47 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, user } = useAuth();
   const { canViewModule } = useRole();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const qc = useQueryClient();
 
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "U";
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id) return;
+    e.target.value = "";
+
+    const ext = file.name.split(".").pop();
+    const filePath = `${user.id}/avatar.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      toast.error("Błąd uploadu avatara");
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(filePath);
+
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ avatar_url: urlData.publicUrl } as any)
+      .eq("id", user.id);
+
+    if (updateError) {
+      toast.error("Błąd zapisu URL avatara");
+      return;
+    }
+
+    qc.invalidateQueries({ queryKey: ["auth"] });
+    toast.success("Avatar zaktualizowany!");
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -177,12 +212,26 @@ export function AppSidebar() {
         )}
         <Separator />
         <div className="p-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleAvatarUpload}
+          />
           <div className="flex items-center gap-2">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="shrink-0 rounded-full hover:ring-2 hover:ring-primary/50 transition-all"
+              title="Zmień avatar"
+            >
+              <Avatar className="h-8 w-8">
+                {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile?.full_name || ""} />}
+                <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+            </button>
             {!collapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">
