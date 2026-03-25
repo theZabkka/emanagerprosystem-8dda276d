@@ -63,8 +63,6 @@ export default function TaskDetail() {
   const [commentType, setCommentType] = useState("internal");
   const [commentFilter, setCommentFilter] = useState("all");
   const [newSubtask, setNewSubtask] = useState("");
-  const [timerRunning, setTimerRunning] = useState(false);
-  const [timerSeconds, setTimerSeconds] = useState(0);
   const [briefOpen, setBriefOpen] = useState(false);
   const [briefForm, setBriefForm] = useState<Record<string, string>>({});
   const [assignOpen, setAssignOpen] = useState(false);
@@ -1355,17 +1353,17 @@ export default function TaskDetail() {
 
       {/* Brief Edit Dialog */}
       <Dialog open={briefOpen} onOpenChange={setBriefOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Edytuj brief zadania</DialogTitle>
             <DialogDescription>Uzupełnij pola briefu, aby zespół wiedział, co i jak zrealizować.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+          <div className="space-y-3 overflow-y-auto flex-1 pr-1">
             {briefFields.map(f => (
               <div key={f.key} className="space-y-1">
                 <Label className="text-sm">{f.label}</Label>
                 <Textarea value={briefForm[f.key] || ""} onChange={e => setBriefForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                  placeholder={`Wpisz ${f.label.toLowerCase()}...`} className="min-h-[60px] text-sm" />
+                  placeholder={`Wpisz ${f.label.toLowerCase()}...`} className="min-h-[60px] text-sm w-full" />
               </div>
             ))}
           </div>
