@@ -147,66 +147,83 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 7. Pobranie załączników bezpośrednio z payloadu Resend
-    const attachments = emailData.attachments || [];
+    // 7. Pobranie załączników przez API Resend (webhook zawiera tylko metadane)
+    const emailId = emailData.email_id;
 
-    if (attachments.length > 0) {
-      console.log(`Znaleziono ${attachments.length} załączników do przetworzenia.`);
+    if (emailId && emailData.attachments && emailData.attachments.length > 0) {
+      console.log(`Pobieranie ${emailData.attachments.length} załączników z API Resend dla maila: ${emailId}`);
 
-      for (const att of attachments) {
-        try {
-          let fileData;
+      try {
+        const resendApiKey = Deno.env.get("RESEND_API_KEY");
+        if (!resendApiKey) throw new Error("Brak zmiennej środowiskowej RESEND_API_KEY");
 
-          // Dekodowanie surowych danych w zależności od formatu przesyłanego przez Resend
-          if (Array.isArray(att.content)) {
-            fileData = new Uint8Array(att.content);
-          } else if (att.content && att.content.type === 'Buffer') {
-            fileData = new Uint8Array(att.content.data);
-          } else if (typeof att.content === 'string') {
-            // Dekodowanie Base64
-            const binary = atob(att.content);
-            fileData = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) {
-              fileData[i] = binary.charCodeAt(i);
-            }
+        // KROK 1: Pobranie listy załączników z API Resend (zawierających 'download_url')
+        const attResponse = await fetch(`https://api.resend.com/emails/${emailId}/attachments`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${resendApiKey}` }
+        });
+
+        if (!attResponse.ok) {
+          throw new Error(`Błąd API Resend przy pobieraniu metadanych: ${attResponse.status} ${attResponse.statusText}`);
+        }
+
+        const attData = await attResponse.json();
+        const attachmentsList = attData.data || [];
+
+        // KROK 2: Iteracja, pobieranie zawartości i wgrywanie do Supabase
+        for (const att of attachmentsList) {
+          if (!att.download_url) {
+            console.warn(`Załącznik ${att.filename} nie posiada download_url. Pomijam.`);
+            continue;
           }
 
-          if (fileData) {
-            const fileNameSafe = att.filename ? att.filename.replace(/[^a-zA-Z0-9.\-_]/g, '') : 'attachment.file';
-            const filePath = `${ticket.id}/${crypto.randomUUID()}-${fileNameSafe}`;
+          console.log(`Pobieranie pliku: ${att.filename} z Resend...`);
+          const fileRes = await fetch(att.download_url);
 
-            console.log(`Wgrywanie pliku: ${fileNameSafe}...`);
+          if (!fileRes.ok) {
+            console.error(`Nie udało się pobrać pliku ${att.filename} z linku download_url`);
+            continue;
+          }
 
-            const { data: uploadData, error: uploadErr } = await supabaseAdmin.storage
-              .from('ticket_attachments')
-              .upload(filePath, fileData, {
-                contentType: att.content_type || 'application/octet-stream',
-                upsert: true
-              });
+          // Konwersja na format binarny akceptowany przez Supabase w Deno
+          const arrayBuffer = await fileRes.arrayBuffer();
+          const fileData = new Uint8Array(arrayBuffer);
 
-            if (uploadErr) {
-              console.error(`Błąd wgrywania pliku ${fileNameSafe}:`, uploadErr);
-              continue;
-            }
+          const fileNameSafe = att.filename ? att.filename.replace(/[^a-zA-Z0-9.\-_]/g, '') : 'attachment.file';
+          const filePath = `${ticket.id}/${crypto.randomUUID()}-${fileNameSafe}`;
 
-            const { data: publicUrlData } = supabaseAdmin.storage
-              .from('ticket_attachments')
-              .getPublicUrl(filePath);
+          console.log(`Wgrywanie ${fileNameSafe} do bucketu ticket_attachments...`);
 
-            await supabaseAdmin.from('ticket_attachments').insert({
-              ticket_id: ticket.id,
-              file_name: att.filename,
-              file_url: publicUrlData.publicUrl
+          const { error: uploadErr } = await supabaseAdmin.storage
+            .from('ticket_attachments')
+            .upload(filePath, fileData, {
+              contentType: att.content_type || 'application/octet-stream',
+              upsert: true
             });
 
-            console.log(`Sukces: Zapisano załącznik ${fileNameSafe}`);
+          if (uploadErr) {
+            console.error(`Błąd wgrywania do Supabase dla ${fileNameSafe}:`, uploadErr);
+            continue;
           }
-        } catch (attErr) {
-          console.error(`Wystąpił błąd podczas przetwarzania załącznika ${att.filename}:`, attErr);
+
+          // KROK 3: Zapis do tabeli relacyjnej
+          const { data: publicUrlData } = supabaseAdmin.storage
+            .from('ticket_attachments')
+            .getPublicUrl(filePath);
+
+          await supabaseAdmin.from('ticket_attachments').insert({
+            ticket_id: ticket.id,
+            file_name: att.filename,
+            file_url: publicUrlData.publicUrl
+          });
+
+          console.log(`Sukces: Zapisano i podpięto załącznik ${att.filename}`);
         }
+      } catch (attErr) {
+        console.error("Krytyczny błąd podczas przetwarzania załączników API Resend:", attErr);
       }
     } else {
-      console.log("Brak załączników w mailu.");
+      console.log("Mail nie zawierał informacji o załącznikach.");
     }
 
     console.log(`Ticket created: ${ticket.id} for client: ${clientId} from: ${senderEmail}`);
