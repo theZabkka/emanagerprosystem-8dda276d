@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Clock } from "lucide-react";
+import { Clock, CheckCircle, AlertTriangle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 interface Props {
   fromDate: string;
@@ -25,26 +26,85 @@ export function AnalyticsTasksTab({ fromDate, projectId, userId }: Props) {
     },
   });
 
+  const { data: extraStats, isLoading: isLoadingExtra } = useQuery({
+    queryKey: ["task-extra-stats", fromDate, projectId, userId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_task_extra_stats", {
+        _from_date: fromDate,
+        _to_date: new Date().toISOString(),
+        _project_id: projectId,
+        _user_id: userId,
+      } as any);
+      if (error) throw error;
+      return data as any;
+    },
+  });
+
   const avgHours = leadTimeStats?.overall_avg_hours ?? 0;
   const avgDays = (avgHours / 24).toFixed(1);
+  const ontimePercent = extraStats?.ontime_percentage ?? 0;
+  const backlogCount = extraStats?.backlog_count ?? 0;
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground font-medium">Średni czas realizacji</p>
-              <p className="text-4xl font-bold text-foreground mt-1">{isLoading ? "—" : avgDays}</p>
-              <p className="text-xs text-muted-foreground mt-1">dni ({avgHours}h)</p>
+      {/* KPI Cards Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground font-medium">Średni czas realizacji</p>
+                <p className="text-4xl font-bold text-foreground mt-1">{isLoading ? "—" : avgDays}</p>
+                <p className="text-xs text-muted-foreground mt-1">dni ({avgHours}h)</p>
+              </div>
+              <div className="p-3 rounded-xl bg-primary/10">
+                <Clock className="h-6 w-6 text-primary" />
+              </div>
             </div>
-            <div className="p-3 rounded-xl bg-primary/10">
-              <Clock className="h-6 w-6 text-primary" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-sm text-muted-foreground font-medium">Terminowość (On-Time)</p>
+                <p className="text-4xl font-bold text-foreground mt-1">
+                  {isLoadingExtra ? "—" : `${ontimePercent}%`}
+                </p>
+                <div className="mt-2">
+                  <Progress value={ontimePercent} className="h-2" />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {extraStats?.on_time_count ?? 0} / {extraStats?.total_with_due ?? 0} zadań z terminem
+                </p>
+              </div>
+              <div className="p-3 rounded-xl bg-green-500/10 ml-4">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground font-medium">Backlog (Zaległości)</p>
+                <p className="text-4xl font-bold text-foreground mt-1">
+                  {isLoadingExtra ? "—" : backlogCount}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">zadań do zrobienia</p>
+              </div>
+              <div className="p-3 rounded-xl bg-orange-500/10">
+                <AlertTriangle className="h-6 w-6 text-orange-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Lead time by project table */}
       {(leadTimeStats?.by_project || []).length > 0 && (
         <Card>
           <CardHeader>
