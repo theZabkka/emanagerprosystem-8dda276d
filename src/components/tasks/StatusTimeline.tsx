@@ -66,7 +66,7 @@ function LiveTimer({ enteredAt, currentStatus }: { enteredAt: string; currentSta
     return (
       <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground">
         <Timer className="h-3 w-3" />
-        Zakończone
+        Zakończono: {new Date(enteredAt).toLocaleDateString("pl-PL")}
       </span>
     );
   }
