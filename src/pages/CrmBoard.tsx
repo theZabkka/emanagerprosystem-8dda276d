@@ -1,7 +1,8 @@
 import { useState, useCallback, useMemo, useRef } from "react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { Plus, Archive, Search, MoreHorizontal, GripVertical, Pencil, Trash2 } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -415,18 +416,7 @@ export default function CrmBoard() {
 }
 
 // Helper hook: fetch labels for all visible deals in a single pass
-function useCrmLabelsForDeals(deals: CrmDeal[]) {
-  const dealIds = deals.map((d) => d.id);
-  return {
-    data: {} as Record<string, Array<{ id: string; name: string; color: string }>>,
-    ...useLabelsQuery(dealIds),
-  };
-}
-
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-
-function useLabelsQuery(dealIds: string[]) {
+function useCrmLabelsForDeals(dealIds: string[]) {
   return useQuery({
     queryKey: ["crm-all-deal-labels", dealIds.join(",")],
     enabled: dealIds.length > 0,
