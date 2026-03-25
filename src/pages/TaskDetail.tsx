@@ -82,6 +82,8 @@ export default function TaskDetail() {
   const [clientReviewOpen, setClientReviewOpen] = useState(false);
   const [correctionSeverity, setCorrectionSeverity] = useState<"normal" | "critical">("normal");
   const [correctionText, setCorrectionText] = useState("");
+  const [rejectReviewOpen, setRejectReviewOpen] = useState(false);
+  const [rejectReviewText, setRejectReviewText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ─── Queries ─────────────────────────────────────────────────────
