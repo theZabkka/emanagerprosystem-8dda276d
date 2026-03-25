@@ -68,7 +68,9 @@ export default function Analytics() {
           </TabsList>
 
           <TabsContent value="tasks" className="mt-4">
-            <AnalyticsTasksTab fromDate={fromDate} projectId={rpcProjectId} userId={rpcUserId} />
+            {activeTab === "tasks" && (
+              <AnalyticsTasksTab fromDate={fromDate} projectId={rpcProjectId} userId={rpcUserId} />
+            )}
           </TabsContent>
 
           <TabsContent value="quality" className="mt-4">
@@ -79,7 +81,7 @@ export default function Analytics() {
 
           <TabsContent value="team" className="mt-4">
             {activeTab === "team" && (
-              <AnalyticsTeamTab projectId={rpcProjectId} userId={rpcUserId} />
+              <AnalyticsTeamTab fromDate={fromDate} projectId={rpcProjectId} userId={rpcUserId} />
             )}
           </TabsContent>
 

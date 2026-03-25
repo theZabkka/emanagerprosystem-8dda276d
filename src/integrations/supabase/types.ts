@@ -1897,6 +1897,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_copq_stats: {
+        Args: {
+          _from_date?: string
+          _project_id?: string
+          _to_date?: string
+          _user_id?: string
+        }
+        Returns: Json
+      }
       get_individual_quality_ranking: {
         Args: { _from_date?: string; _project_id?: string; _to_date?: string }
         Returns: Json
@@ -1939,6 +1948,15 @@ export type Database = {
             Returns: Json
           }
       get_task_extra_stats: {
+        Args: {
+          _from_date?: string
+          _project_id?: string
+          _to_date?: string
+          _user_id?: string
+        }
+        Returns: Json
+      }
+      get_team_logged_hours: {
         Args: {
           _from_date?: string
           _project_id?: string

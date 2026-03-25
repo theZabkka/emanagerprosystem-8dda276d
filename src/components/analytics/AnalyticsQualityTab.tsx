@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PieChart, AlertTriangle, TrendingDown } from "lucide-react";
+import { PieChart, AlertTriangle, TrendingDown, Wrench } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   ChartContainer,
@@ -21,6 +21,12 @@ const DONUT_COLORS = [
   "hsl(45, 90%, 55%)",
   "hsl(150, 60%, 45%)",
 ];
+
+function formatMinutes(m: number) {
+  const h = Math.floor(m / 60);
+  const min = m % 60;
+  return h > 0 ? `${h}h ${min}m` : `${min}m`;
+}
 
 interface Props {
   fromDate: string;
@@ -43,9 +49,25 @@ export function AnalyticsQualityTab({ fromDate, projectId, userId }: Props) {
     },
   });
 
+  const { data: copqStats, isLoading: isLoadingCopq } = useQuery({
+    queryKey: ["copq-stats", fromDate, projectId, userId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_copq_stats", {
+        _from_date: fromDate,
+        _to_date: new Date().toISOString(),
+        _project_id: projectId,
+        _user_id: userId,
+      } as any);
+      if (error) throw error;
+      return data as any;
+    },
+  });
+
   const categoryData = (rejectionStats?.by_category || []) as { reason_category: string; count: number }[];
   const topRejected = (rejectionStats?.top_rejected_tasks || []) as { task_id: string; title: string; rejection_count: number }[];
   const totalRejections = categoryData.reduce((s, c) => s + c.count, 0);
+  const copqMinutes = copqStats?.total_copq_minutes ?? 0;
+  const copqTasks = copqStats?.tasks_with_corrections ?? 0;
 
   const chartConfig: ChartConfig = {};
   categoryData.forEach((c, i) => {
@@ -58,7 +80,7 @@ export function AnalyticsQualityTab({ fromDate, projectId, userId }: Props) {
   return (
     <div className="space-y-6">
       {/* KPI row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
@@ -85,6 +107,24 @@ export function AnalyticsQualityTab({ fromDate, projectId, userId }: Props) {
               </div>
               <div className="p-3 rounded-xl bg-warning/10">
                 <AlertTriangle className="h-6 w-6 text-warning" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground font-medium">Koszt słabej jakości (CoPQ)</p>
+                <p className="text-4xl font-bold text-foreground mt-1">
+                  {isLoadingCopq ? "—" : formatMinutes(copqMinutes)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  poświęconych na poprawki ({copqTasks} zadań)
+                </p>
+              </div>
+              <div className="p-3 rounded-xl bg-amber-500/10">
+                <Wrench className="h-6 w-6 text-amber-600" />
               </div>
             </div>
           </CardContent>
