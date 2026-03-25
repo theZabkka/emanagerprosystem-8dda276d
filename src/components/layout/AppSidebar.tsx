@@ -181,7 +181,7 @@ export function AppSidebar() {
                     <SidebarMenuItem key={item.url}>
                       <SidebarMenuButton
                         asChild
-                        isActive={location.pathname === item.url}
+                        isActive={location.pathname === item.url || location.pathname.startsWith(item.url + "/")}
                         tooltip={item.title}
                       >
                         <NavLink
