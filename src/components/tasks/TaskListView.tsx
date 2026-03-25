@@ -3,16 +3,14 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-const statusLabels: Record<string, string> = {
-  new: "Nowe", todo: "Do zrobienia", in_progress: "W trakcie", review: "Weryfikacja",
-  corrections: "Poprawki", client_review: "Akceptacja klienta", done: "Gotowe", cancelled: "Anulowane",
-};
+import { statusLabels, statusColors, TERMINAL_STATUSES } from "@/lib/statusConfig";
+
 const priorityLabels: Record<string, string> = { critical: "Pilny", high: "Wysoki", medium: "Średni", low: "Niski" };
 
-const TERMINAL_STATUSES = new Set(["closed", "done", "cancelled"]);
-
 function timeSince(dateStr: string, status?: string) {
-  if (status && TERMINAL_STATUSES.has(status)) return "Zakończone";
+  if (status && TERMINAL_STATUSES.has(status)) {
+    return `Zakończono: ${new Date(dateStr).toLocaleDateString("pl-PL")}`;
+  }
   const diff = Date.now() - new Date(dateStr).getTime();
   const days = Math.floor(diff / 86400000);
   if (days > 0) return `${days}d`;

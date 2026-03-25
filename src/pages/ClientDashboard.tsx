@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { ClientReviewModal } from "@/components/tasks/WorkflowModals";
 import { toast } from "sonner";
+import { statusLabels as allStatusLabels, statusColors as taskStatusColors } from "@/lib/statusConfig";
 
 export default function ClientDashboard() {
   const { clientId } = useRole();
@@ -38,68 +39,42 @@ export default function ClientDashboard() {
   const { data: taskSummary } = useQuery({
     queryKey: ["client-tasks-summary", clientId],
     queryFn: async () => {
-      if (!clientId) return { review: 0, done: 0 };
+      if (!clientId) return { review: 0, done: 0, total: 0 };
       const { data } = await supabase
         .from("tasks")
         .select("status")
         .eq("client_id", clientId)
-        .in("status", ["client_review", "done", "client_verified"]);
+        .eq("is_archived", false);
       const review = data?.filter(t => t.status === "client_review").length || 0;
-      const done = data?.filter(t => t.status === "done" || t.status === "client_verified").length || 0;
-      return { review, done };
+      const done = data?.filter(t => t.status === "done" || t.status === "client_verified" || t.status === "closed").length || 0;
+      return { review, done, total: data?.length || 0 };
     },
     enabled: !!clientId,
   });
 
-  // Fetch tasks awaiting client review
-  const { data: reviewTasks } = useQuery({
-    queryKey: ["client-review-tasks", clientId],
+  // Fetch ALL client tasks (no status filter) — client sees everything
+  const { data: allClientTasks } = useQuery({
+    queryKey: ["client-all-tasks", clientId],
     queryFn: async () => {
       if (!clientId) return [];
       const { data } = await supabase
         .from("tasks")
-        .select("id, title, description, due_date, type, projects(name)")
+        .select("id, title, description, due_date, type, status, updated_at, projects(name), project_id")
         .eq("client_id", clientId)
-        .eq("status", "client_review" as any)
-        .eq("is_client_visible", true)
-        .order("due_date", { ascending: true });
-      return data || [];
-    },
-    enabled: !!clientId,
-  });
-
-  // Fetch orphaned tasks (no project, client_review status)
-  const { data: orphanedTasks } = useQuery({
-    queryKey: ["client-orphaned-tasks", clientId],
-    queryFn: async () => {
-      if (!clientId) return [];
-      const { data } = await supabase
-        .from("tasks")
-        .select("id, title, description, due_date, type")
-        .eq("client_id", clientId)
-        .eq("status", "client_review" as any)
-        .is("project_id", null)
-        .order("due_date", { ascending: true });
-      return data || [];
-    },
-    enabled: !!clientId,
-  });
-
-  // Fetch archived (completed) tasks - client sees all finished tasks in their projects
-  const { data: archivedTasks } = useQuery({
-    queryKey: ["client-archived-tasks", clientId],
-    queryFn: async () => {
-      if (!clientId) return [];
-      const { data } = await supabase
-        .from("tasks")
-        .select("id, title, due_date, type, projects(name), status, updated_at")
-        .eq("client_id", clientId)
-        .in("status", ["client_verified", "done", "closed"] as any)
+        .eq("is_archived", false)
         .order("updated_at", { ascending: false });
       return data || [];
     },
     enabled: !!clientId,
   });
+
+  // Split tasks by category
+  const reviewTasks = allClientTasks?.filter((t: any) => t.status === "client_review") || [];
+  const activeTasks = allClientTasks?.filter((t: any) => 
+    !["client_review", "done", "client_verified", "closed", "cancelled"].includes(t.status)
+  ) || [];
+  const orphanedTasks = allClientTasks?.filter((t: any) => !t.project_id && t.status !== "client_review" && !["done", "client_verified", "closed", "cancelled"].includes(t.status)) || [];
+  const archivedTasks = allClientTasks?.filter((t: any) => ["done", "client_verified", "closed"].includes(t.status)) || [];
 
   async function handleApprove() {
     if (!selectedTaskId) return;
@@ -115,7 +90,7 @@ export default function ClientDashboard() {
       new_status: "client_verified",
       changed_by: user?.id,
     });
-    queryClient.invalidateQueries({ queryKey: ["client-review-tasks"] });
+    queryClient.invalidateQueries({ queryKey: ["client-all-tasks"] });
     queryClient.invalidateQueries({ queryKey: ["client-tasks-summary"] });
     toast.success("Zadanie zaakceptowane!");
     setSelectedTaskId(null);
@@ -136,7 +111,6 @@ export default function ClientDashboard() {
       new_status: "corrections",
       changed_by: user?.id,
     });
-    // Add comment with feedback
     if (user?.id) {
       await supabase.from("comments").insert({
         task_id: selectedTaskId,
@@ -145,19 +119,19 @@ export default function ClientDashboard() {
         type: "client",
       });
     }
-    queryClient.invalidateQueries({ queryKey: ["client-review-tasks"] });
+    queryClient.invalidateQueries({ queryKey: ["client-all-tasks"] });
     queryClient.invalidateQueries({ queryKey: ["client-tasks-summary"] });
     toast.success("Poprawki zgłoszone");
     setSelectedTaskId(null);
   }
 
-  const statusColors: Record<string, string> = {
+  const projectStatusColors: Record<string, string> = {
     active: "bg-emerald-500/15 text-emerald-700 border-emerald-400/50",
     completed: "bg-blue-500/15 text-blue-700 border-blue-400/50",
     paused: "bg-amber-500/15 text-amber-700 border-amber-400/50",
   };
 
-  const statusLabels: Record<string, string> = {
+  const projectStatusLabels: Record<string, string> = {
     active: "Aktywny",
     completed: "Zakończony",
     paused: "Wstrzymany",
@@ -213,8 +187,8 @@ export default function ClientDashboard() {
           </Card>
         </div>
 
-        {/* Tasks awaiting review */}
-        {reviewTasks && reviewTasks.length > 0 && (
+        {/* Tasks awaiting review — GUARD: only client_review tasks get action buttons */}
+        {reviewTasks.length > 0 && (
           <div>
             <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <Clock className="h-5 w-5 text-amber-600" />
@@ -233,31 +207,46 @@ export default function ClientDashboard() {
                         {task.description && (
                           <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.description}</p>
                         )}
-                        {task.due_date && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Termin: {new Date(task.due_date).toLocaleDateString("pl-PL")}
-                          </p>
-                        )}
                       </div>
                       <div className="flex gap-2 flex-shrink-0">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-xs gap-1"
-                          onClick={() => navigate(`/tasks/${task.id}`)}
-                        >
-                          <FileText className="h-3 w-3" />
-                          Szczegóły
+                        <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => navigate(`/tasks/${task.id}`)}>
+                          <FileText className="h-3 w-3" /> Szczegóły
                         </Button>
-                        <Button
-                          size="sm"
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs gap-1"
-                          onClick={() => { setSelectedTaskId(task.id); setReviewModalOpen(true); }}
-                        >
-                          <ShieldCheck className="h-3 w-3" />
-                          Sprawdź
+                        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs gap-1"
+                          onClick={() => { setSelectedTaskId(task.id); setReviewModalOpen(true); }}>
+                          <ShieldCheck className="h-3 w-3" /> Sprawdź
                         </Button>
                       </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Active tasks (visible but NO action buttons — read only) */}
+        {activeTasks.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Zadania w toku ({activeTasks.length})
+            </h3>
+            <div className="grid grid-cols-1 gap-3">
+              {activeTasks.map((task: any) => (
+                <Card key={task.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/tasks/${task.id}`)}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold">{task.title}</p>
+                        {task.projects?.name && (
+                          <p className="text-xs text-muted-foreground mt-0.5">{task.projects.name}</p>
+                        )}
+                        {!task.project_id && <Badge variant="outline" className="text-[10px] mt-1">Zadanie ogólne</Badge>}
+                      </div>
+                      <Badge className={`text-[9px] shrink-0 ${taskStatusColors[task.status] || "bg-muted"}`}>
+                        {allStatusLabels[task.status] || task.status}
+                      </Badge>
                     </div>
                   </CardContent>
                 </Card>
@@ -278,8 +267,8 @@ export default function ClientDashboard() {
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between">
                       <CardTitle className="text-base">{project.name}</CardTitle>
-                      <Badge variant="outline" className={statusColors[project.status || "active"] || ""}>
-                        {statusLabels[project.status || "active"] || project.status}
+                      <Badge variant="outline" className={projectStatusColors[project.status || "active"] || ""}>
+                        {projectStatusLabels[project.status || "active"] || project.status}
                       </Badge>
                     </div>
                   </CardHeader>
@@ -304,59 +293,8 @@ export default function ClientDashboard() {
           )}
         </div>
 
-        {/* Orphaned tasks - no project, client_review status */}
-        {orphanedTasks && orphanedTasks.length > 0 && (
-          <div>
-            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              Zadania ogólne / Inne zlecenia ({orphanedTasks.length})
-            </h3>
-            <div className="grid grid-cols-1 gap-3">
-              {orphanedTasks.map((task: any) => (
-                <Card key={task.id} className="border-primary/30 hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/tasks/${task.id}`)}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold">{task.title}</p>
-                        <Badge variant="outline" className="text-[10px] mt-1">Bez projektu</Badge>
-                        {task.description && (
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.description}</p>
-                        )}
-                        {task.due_date && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Termin: {new Date(task.due_date).toLocaleDateString("pl-PL")}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex gap-2 flex-shrink-0">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-xs gap-1"
-                          onClick={(e) => { e.stopPropagation(); navigate(`/tasks/${task.id}`); }}
-                        >
-                          <FileText className="h-3 w-3" />
-                          Szczegóły
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs gap-1"
-                          onClick={(e) => { e.stopPropagation(); setSelectedTaskId(task.id); setReviewModalOpen(true); }}
-                        >
-                          <ShieldCheck className="h-3 w-3" />
-                          Sprawdź
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
-
-
-        {archivedTasks && archivedTasks.length > 0 && (
+        {/* Archived tasks */}
+        {archivedTasks.length > 0 && (
           <div>
             <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <Archive className="h-5 w-5 text-muted-foreground" />

@@ -6,25 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { History, Clock, Timer, HelpCircle, CheckCircle2 } from "lucide-react";
 
-const statusLabels: Record<string, string> = {
-  new: "NOWE", todo: "DO ZROBIENIA", in_progress: "W REALIZACJI", review: "WERYFIKACJA",
-  corrections: "POPRAWKI", client_review: "DO AKCEPTACJI KLIENTA", client_verified: "ZWERYFIKOWANE",
-  waiting_for_client: "OCZEKIWANIE NA KLIENTA", done: "GOTOWE", closed: "ZAMKNIĘTE", cancelled: "ANULOWANE",
-};
-
-const statusColors: Record<string, string> = {
-  new: "bg-muted text-muted-foreground",
-  todo: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
-  in_progress: "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300",
-  review: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
-  corrections: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
-  client_review: "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300",
-  client_verified: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-  waiting_for_client: "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300",
-  done: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300",
-  closed: "bg-slate-100 text-slate-700 dark:bg-slate-950 dark:text-slate-300",
-  cancelled: "bg-muted text-muted-foreground",
-};
+import { statusLabels, statusColors, TERMINAL_STATUSES } from "@/lib/statusConfig";
 
 function formatDuration(seconds: number): string {
   if (seconds < 60) return `${seconds}s`;
@@ -65,7 +47,7 @@ interface StatusTimelineProps {
   taskId?: string;
 }
 
-const TERMINAL_STATUSES = new Set(["closed", "done", "cancelled"]);
+// TERMINAL_STATUSES imported from statusConfig
 
 function LiveTimer({ enteredAt, currentStatus }: { enteredAt: string; currentStatus: string }) {
   const [elapsed, setElapsed] = useState(0);
@@ -84,7 +66,7 @@ function LiveTimer({ enteredAt, currentStatus }: { enteredAt: string; currentSta
     return (
       <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground">
         <Timer className="h-3 w-3" />
-        Zakończone
+        Zakończono: {new Date(enteredAt).toLocaleDateString("pl-PL")}
       </span>
     );
   }

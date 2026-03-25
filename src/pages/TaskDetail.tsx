@@ -32,30 +32,14 @@ import { NotUnderstoodModal, ChecklistBlockModal, ResponsibilityModal } from "@/
 import { useRole } from "@/hooks/useRole";
 import { StatusTimeline } from "@/components/tasks/StatusTimeline";
 
-const statusLabels: Record<string, string> = {
-  new: "NOWE", todo: "DO ZROBIENIA", in_progress: "W REALIZACJI", review: "WERYFIKACJA",
-  corrections: "POPRAWKI", client_review: "DO AKCEPTACJI KLIENTA", client_verified: "ZWERYFIKOWANE PRZEZ KLIENTA",
-  waiting_for_client: "W OCZEKIWANIU NA KLIENTA", done: "GOTOWE", closed: "ZAMKNIĘTE", cancelled: "ANULOWANE",
-};
+import { statusLabels, statusColors, TERMINAL_STATUSES } from "@/lib/statusConfig";
+
 const priorityLabels: Record<string, string> = { critical: "PILNY", high: "WYSOKI", medium: "ŚREDNI", low: "NISKI" };
 const priorityColors: Record<string, string> = {
   critical: "bg-destructive text-destructive-foreground",
   high: "border-orange-500 text-orange-600 bg-orange-50 dark:bg-orange-950",
   medium: "border-yellow-500 text-yellow-600 bg-yellow-50 dark:bg-yellow-950",
   low: "border-muted text-muted-foreground",
-};
-const statusColors: Record<string, string> = {
-  new: "bg-muted text-muted-foreground",
-  todo: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
-  in_progress: "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300",
-  review: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
-  corrections: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
-  client_review: "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300",
-  client_verified: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-  waiting_for_client: "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300",
-  done: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300",
-  closed: "bg-slate-100 text-slate-700 dark:bg-slate-950 dark:text-slate-300",
-  cancelled: "bg-muted text-muted-foreground line-through",
 };
 
 const roleLabels: Record<string, string> = { primary: "Główny", collaborator: "Współpracownik", reviewer: "Recenzent" };
@@ -98,6 +82,8 @@ export default function TaskDetail() {
   const [clientReviewOpen, setClientReviewOpen] = useState(false);
   const [correctionSeverity, setCorrectionSeverity] = useState<"normal" | "critical">("normal");
   const [correctionText, setCorrectionText] = useState("");
+  const [rejectReviewOpen, setRejectReviewOpen] = useState(false);
+  const [rejectReviewText, setRejectReviewText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ─── Queries ─────────────────────────────────────────────────────
@@ -361,6 +347,35 @@ export default function TaskDetail() {
     setCorrectionText("");
     setCorrectionSeverity("normal");
     toast.success("Poprawki zgłoszone");
+  }
+
+  // Staff reject from review -> corrections
+  async function handleRejectFromReview() {
+    if (!task || !rejectReviewText.trim() || !user?.id) {
+      toast.error("Podaj powód odrzucenia");
+      return;
+    }
+    // 1. Add comment with rejection reason
+    await supabase.from("comments").insert({
+      task_id: task.id,
+      user_id: user.id,
+      content: `🔴 Odrzucono z weryfikacji: ${rejectReviewText.trim()}`,
+      type: "internal",
+    });
+    // 2. Change status to corrections
+    const { error } = await supabase.rpc("change_task_status", {
+      _task_id: task.id,
+      _new_status: "corrections" as any,
+      _changed_by: user.id,
+      _note: rejectReviewText.trim(),
+    });
+    if (error) { toast.error(error.message); return; }
+    queryClient.invalidateQueries({ queryKey: ["task", id] });
+    queryClient.invalidateQueries({ queryKey: ["comments", id] });
+    queryClient.invalidateQueries({ queryKey: ["status-history", id] });
+    setRejectReviewOpen(false);
+    setRejectReviewText("");
+    toast.success("Zadanie odrzucone — przeniesiono do POPRAWEK");
   }
 
   // 2. Brief editing
@@ -667,6 +682,11 @@ export default function TaskDetail() {
           {!isClient && !isPreviewMode && (task.status === "in_progress" || task.status === "todo") && !(task as any).is_misunderstood && (
             <Button variant="outline" size="sm" className="text-xs gap-1.5 border-amber-500/50 text-amber-600 hover:bg-amber-500/10" onClick={() => setNotUnderstoodOpen(true)}>
               <HelpCircle className="h-3 w-3" />Nie rozumiem polecenia
+            </Button>
+          )}
+          {!isClient && !isPreviewMode && task.status === "review" && (
+            <Button variant="outline" size="sm" className="text-xs gap-1.5 border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => setRejectReviewOpen(true)}>
+              <AlertTriangle className="h-3 w-3" />Odrzuć (do poprawek)
             </Button>
           )}
           {!isClient && !isPreviewMode && <Button size="sm" className="text-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground"><MessageCircle className="h-3 w-3" />Czat zadania</Button>}
@@ -1397,6 +1417,30 @@ export default function TaskDetail() {
           }
         }}
       />
+
+      {/* Reject from review modal */}
+      <Dialog open={rejectReviewOpen} onOpenChange={setRejectReviewOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Odrzuć zadanie z weryfikacji</DialogTitle>
+            <DialogDescription>Podaj powód odrzucenia. Zadanie zostanie przeniesione do statusu POPRAWKI, a komentarz zostanie dodany automatycznie.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Textarea
+              value={rejectReviewText}
+              onChange={e => setRejectReviewText(e.target.value)}
+              placeholder="Powód odrzucenia / uwagi..."
+              className="min-h-[100px] text-sm"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setRejectReviewOpen(false); setRejectReviewText(""); }}>Anuluj</Button>
+            <Button variant="destructive" onClick={handleRejectFromReview} disabled={!rejectReviewText.trim()}>
+              Odrzuć i przenieś do poprawek
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

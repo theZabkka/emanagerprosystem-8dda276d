@@ -2,7 +2,6 @@ import { Search, Phone, Focus, Sun, Moon, Bell, FlaskConical } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
@@ -37,10 +36,6 @@ export function Topbar({ title = "Pulpit" }: TopbarProps) {
       setSeeding(false);
     }
   };
-
-  const initials = profile?.full_name
-    ? profile.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-    : "U";
 
   return (
     <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4 gap-4">
@@ -84,11 +79,6 @@ export function Topbar({ title = "Pulpit" }: TopbarProps) {
             3
           </Badge>
         </Button>
-        <Avatar className="h-8 w-8 ml-2">
-          <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
       </div>
     </header>
   );
