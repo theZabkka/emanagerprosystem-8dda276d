@@ -147,7 +147,7 @@ export default function TicketsTable({ isAdmin, clientId }: TicketsTableProps) {
                       </Badge>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
-                      {new Date(ticket.created_at).toLocaleDateString("pl-PL")}
+                      {new Date(ticket.created_at).toLocaleString("pl-PL", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                     </TableCell>
                   </TableRow>
                 );

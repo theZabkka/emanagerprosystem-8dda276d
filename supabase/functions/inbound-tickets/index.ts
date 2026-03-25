@@ -147,67 +147,83 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 7. Pobranie załączników bezpośrednio z payloadu Resend
-    const attachments = emailData.attachments || [];
+    // 7. Pobranie załączników przez API Resend (webhook zawiera tylko metadane)
+    const attachmentsMetadata = emailData.attachments || [];
+    const emailId = emailData.email_id;
 
-    if (attachments.length > 0) {
-      console.log(`Znaleziono ${attachments.length} załączników w payloadzie maila.`);
+    if (attachmentsMetadata.length > 0 && emailId) {
+      console.log(`Mail ${emailId} posiada ${attachmentsMetadata.length} załączników. Uderzam do API Resend po pełne dane...`);
+      try {
+        const resendApiKey = Deno.env.get("RESEND_API_KEY");
+        if (!resendApiKey) throw new Error("Brak klucza RESEND_API_KEY");
 
-      for (const att of attachments) {
-        try {
+        const emailRes = await fetch(`https://api.resend.com/emails/${emailId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!emailRes.ok) {
+          throw new Error(`Błąd pobierania maila: ${emailRes.status} ${await emailRes.text()}`);
+        }
+
+        const fullEmail = await emailRes.json();
+        const fullAttachments = fullEmail.attachments || [];
+
+        for (const att of fullAttachments) {
           if (!att.content) {
-            console.warn(`Załącznik ${att.filename} jest pusty. Pomijam.`);
+            console.warn(`Załącznik ${att.filename} z API nadal nie posiada pola 'content'. Pomijam.`);
             continue;
           }
 
           let fileData;
-
-          if (att.content && att.content.type === 'Buffer') {
-            fileData = new Uint8Array(att.content.data);
-          } else if (Array.isArray(att.content)) {
+          if (Array.isArray(att.content)) {
             fileData = new Uint8Array(att.content);
+          } else if (att.content && att.content.type === 'Buffer') {
+            fileData = new Uint8Array(att.content.data);
           } else if (typeof att.content === 'string') {
             const binary = atob(att.content);
             fileData = new Uint8Array(binary.length);
             for (let i = 0; i < binary.length; i++) fileData[i] = binary.charCodeAt(i);
-          } else {
-            console.error(`Nieobsługiwany format zawartości dla pliku: ${att.filename}`);
-            continue;
           }
 
-          const fileNameSafe = att.filename ? att.filename.replace(/[^a-zA-Z0-9.\-_]/g, '') : `file-${Date.now()}`;
-          const filePath = `${ticket.id}/${crypto.randomUUID()}-${fileNameSafe}`;
+          if (fileData) {
+            const fileNameSafe = att.filename ? att.filename.replace(/[^a-zA-Z0-9.\-_]/g, '') : `file-${Date.now()}`;
+            const filePath = `${ticket.id}/${crypto.randomUUID()}-${fileNameSafe}`;
 
-          console.log(`Wgrywanie pliku: ${fileNameSafe} do Supabase Storage...`);
-          const { error: uploadErr } = await supabaseAdmin.storage
-            .from('ticket_attachments')
-            .upload(filePath, fileData, {
-              contentType: att.content_type || 'application/octet-stream',
-              upsert: true
+            console.log(`Wgrywanie ${fileNameSafe} do Storage...`);
+            const { error: uploadErr } = await supabaseAdmin.storage
+              .from('ticket_attachments')
+              .upload(filePath, fileData, {
+                contentType: att.content_type || 'application/octet-stream',
+                upsert: true
+              });
+
+            if (uploadErr) {
+              console.error(`Błąd wgrywania: ${fileNameSafe}`, uploadErr);
+              continue;
+            }
+
+            const { data: publicUrlData } = supabaseAdmin.storage
+              .from('ticket_attachments')
+              .getPublicUrl(filePath);
+
+            await supabaseAdmin.from('ticket_attachments').insert({
+              ticket_id: ticket.id,
+              file_name: att.filename,
+              file_url: publicUrlData.publicUrl
             });
 
-          if (uploadErr) {
-            console.error(`Błąd wgrywania pliku ${fileNameSafe}:`, uploadErr);
-            continue;
+            console.log(`Sukces: Wgrano ${att.filename}`);
           }
-
-          const { data: publicUrlData } = supabaseAdmin.storage
-            .from('ticket_attachments')
-            .getPublicUrl(filePath);
-
-          await supabaseAdmin.from('ticket_attachments').insert({
-            ticket_id: ticket.id,
-            file_name: att.filename,
-            file_url: publicUrlData.publicUrl
-          });
-
-          console.log(`Sukces: Zapisano i podpięto załącznik ${att.filename}`);
-        } catch (attErr) {
-          console.error(`Krytyczny błąd podczas przetwarzania załącznika ${att.filename}:`, attErr);
         }
+      } catch (err) {
+        console.error("Błąd podczas wtórnego pobierania plików przez API:", err);
       }
     } else {
-      console.log("Mail nie zawierał żadnych załączników.");
+      console.log("Mail nie wymaga przetwarzania załączników.");
     }
 
     console.log(`Ticket created: ${ticket.id} for client: ${clientId} from: ${senderEmail}`);
