@@ -40,8 +40,13 @@ interface BugAttachment {
 }
 
 export default function AdminBugs() {
+  const { currentRole } = useRole();
   const queryClient = useQueryClient();
   const [selectedBug, setSelectedBug] = useState<BugReport | null>(null);
+
+  // Role guard
+  const allowed = ["superadmin", "boss", "koordynator"];
+  if (!allowed.includes(currentRole)) return <Navigate to="/dashboard" replace />;
 
   const { data: bugs = [], isLoading } = useQuery({
     queryKey: ["bug-reports"],
