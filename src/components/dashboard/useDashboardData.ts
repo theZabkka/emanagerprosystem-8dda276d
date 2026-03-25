@@ -156,9 +156,11 @@ export function useDashboardData() {
     pipelineValue,
     pipelineCount,
     activities: activities || [],
+    activitiesLoading,
     pipeline,
     clientReviewTasks: clientReviewTasks || [],
     correctionTasks: correctionTasks || [],
     unreadBugs: unreadBugsCount ?? 0,
+    unassignedTasks: unassignedTasksCount ?? 0,
   };
 }
