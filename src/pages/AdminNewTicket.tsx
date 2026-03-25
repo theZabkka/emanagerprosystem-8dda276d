@@ -1,10 +1,10 @@
 import { AppLayout } from "@/components/layout/AppLayout";
-import TicketForm from "@/components/tickets/TicketForm";
+import AdminTicketForm from "@/components/tickets/AdminTicketForm";
 
 export default function AdminNewTicket() {
   return (
     <AppLayout title="Nowe zgłoszenie (Admin)">
-      <TicketForm isAdmin={true} />
+      <AdminTicketForm />
     </AppLayout>
   );
 }

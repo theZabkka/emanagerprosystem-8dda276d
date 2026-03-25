@@ -1783,36 +1783,49 @@ export type Database = {
       }
       tickets: {
         Row: {
+          assigned_to: string | null
           client_id: string
           created_at: string
           created_by: string | null
           department: string
           description: string | null
           id: string
+          priority: string
           status: string
           title: string
         }
         Insert: {
+          assigned_to?: string | null
           client_id: string
           created_at?: string
           created_by?: string | null
           department?: string
           description?: string | null
           id?: string
+          priority?: string
           status?: string
           title: string
         }
         Update: {
+          assigned_to?: string | null
           client_id?: string
           created_at?: string
           created_by?: string | null
           department?: string
           description?: string | null
           id?: string
+          priority?: string
           status?: string
           title?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tickets_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tickets_client_id_fkey"
             columns: ["client_id"]
