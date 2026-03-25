@@ -349,6 +349,35 @@ export default function TaskDetail() {
     toast.success("Poprawki zgłoszone");
   }
 
+  // Staff reject from review -> corrections
+  async function handleRejectFromReview() {
+    if (!task || !rejectReviewText.trim() || !user?.id) {
+      toast.error("Podaj powód odrzucenia");
+      return;
+    }
+    // 1. Add comment with rejection reason
+    await supabase.from("comments").insert({
+      task_id: task.id,
+      user_id: user.id,
+      content: `🔴 Odrzucono z weryfikacji: ${rejectReviewText.trim()}`,
+      type: "internal",
+    });
+    // 2. Change status to corrections
+    const { error } = await supabase.rpc("change_task_status", {
+      _task_id: task.id,
+      _new_status: "corrections" as any,
+      _changed_by: user.id,
+      _note: rejectReviewText.trim(),
+    });
+    if (error) { toast.error(error.message); return; }
+    queryClient.invalidateQueries({ queryKey: ["task", id] });
+    queryClient.invalidateQueries({ queryKey: ["comments", id] });
+    queryClient.invalidateQueries({ queryKey: ["status-history", id] });
+    setRejectReviewOpen(false);
+    setRejectReviewText("");
+    toast.success("Zadanie odrzucone — przeniesiono do POPRAWEK");
+  }
+
   // 2. Brief editing
   function openBriefEditor() {
     if (!task) return;
