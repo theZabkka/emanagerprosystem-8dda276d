@@ -192,7 +192,7 @@ export function CoordinatorFreezeOverlay() {
               )}
 
               <Button
-                onClick={() => navigate(`/tasks/${t.id}`)}
+                onClick={() => navigate(`/tasks?taskId=${t.id}`)}
                 className="w-full gap-2"
                 size="sm"
               >
