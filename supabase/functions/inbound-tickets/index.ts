@@ -75,23 +75,45 @@ Deno.serve(async (req) => {
     // 2. Rozpakowanie "koperty" Resend
     const emailData = body.data || body;
 
-    // 3. Agresywne szukanie treści pod różnymi kluczami używanymi przez webhooki
-    console.log("Szukam treści. Dostępne klucze w emailData:", Object.keys(emailData));
-
-    const htmlBody = emailData.html || emailData.html_body || emailData.content_html || emailData.body_html || "";
-    const textBody = emailData.text || emailData.text_body || emailData.content_plain || emailData.body_plain || emailData.body || emailData.raw || "";
-    
-    let description = htmlBody || textBody || "";
-
-    if (!description || description.trim() === "") {
-      description = "(Brak treści wiadomości)";
-      const debugData = { ...emailData };
-      delete debugData.attachments; 
-      console.warn("UWAGA: Nie znaleziono treści! Zrzut emailData:", JSON.stringify(debugData));
-    } else {
-      console.log(`Złapano treść. Długość: ${description.length} znaków.`);
-    }
+    // 3. Pobranie treści wiadomości z API Inbound Resend
+    const emailId = emailData.email_id;
     const subject = emailData.subject || "(Brak tematu)";
+
+    let description = "(Trwa pobieranie treści...)";
+
+    if (emailId) {
+      try {
+        const resendApiKey = Deno.env.get("RESEND_API_KEY");
+
+        const bodyRes = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (bodyRes.ok) {
+          const resJson = await bodyRes.json();
+          const fullEmailData = resJson.data || resJson;
+
+          const htmlBody = fullEmailData.html || "";
+          const textBody = fullEmailData.text || "";
+          description = htmlBody || textBody || "(Brak treści wiadomości)";
+
+          console.log(`Pomyślnie pobrano treść z API. Długość: ${description.length} znaków.`);
+        } else {
+          console.error(`Błąd API przy pobieraniu treści: ${bodyRes.status} ${await bodyRes.text()}`);
+          description = "(Błąd podczas pobierania treści wiadomości z serwera Resend)";
+        }
+      } catch (err) {
+        console.error("Błąd sieci przy pobieraniu treści:", err);
+        description = "(Błąd sieci podczas pobierania treści z Resend)";
+      }
+    } else {
+      console.warn("Brak email_id w payloadzie, nie można pobrać treści.");
+      description = "(Brak ID wiadomości)";
+    }
 
     // 4. Ekstrakcja nadawcy
     const rawFrom: string = emailData.from || emailData.from_email || "";
