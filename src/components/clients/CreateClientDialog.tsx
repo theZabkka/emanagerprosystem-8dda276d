@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Loader2, Search } from "lucide-react";
 
@@ -118,6 +119,7 @@ export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClie
     address: "",
     postal_code: "",
     voivodeship: "",
+    has_retainer: false,
   });
 
   function updateField(field: string, value: string) {
@@ -179,6 +181,7 @@ export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClie
           address: form.address,
           postal_code: form.postal_code,
           voivodeship: form.voivodeship,
+          has_retainer: (form as any).has_retainer || false,
         },
       });
 
@@ -189,7 +192,7 @@ export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClie
       setForm({
         first_name: "", last_name: "", email: "", phone: "", website: "", position: "",
         password: "", password_confirm: "", company_name: "", nip: "", company_phone: "",
-        country: "Poland", city: "", address: "", postal_code: "", voivodeship: "",
+        country: "Poland", city: "", address: "", postal_code: "", voivodeship: "", has_retainer: false,
       });
       onOpenChange(false);
       onCreated();
@@ -301,6 +304,16 @@ export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClie
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-input p-3">
+              <div>
+                <Label className="text-sm font-medium">Stała opieka</Label>
+                <p className="text-xs text-muted-foreground">Klient na stałej opiece (retainer)</p>
+              </div>
+              <Switch
+                checked={(form as any).has_retainer || false}
+                onCheckedChange={(v) => setForm((prev) => ({ ...prev, has_retainer: v }))}
+              />
             </div>
           </div>
         </div>
