@@ -110,7 +110,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { profile, signOut, user } = useAuth();
-  const { canViewModule } = useRole();
+  const { canViewModule, currentRole } = useRole();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
 
@@ -167,7 +167,10 @@ export function AppSidebar() {
       <SidebarContent className="overflow-hidden">
         <ScrollArea className="h-full">
           {sections.map((section) => {
-            const visibleItems = section.items.filter(item => canViewModule(item.title));
+            const visibleItems = section.items.filter(item => {
+              if ((item as any).roles && !(item as any).roles.includes(currentRole)) return false;
+              return canViewModule(item.title);
+            });
             if (visibleItems.length === 0) return null;
             return (
             <SidebarGroup key={section.label}>
