@@ -33,6 +33,8 @@ import { useRole } from "@/hooks/useRole";
 import { StatusTimeline } from "@/components/tasks/StatusTimeline";
 import { statusLabels, statusColors, TERMINAL_STATUSES } from "@/lib/statusConfig";
 import { useTimerStore } from "@/hooks/useTimerStore";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const priorityLabels: Record<string, string> = { critical: "PILNY", high: "WYSOKI", medium: "ŚREDNI", low: "NISKI" };
 const priorityColors: Record<string, string> = {
@@ -83,6 +85,8 @@ export default function TaskDetail() {
   const [rejectReviewOpen, setRejectReviewOpen] = useState(false);
   const [rejectReviewText, setRejectReviewText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessage, setChatMessage] = useState("");
 
   // ─── Queries ─────────────────────────────────────────────────────
   const { data: task, isLoading } = useQuery({
@@ -681,7 +685,7 @@ export default function TaskDetail() {
               <AlertTriangle className="h-3 w-3" />Odrzuć (do poprawek)
             </Button>
           )}
-          {!isClient && !isPreviewMode && <Button size="sm" className="text-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground"><MessageCircle className="h-3 w-3" />Czat zadania</Button>}
+          {!isClient && !isPreviewMode && <Button size="sm" className="text-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={() => setIsChatOpen(true)}><MessageCircle className="h-3 w-3" />Czat zadania</Button>}
         </div>
 
         {/* Misunderstood task banner - hidden from clients */}
@@ -1433,6 +1437,79 @@ export default function TaskDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Task Chat Sheet */}
+      <Sheet open={isChatOpen} onOpenChange={setIsChatOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
+          <SheetHeader className="px-6 py-4 border-b">
+            <SheetTitle className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4" />
+              Czat zadania
+            </SheetTitle>
+          </SheetHeader>
+          <ScrollArea className="flex-1 px-6 py-4">
+            <div className="space-y-3">
+              {(!comments || comments.length === 0) ? (
+                <p className="text-sm text-muted-foreground py-8 text-center">Brak wiadomości. Rozpocznij rozmowę poniżej.</p>
+              ) : (
+                [...(comments || [])].reverse().map((c: any) => {
+                  const isOwn = c.user_id === user?.id;
+                  return (
+                    <div key={c.id} className={cn("flex gap-2", isOwn && "flex-row-reverse")}>
+                      <Avatar className="h-7 w-7 shrink-0">
+                        <AvatarFallback className="text-xs bg-muted">
+                          {(c.profiles?.full_name || "?").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className={cn("max-w-[75%] rounded-lg px-3 py-2", isOwn ? "bg-primary text-primary-foreground" : "bg-muted")}>
+                        <p className="text-xs font-medium opacity-80">{c.profiles?.full_name || "Użytkownik"}</p>
+                        <p className="text-sm whitespace-pre-wrap">{c.content}</p>
+                        <p className="text-[10px] opacity-60 mt-1">
+                          {new Date(c.created_at).toLocaleString("pl-PL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </ScrollArea>
+          <div className="border-t px-4 py-3 flex gap-2 items-end">
+            <Textarea
+              value={chatMessage}
+              onChange={(e) => setChatMessage(e.target.value)}
+              placeholder="Napisz wiadomość..."
+              className="min-h-[48px] max-h-[120px] resize-none text-sm"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && chatMessage.trim()) {
+                  e.preventDefault();
+                  (async () => {
+                    if (!user) return;
+                    const { error } = await supabase.from("comments").insert({ task_id: id!, user_id: user.id, content: chatMessage.trim(), type: "internal" });
+                    if (error) { toast.error(error.message); return; }
+                    setChatMessage("");
+                    queryClient.invalidateQueries({ queryKey: ["comments", id] });
+                  })();
+                }
+              }}
+            />
+            <Button
+              size="icon"
+              className="shrink-0"
+              disabled={!chatMessage.trim()}
+              onClick={async () => {
+                if (!user || !chatMessage.trim()) return;
+                const { error } = await supabase.from("comments").insert({ task_id: id!, user_id: user.id, content: chatMessage.trim(), type: "internal" });
+                if (error) { toast.error(error.message); return; }
+                setChatMessage("");
+                queryClient.invalidateQueries({ queryKey: ["comments", id] });
+              }}
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </AppLayout>
   );
 }
