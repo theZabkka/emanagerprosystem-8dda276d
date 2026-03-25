@@ -75,8 +75,10 @@ Deno.serve(async (req) => {
     // 2. Rozpakowanie "koperty" Resend
     const emailData = body.data || body;
 
-    // 3. Pobranie treści bezpośrednio z payloadu
-    const description = emailData.html || emailData.text || "";
+    // 3. Wyciągnięcie treści bezpośrednio z payloadu webhooka
+    const htmlBody = emailData.html || "";
+    const textBody = emailData.text || "";
+    const description = htmlBody || textBody || "(Brak treści wiadomości)";
     const subject = emailData.subject || "(Brak tematu)";
 
     // 4. Ekstrakcja nadawcy
