@@ -1,4 +1,4 @@
-import { LayoutDashboard, FolderKanban, Lightbulb, LogOut } from "lucide-react";
+import { LayoutDashboard, TicketCheck, Lightbulb, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 
 const clientItems = [
   { title: "Mój Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Zgłoszenia", url: "/client/tickets", icon: TicketCheck },
   { title: "Zgłoś pomysł", url: "/client-ideas", icon: Lightbulb },
 ];
 
