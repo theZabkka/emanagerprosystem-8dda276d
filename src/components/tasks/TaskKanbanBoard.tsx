@@ -13,6 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { toast } from "sonner";
 import { ChecklistBlockModal, ResponsibilityModal } from "./WorkflowModals";
+import { RejectionModal } from "./RejectionModal";
+import { useAuth } from "@/hooks/useAuth";
 import { compareRanks, generateMidpointRank, generateRankAfter, generateRankBefore } from "@/lib/lexoRank";
 import { sortTasks } from "@/lib/taskSorting";
 import type { SortField, SortDirection } from "@/components/tasks/TaskFilters";
@@ -56,10 +58,13 @@ export default function TaskKanbanBoard({
   tasks, profiles, assignments, clients, onStatusChange, onArchive, onRefresh,
   onLexoRankUpdate, sortField = "manual", sortDirection = "asc",
 }: TaskKanbanBoardProps) {
+  const { user } = useAuth();
   const isManualSort = sortField === "manual";
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
   const [responsibilityOpen, setResponsibilityOpen] = useState(false);
+  const [rejectionOpen, setRejectionOpen] = useState(false);
   const [pendingMove, setPendingMove] = useState<{ taskId: string; newStatus: string } | null>(null);
+  const [pendingRejectionTaskId, setPendingRejectionTaskId] = useState<string | null>(null);
   const [optimisticTasks, setOptimisticTasks] = useState<any[]>(tasks);
 
   useEffect(() => {
@@ -134,6 +139,26 @@ export default function TaskKanbanBoard({
     return assignments.filter((a: any) => a.task_id === taskId);
   }, [assignments]);
 
+  const handleRejectionConfirm = async (category: string, comment: string) => {
+    if (!pendingRejectionTaskId || !user?.id) return;
+    const task = optimisticTasks.find((t: any) => t.id === pendingRejectionTaskId);
+    if (!task) return;
+
+    const primaryAssign = assignments.find((a: any) => a.task_id === pendingRejectionTaskId && a.role === "primary");
+
+    await supabase.from("task_rejections").insert({
+      task_id: pendingRejectionTaskId,
+      project_id: task.project_id || null,
+      rejected_by: user.id,
+      assigned_to: primaryAssign?.user_id || null,
+      reason_category: category,
+      comment: comment || null,
+    } as any);
+
+    onStatusChange(pendingRejectionTaskId, "corrections");
+    setPendingRejectionTaskId(null);
+  };
+
   const validateAndMove = (taskId: string, newStatus: string) => {
     const task = optimisticTasks.find((t: any) => t.id === taskId);
     if (!task) return;
@@ -159,6 +184,13 @@ export default function TaskKanbanBoard({
     if (task.status === "review" && newStatus === "client_review") {
       setPendingMove({ taskId, newStatus });
       setResponsibilityOpen(true);
+      return;
+    }
+
+    // Intercept drag to corrections — show rejection modal
+    if (newStatus === "corrections") {
+      setPendingRejectionTaskId(taskId);
+      setRejectionOpen(true);
       return;
     }
 
@@ -297,6 +329,11 @@ export default function TaskKanbanBoard({
   return (
     <>
       <ChecklistBlockModal open={checklistBlockOpen} onOpenChange={setChecklistBlockOpen} />
+      <RejectionModal
+        open={rejectionOpen}
+        onOpenChange={(v) => { setRejectionOpen(v); if (!v) setPendingRejectionTaskId(null); }}
+        onConfirm={handleRejectionConfirm}
+      />
       <ResponsibilityModal
         open={responsibilityOpen}
         onOpenChange={setResponsibilityOpen}
