@@ -1,4 +1,6 @@
-import { Search, Moon, Sun, Bell, User, Settings, LogOut, X } from "lucide-react";
+import { Search, Moon, Sun, Bell, User, Settings, LogOut, X, Bug } from "lucide-react";
+import { useState as useStateBug } from "react";
+import { BugReportModal } from "@/components/bugs/BugReportModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -152,6 +154,8 @@ export function Topbar({ title = "Pulpit" }: TopbarProps) {
       )}
 
       {isClient && <div className="flex-1" />}
+
+      <BugReportModalWrapper />
 
       <div className="flex items-center gap-1">
         <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" onClick={toggleTheme}>
