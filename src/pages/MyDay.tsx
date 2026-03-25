@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,6 +10,7 @@ import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 
 export default function MyDay() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const today = format(new Date(), "yyyy-MM-dd");
 
@@ -81,7 +83,7 @@ export default function MyDay() {
 
         {/* Summary cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
+          <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate("/tasks")}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <CheckSquare className="h-8 w-8 text-primary" />
@@ -92,7 +94,7 @@ export default function MyDay() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate("/tasks?filter=today")}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <Calendar className="h-8 w-8 text-primary" />
@@ -103,7 +105,7 @@ export default function MyDay() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:border-destructive/50 transition-colors" onClick={() => navigate("/tasks?filter=overdue")}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <AlertTriangle className="h-8 w-8 text-destructive" />

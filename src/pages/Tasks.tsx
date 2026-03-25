@@ -1,5 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -15,6 +16,8 @@ import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 export default function Tasks() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -22,6 +25,31 @@ export default function Tasks() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [sortField, setSortField] = useState<SortField>("due_date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [overdueFilter, setOverdueFilter] = useState(false);
+  const [autoOpenTaskId, setAutoOpenTaskId] = useState<string | null>(null);
+
+  // Read URL params on mount
+  useEffect(() => {
+    const urlStatus = searchParams.get("status");
+    const urlFilter = searchParams.get("filter");
+    const urlTaskId = searchParams.get("taskId");
+    if (urlStatus) setStatusFilter(urlStatus);
+    if (urlFilter === "overdue") setOverdueFilter(true);
+    if (urlTaskId) {
+      setAutoOpenTaskId(urlTaskId);
+      // Navigate to task detail
+      navigate(`/tasks/${urlTaskId}`, { replace: true });
+    }
+    // Clear params after reading
+    if (urlStatus || urlFilter || urlTaskId) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("status");
+      newParams.delete("filter");
+      newParams.delete("taskId");
+      setSearchParams(newParams, { replace: true });
+    }
+  }, []);
 
   const { data: tasks, isLoading, refetch } = useQuery({
     queryKey: ["tasks", priorityFilter],
@@ -38,9 +66,13 @@ export default function Tasks() {
     },
   });
 
+  const today = new Date().toISOString().split("T")[0];
+
   const filteredTasks = (tasks || []).filter((t: any) => {
     const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) || t.id.toLowerCase().includes(search.toLowerCase());
     if (!matchesSearch) return false;
+    if (statusFilter !== "all" && t.status !== statusFilter) return false;
+    if (overdueFilter && (!t.due_date || t.due_date >= today)) return false;
     if (typeFilter === "parent") return !(t as any).parent_task_id && (tasks || []).some((mt: any) => mt.parent_task_id === t.id);
     if (typeFilter === "subtask") return !!(t as any).parent_task_id;
     if (typeFilter === "standalone") return !(t as any).parent_task_id && !(tasks || []).some((mt: any) => mt.parent_task_id === t.id);
@@ -59,7 +91,10 @@ export default function Tasks() {
     .filter((t: any) => t.not_understood)
     .map((t: any) => ({ id: t.id, not_understood_at: t.not_understood_at }));
 
-  const handleFilterStatus = (_status: string) => {};
+  const handleFilterStatus = (status: string) => {
+    setStatusFilter(status);
+    setOverdueFilter(false);
+  };
 
   const handleStatusChange = useCallback(async (taskId: string, newStatus: string) => {
     const queryKey = ["tasks", priorityFilter];

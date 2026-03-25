@@ -21,7 +21,6 @@ export function TaskAlertBanners({ unassignedCount, reviewCount, clientReviewCou
 
   function handleMisunderstoodClick() {
     if (misunderstoodTasks.length === 0) return;
-    // FIFO: sort by not_understood_at ascending, navigate to the oldest one
     const sorted = [...misunderstoodTasks].sort((a, b) => {
       const dateA = a.not_understood_at ? new Date(a.not_understood_at).getTime() : 0;
       const dateB = b.not_understood_at ? new Date(b.not_understood_at).getTime() : 0;
