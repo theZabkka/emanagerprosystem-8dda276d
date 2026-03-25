@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,14 +33,13 @@ export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
 
   const [commentText, setCommentText] = useState("");
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", priority: "medium", due_date: "", assigned_to: "" });
+  const [form, setForm] = useState({ title: "", description: "", due_date: "", assigned_to: "" });
 
   const startEdit = () => {
     if (!deal) return;
     setForm({
       title: deal.title,
       description: deal.description || "",
-      priority: deal.priority,
       due_date: deal.due_date || "",
       assigned_to: deal.assigned_to || "",
     });
@@ -84,23 +82,9 @@ export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
                   <Label>Opis</Label>
                   <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={4} />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Priorytet</Label>
-                    <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="critical">Krytyczny</SelectItem>
-                        <SelectItem value="high">Wysoki</SelectItem>
-                        <SelectItem value="medium">Średni</SelectItem>
-                        <SelectItem value="low">Niski</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Termin</Label>
-                    <Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
-                  </div>
+                <div className="space-y-2">
+                  <Label>Termin</Label>
+                  <Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
                 </div>
                 <div className="space-y-2">
                   <Label>Przypisana osoba</Label>
@@ -123,7 +107,6 @@ export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">{deal.description || "Brak opisu"}</p>
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                  <span>Priorytet: <strong className="text-foreground">{deal.priority}</strong></span>
                   {deal.due_date && <span>Termin: <strong className="text-foreground">{format(new Date(deal.due_date), "d MMM yyyy", { locale: pl })}</strong></span>}
                   <span>Osoba: <strong className="text-foreground">{deal.profiles?.full_name || "—"}</strong></span>
                 </div>

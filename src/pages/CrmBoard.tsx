@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { Plus, Archive, Search, MoreHorizontal, GripVertical, Pencil, Trash2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
@@ -15,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { compareRanks, generateRankBefore, generateRankAfter, generateMidpointRank } from "@/lib/lexoRank";
 import {
-  useCrmColumns, useCrmDeals, useCrmLabels, useCrmDealLabels,
+  useCrmColumns, useCrmDeals, useCrmLabels,
   useCrmRealtime, useCrmMutations,
   type CrmColumn, type CrmDeal,
 } from "@/hooks/useCrmData";
@@ -32,7 +31,6 @@ export default function CrmBoard() {
   const mutations = useCrmMutations();
 
   const [search, setSearch] = useState("");
-  const [filterPriority, setFilterPriority] = useState("all");
   const [selectedDeal, setSelectedDeal] = useState<CrmDeal | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -41,33 +39,26 @@ export default function CrmBoard() {
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
   const [editingColumnName, setEditingColumnName] = useState("");
 
-  // New deal form
-  const [newDeal, setNewDeal] = useState({ title: "", column_id: "", priority: "medium", due_date: "" });
+  // New deal form (no priority)
+  const [newDeal, setNewDeal] = useState({ title: "", column_id: "", due_date: "" });
 
-  // All labels for each deal - fetch via batch query 
+  // All labels for each deal
   const { data: allDealLabelsMap } = useCrmLabelsForDeals(deals.map(d => d.id));
 
   // Filtered deals
   const filteredDeals = useMemo(() => {
-    let result = deals;
-    if (search) {
-      const s = search.toLowerCase();
-      result = result.filter((d) => d.title.toLowerCase().includes(s));
-    }
-    if (filterPriority !== "all") {
-      result = result.filter((d) => d.priority === filterPriority);
-    }
-    return result;
-  }, [deals, search, filterPriority]);
+    if (!search) return deals;
+    const s = search.toLowerCase();
+    return deals.filter((d) => d.title.toLowerCase().includes(s));
+  }, [deals, search]);
 
-  // Group deals by column, sorted by lexo_rank
+  // Group deals by column
   const dealsByColumn = useMemo(() => {
     const map: Record<string, CrmDeal[]> = {};
     columns.forEach((c) => (map[c.id] = []));
     filteredDeals.forEach((d) => {
       if (map[d.column_id]) map[d.column_id].push(d);
     });
-    // Each column's deals are already sorted from query
     return map;
   }, [columns, filteredDeals]);
 
@@ -79,11 +70,7 @@ export default function CrmBoard() {
       if (source.droppableId === destination.droppableId && source.index === destination.index) return;
 
       if (type === "COLUMN") {
-        // Reorder columns
         const sorted = [...columns];
-        const draggedCol = sorted.find((c) => c.id === draggableId);
-        if (!draggedCol) return;
-
         const withoutDragged = sorted.filter((c) => c.id !== draggableId);
         const destIdx = destination.index;
 
@@ -96,7 +83,6 @@ export default function CrmBoard() {
           newRank = generateMidpointRank(withoutDragged[destIdx - 1].lexo_rank, withoutDragged[destIdx].lexo_rank);
         }
 
-        // Optimistic update
         qc.setQueryData(["crm-columns"], (old: CrmColumn[] | undefined) =>
           (old || []).map((c) => (c.id === draggableId ? { ...c, lexo_rank: newRank } : c)).sort((a, b) => compareRanks(a.lexo_rank, b.lexo_rank))
         );
@@ -109,7 +95,6 @@ export default function CrmBoard() {
       const srcColumnId = source.droppableId;
       const isSameColumn = srcColumnId === destColumnId;
 
-      // Build target list without the dragged card
       const rawDest = dealsByColumn[destColumnId] || [];
       const targetCards = isSameColumn
         ? rawDest.filter((d) => d.id !== draggableId)
@@ -127,7 +112,6 @@ export default function CrmBoard() {
         newRank = generateMidpointRank(targetCards[destIdx - 1].lexo_rank, targetCards[destIdx].lexo_rank);
       }
 
-      // Optimistic update
       qc.setQueryData(["crm-deals", false], (old: CrmDeal[] | undefined) =>
         (old || [])
           .map((d) =>
@@ -154,12 +138,13 @@ export default function CrmBoard() {
     mutations.createDeal.mutate({
       title: newDeal.title,
       column_id: newDeal.column_id,
-      priority: newDeal.priority,
+      priority: "medium",
       due_date: newDeal.due_date || undefined,
       lexo_rank: rank,
+      reminder_active: true,
     });
     setCreateOpen(false);
-    setNewDeal({ title: "", column_id: "", priority: "medium", due_date: "" });
+    setNewDeal({ title: "", column_id: "", due_date: "" });
     toast.success("Karta dodana");
   };
 
@@ -181,14 +166,14 @@ export default function CrmBoard() {
   };
 
   return (
-    <AppLayout title="CRM Board">
+    <AppLayout title="Lejek sprzedaży">
       <div className="flex flex-col h-[calc(100vh-4rem)]">
         {/* Top bar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3 border-b border-border bg-card">
-          <h1 className="text-lg font-bold text-foreground">CRM Board</h1>
+          <h1 className="text-lg font-bold text-foreground">Lejek sprzedaży</h1>
           <div className="flex items-center gap-2">
             <Button onClick={() => setCreateOpen(true)} className="bg-primary text-primary-foreground hover:bg-primary/90">
-              <Plus className="h-4 w-4 mr-1" /> Nowe zadanie
+              <Plus className="h-4 w-4 mr-1" /> Nowa karta
             </Button>
             <Button variant="outline" onClick={() => setArchiveOpen(true)}>
               <Archive className="h-4 w-4 mr-1" /> Archiwum
@@ -207,18 +192,6 @@ export default function CrmBoard() {
               className="pl-9 rounded-full h-9 text-sm"
             />
           </div>
-          <Select value={filterPriority} onValueChange={setFilterPriority}>
-            <SelectTrigger className="w-[140px] h-9 text-sm rounded-full">
-              <SelectValue placeholder="Wszystkie" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Wszystkie</SelectItem>
-              <SelectItem value="critical">Krytyczny</SelectItem>
-              <SelectItem value="high">Wysoki</SelectItem>
-              <SelectItem value="medium">Średni</SelectItem>
-              <SelectItem value="low">Niski</SelectItem>
-            </SelectContent>
-          </Select>
           <Button variant="outline" size="sm" className="h-9 rounded-full text-sm" onClick={() => setCreateColumnOpen(true)}>
             <Plus className="h-3.5 w-3.5 mr-1" /> Kolumna
           </Button>
@@ -249,7 +222,7 @@ export default function CrmBoard() {
                               {...colProv.dragHandleProps}
                               className="flex items-center justify-between p-3 border-b border-primary/10"
                             >
-                              <div className="flex items-center gap-2 min-w-0">
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
                                 <GripVertical className="h-4 w-4 text-muted-foreground shrink-0 cursor-grab" />
                                 {editingColumnId === col.id ? (
                                   <Input
@@ -261,15 +234,15 @@ export default function CrmBoard() {
                                     className="h-7 text-xs font-bold"
                                   />
                                 ) : (
-                                  <div>
-                                    <h3 className="text-xs font-bold tracking-wide uppercase text-foreground">{col.name}</h3>
+                                  <div className="min-w-0 flex-1">
+                                    <h3 className="text-[10px] font-bold tracking-wide uppercase text-foreground leading-tight line-clamp-2">{col.name}</h3>
                                     <span className="text-[10px] text-muted-foreground">{colDeals.length} kart</span>
                                   </div>
                                 )}
                               </div>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
                                     <MoreHorizontal className="h-4 w-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
@@ -359,11 +332,11 @@ export default function CrmBoard() {
       {/* Create deal dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Nowe zadanie CRM</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Nowa karta</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Tytuł *</Label>
-              <Input value={newDeal.title} onChange={(e) => setNewDeal({ ...newDeal, title: e.target.value })} placeholder="Nazwa zadania" />
+              <Input value={newDeal.title} onChange={(e) => setNewDeal({ ...newDeal, title: e.target.value })} placeholder="Nazwa karty" />
             </div>
             <div className="space-y-2">
               <Label>Kolumna *</Label>
@@ -374,23 +347,9 @@ export default function CrmBoard() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Priorytet</Label>
-                <Select value={newDeal.priority} onValueChange={(v) => setNewDeal({ ...newDeal, priority: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="critical">Krytyczny</SelectItem>
-                    <SelectItem value="high">Wysoki</SelectItem>
-                    <SelectItem value="medium">Średni</SelectItem>
-                    <SelectItem value="low">Niski</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Termin</Label>
-                <Input type="date" value={newDeal.due_date} onChange={(e) => setNewDeal({ ...newDeal, due_date: e.target.value })} />
-              </div>
+            <div className="space-y-2">
+              <Label>Termin</Label>
+              <Input type="date" value={newDeal.due_date} onChange={(e) => setNewDeal({ ...newDeal, due_date: e.target.value })} />
             </div>
             <Button onClick={handleCreateDeal} className="w-full">Dodaj kartę</Button>
           </div>
@@ -414,6 +373,9 @@ export default function CrmBoard() {
     </AppLayout>
   );
 }
+
+// Need Select imports
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Helper hook: fetch labels for all visible deals in a single pass
 function useCrmLabelsForDeals(dealIds: string[]) {
