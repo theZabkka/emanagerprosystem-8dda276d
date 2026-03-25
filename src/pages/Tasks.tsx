@@ -27,6 +27,7 @@ export default function Tasks() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [overdueFilter, setOverdueFilter] = useState(false);
+  const [unassignedFilter, setUnassignedFilter] = useState(false);
   const [autoOpenTaskId, setAutoOpenTaskId] = useState<string | null>(null);
 
   // Read URL params on mount
@@ -34,19 +35,21 @@ export default function Tasks() {
     const urlStatus = searchParams.get("status");
     const urlFilter = searchParams.get("filter");
     const urlTaskId = searchParams.get("taskId");
+    const urlUnassigned = searchParams.get("unassigned");
     if (urlStatus) setStatusFilter(urlStatus);
     if (urlFilter === "overdue") setOverdueFilter(true);
+    if (urlUnassigned === "true") setUnassignedFilter(true);
     if (urlTaskId) {
       setAutoOpenTaskId(urlTaskId);
-      // Navigate to task detail
       navigate(`/tasks/${urlTaskId}`, { replace: true });
     }
     // Clear params after reading
-    if (urlStatus || urlFilter || urlTaskId) {
+    if (urlStatus || urlFilter || urlTaskId || urlUnassigned) {
       const newParams = new URLSearchParams(searchParams);
       newParams.delete("status");
       newParams.delete("filter");
       newParams.delete("taskId");
+      newParams.delete("unassigned");
       setSearchParams(newParams, { replace: true });
     }
   }, []);
@@ -73,6 +76,11 @@ export default function Tasks() {
     if (!matchesSearch) return false;
     if (statusFilter !== "all" && t.status !== statusFilter) return false;
     if (overdueFilter && (!t.due_date || t.due_date >= today)) return false;
+    if (unassignedFilter) {
+      const hasAssignment = t.task_assignments?.some((a: any) => a.role === "primary");
+      if (hasAssignment) return false;
+      if (["done", "cancelled", "closed"].includes(t.status)) return false;
+    }
     if (typeFilter === "parent") return !(t as any).parent_task_id && (tasks || []).some((mt: any) => mt.parent_task_id === t.id);
     if (typeFilter === "subtask") return !!(t as any).parent_task_id;
     if (typeFilter === "standalone") return !(t as any).parent_task_id && !(tasks || []).some((mt: any) => mt.parent_task_id === t.id);
@@ -93,6 +101,13 @@ export default function Tasks() {
 
   const handleFilterStatus = (status: string) => {
     setStatusFilter(status);
+    setOverdueFilter(false);
+    setUnassignedFilter(false);
+  };
+
+  const handleFilterUnassigned = () => {
+    setUnassignedFilter(true);
+    setStatusFilter("all");
     setOverdueFilter(false);
   };
 
@@ -164,6 +179,7 @@ export default function Tasks() {
           notUnderstoodCount={notUnderstoodCount}
           misunderstoodTasks={misunderstoodTasks}
           onFilterStatus={handleFilterStatus}
+          onFilterUnassigned={handleFilterUnassigned}
         />
 
         <TaskFilters

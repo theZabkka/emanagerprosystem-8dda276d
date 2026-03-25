@@ -14,9 +14,10 @@ interface TaskAlertBannersProps {
   notUnderstoodCount?: number;
   misunderstoodTasks?: MisunderstoodTask[];
   onFilterStatus: (status: string) => void;
+  onFilterUnassigned?: () => void;
 }
 
-export function TaskAlertBanners({ unassignedCount, reviewCount, clientReviewCount, notUnderstoodCount = 0, misunderstoodTasks = [], onFilterStatus }: TaskAlertBannersProps) {
+export function TaskAlertBanners({ unassignedCount, reviewCount, clientReviewCount, notUnderstoodCount = 0, misunderstoodTasks = [], onFilterStatus, onFilterUnassigned }: TaskAlertBannersProps) {
   const navigate = useNavigate();
 
   function handleMisunderstoodClick() {
@@ -47,11 +48,16 @@ export function TaskAlertBanners({ unassignedCount, reviewCount, clientReviewCou
         </div>
       )}
       {unassignedCount > 0 && (
-        <div className="flex items-center px-5 py-3 rounded-xl bg-destructive text-destructive-foreground">
+        <div className="flex items-center justify-between px-5 py-3 rounded-xl bg-destructive text-destructive-foreground">
           <div className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5" />
             <span className="font-semibold text-sm">{unassignedCount} zadań nieprzypisanych — wymagają natychmiastowego przypisania osoby odpowiedzialnej.</span>
           </div>
+          {onFilterUnassigned && (
+            <Button variant="secondary" size="sm" className="text-xs font-medium" onClick={onFilterUnassigned}>
+              Pokaż zadania
+            </Button>
+          )}
         </div>
       )}
       {reviewCount > 0 && (
