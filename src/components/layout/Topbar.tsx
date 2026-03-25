@@ -1,5 +1,6 @@
 import { Search, Moon, Sun, Bell, User, Settings, LogOut, X, Bug } from "lucide-react";
 import { BugReportModal } from "@/components/bugs/BugReportModal";
+import { NotificationCenter } from "@/components/layout/NotificationCenter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
