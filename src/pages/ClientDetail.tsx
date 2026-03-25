@@ -479,6 +479,11 @@ await supabase.from("client_files").delete().eq("id", fileId);
             client={client}
             onUpdated={() => queryClient.invalidateQueries({ queryKey: ["client-detail", id] })}
           />
+          <CreateTaskDialog
+            open={showCreateTask}
+            onOpenChange={setShowCreateTask}
+            onCreated={() => queryClient.invalidateQueries({ queryKey: ["client-tasks", id] })}
+          />
         </div>
 
         {/* ─── KPI Cards ──────────────────────────────────────── */}
