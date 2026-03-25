@@ -28,6 +28,7 @@ import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
 import CallsList from "@/components/calls/CallsList";
+import { EditClientDialog } from "@/components/clients/EditClientDialog";
 
 const statusLabels: Record<string, string> = {
   active: "AKTYWNY", potential: "POTENCJALNY", negotiations: "NEGOCJACJE", project: "PROJEKT", inactive: "NIEAKTYWNY",
@@ -101,6 +102,7 @@ export default function ClientDetail() {
   const [showIdeaDialog, setShowIdeaDialog] = useState(false);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [showInvoiceEdit, setShowInvoiceEdit] = useState(false);
+  const [showEditClient, setShowEditClient] = useState(false);
   const [newIdeaTitle, setNewIdeaTitle] = useState("");
   const [newIdeaDesc, setNewIdeaDesc] = useState("");
   const [newLinkName, setNewLinkName] = useState("");
@@ -446,7 +448,12 @@ await supabase.from("client_files").delete().eq("id", fileId);
           </Link>
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-2xl font-extrabold text-foreground">{client.name}</h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-extrabold text-foreground">{client.name}</h1>
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => setShowEditClient(true)}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
               <p className="text-sm text-muted-foreground mt-0.5">
                 {client.contact_person || "—"} · {client.email || "—"}
               </p>
@@ -463,6 +470,13 @@ await supabase.from("client_files").delete().eq("id", fileId);
               </Badge>
             </div>
           </div>
+
+          <EditClientDialog
+            open={showEditClient}
+            onOpenChange={setShowEditClient}
+            client={client}
+            onUpdated={() => queryClient.invalidateQueries({ queryKey: ["client-detail", id] })}
+          />
         </div>
 
         {/* ─── KPI Cards ──────────────────────────────────────── */}
