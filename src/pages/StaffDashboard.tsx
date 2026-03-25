@@ -1,5 +1,5 @@
 import { AppLayout } from "@/components/layout/AppLayout";
-import { AlertTriangle, Users, TrendingUp, Clock, TicketCheck, RefreshCcw, CheckCircle2, Eye, Bug } from "lucide-react";
+import { AlertTriangle, Users, TrendingUp, Clock, TicketCheck, RefreshCcw, CheckCircle2, Eye, Bug, UserX } from "lucide-react";
 import { AlertBanner } from "@/components/dashboard/AlertBanner";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { TaskListCard } from "@/components/dashboard/TaskListCard";
@@ -13,13 +13,15 @@ export default function StaffDashboard() {
   const data = useDashboardData();
   const { currentRole } = useRole();
   const canSeeBugs = ["superadmin", "boss", "koordynator"].includes(currentRole);
+  const canSeeUnassigned = ["superadmin", "boss", "koordynator", "admin"].includes(currentRole);
 
   return (
     <AppLayout title="Pulpit">
       <div className="space-y-6 max-w-7xl mx-auto">
-        {(data.overdue > 0 || data.corrections > 0 || data.clientReview > 0 || (canSeeBugs && data.unreadBugs > 0)) && (
+        {(data.overdue > 0 || data.corrections > 0 || data.clientReview > 0 || (canSeeBugs && data.unreadBugs > 0) || (canSeeUnassigned && data.unassignedTasks > 0)) && (
         <div className="space-y-2">
           {canSeeBugs && data.unreadBugs > 0 && <AlertBanner color="red" icon={Bug} text={`Masz ${data.unreadBugs} nowe, nieodczytane zgłoszenia błędów.`} actionText="Zobacz" navigateTo="/admin/bugs" />}
+          {canSeeUnassigned && data.unassignedTasks > 0 && <AlertBanner color="orange" icon={UserX} text={`Masz ${data.unassignedTasks} zadań oczekujących na przypisanie.`} actionText="Rozdziel zadania" navigateTo="/tasks" />}
           {data.overdue > 0 && <AlertBanner color="red" icon={AlertTriangle} text={`Masz ${data.overdue} zaległych zadań`} actionText="Zobacz" navigateTo="/tasks?filter=overdue" />}
           {data.corrections > 0 && <AlertBanner color="orange" icon={RefreshCcw} text={`${data.corrections} zadań w poprawkach`} actionText="Zobacz" navigateTo="/tasks?status=corrections" />}
           {data.clientReview > 0 && <AlertBanner color="orange" icon={CheckCircle2} text={`${data.clientReview} zadań oczekuje na weryfikację`} actionText="Zobacz" navigateTo="/tasks?status=client_review" />}
@@ -41,7 +43,7 @@ export default function StaffDashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ActivityFeed activities={data.activities} />
+          <ActivityFeed activities={data.activities} isLoading={data.activitiesLoading} />
           <PipelineOverview stages={data.pipeline} />
         </div>
 

@@ -40,15 +40,33 @@ export function useDashboardData() {
     },
   });
 
-  const { data: activities } = useQuery({
+  const { data: activities, isLoading: activitiesLoading } = useQuery({
     queryKey: ["recent-activity"],
     queryFn: async () => {
-      const { data } = await supabase
+      // Try activity_log first
+      const { data: logs } = await supabase
         .from("activity_log")
         .select("*, profiles:user_id(full_name)")
         .order("created_at", { ascending: false })
-        .limit(10);
-      return data || [];
+        .limit(8);
+
+      if (logs && logs.length > 0) return logs;
+
+      // Fallback: recent task updates
+      const { data: recentTasks } = await supabase
+        .from("tasks")
+        .select("id, title, updated_at, status, created_by, profiles:created_by(full_name)")
+        .eq("is_archived", false)
+        .order("updated_at", { ascending: false })
+        .limit(8);
+
+      return (recentTasks || []).map((t: any) => ({
+        id: t.id,
+        action: `zaktualizowano zadanie (${t.status})`,
+        entity_name: t.title,
+        created_at: t.updated_at,
+        profiles: t.profiles,
+      }));
     },
   });
 
@@ -84,6 +102,28 @@ export function useDashboardData() {
     },
   });
 
+  const { data: unassignedTasksCount } = useQuery({
+    queryKey: ["dashboard-unassigned-tasks"],
+    queryFn: async () => {
+      // Get all non-archived task IDs
+      const { data: allTasks } = await supabase
+        .from("tasks")
+        .select("id")
+        .eq("is_archived", false)
+        .not("status", "in", '("done","closed","cancelled")');
+
+      if (!allTasks || allTasks.length === 0) return 0;
+
+      // Get task IDs that have assignments
+      const { data: assigned } = await supabase
+        .from("task_assignments")
+        .select("task_id");
+
+      const assignedIds = new Set((assigned || []).map((a: any) => a.task_id));
+      return allTasks.filter((t: any) => !assignedIds.has(t.id)).length;
+    },
+  });
+
   useEffect(() => {
     const channel = supabase
       .channel("dashboard-activity")
@@ -116,9 +156,11 @@ export function useDashboardData() {
     pipelineValue,
     pipelineCount,
     activities: activities || [],
+    activitiesLoading,
     pipeline,
     clientReviewTasks: clientReviewTasks || [],
     correctionTasks: correctionTasks || [],
     unreadBugs: unreadBugsCount ?? 0,
+    unassignedTasks: unassignedTasksCount ?? 0,
   };
 }
