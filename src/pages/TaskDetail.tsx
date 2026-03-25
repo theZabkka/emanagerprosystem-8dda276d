@@ -33,6 +33,8 @@ import { useRole } from "@/hooks/useRole";
 import { StatusTimeline } from "@/components/tasks/StatusTimeline";
 import { statusLabels, statusColors, TERMINAL_STATUSES } from "@/lib/statusConfig";
 import { useTimerStore } from "@/hooks/useTimerStore";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const priorityLabels: Record<string, string> = { critical: "PILNY", high: "WYSOKI", medium: "ŚREDNI", low: "NISKI" };
 const priorityColors: Record<string, string> = {
@@ -83,6 +85,8 @@ export default function TaskDetail() {
   const [rejectReviewOpen, setRejectReviewOpen] = useState(false);
   const [rejectReviewText, setRejectReviewText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessage, setChatMessage] = useState("");
 
   // ─── Queries ─────────────────────────────────────────────────────
   const { data: task, isLoading } = useQuery({
@@ -681,7 +685,7 @@ export default function TaskDetail() {
               <AlertTriangle className="h-3 w-3" />Odrzuć (do poprawek)
             </Button>
           )}
-          {!isClient && !isPreviewMode && <Button size="sm" className="text-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground"><MessageCircle className="h-3 w-3" />Czat zadania</Button>}
+          {!isClient && !isPreviewMode && <Button size="sm" className="text-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={() => setIsChatOpen(true)}><MessageCircle className="h-3 w-3" />Czat zadania</Button>}
         </div>
 
         {/* Misunderstood task banner - hidden from clients */}
