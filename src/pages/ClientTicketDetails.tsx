@@ -72,7 +72,7 @@ export default function ClientTicketDetails() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span>{ticket.department}</span>
                 <span>·</span>
-                <span>{new Date(ticket.created_at).toLocaleDateString("pl-PL")}</span>
+                <span>{new Date(ticket.created_at).toLocaleString("pl-PL", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
               </div>
             </div>
             <Badge variant="secondary" className={sc.className}>{sc.label}</Badge>
