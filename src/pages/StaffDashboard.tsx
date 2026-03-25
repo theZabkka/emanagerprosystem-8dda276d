@@ -15,18 +15,18 @@ export default function StaffDashboard() {
     <AppLayout title="Pulpit">
       <div className="space-y-6 max-w-7xl mx-auto">
         <div className="space-y-2">
-          <AlertBanner color="red" icon={AlertTriangle} text={`Masz ${data.overdue} zaległych zadań`} actionText="Zobacz" />
-          <AlertBanner color="orange" icon={RefreshCcw} text={`${data.corrections} zadań w poprawkach`} actionText="Zobacz" />
-          <AlertBanner color="orange" icon={CheckCircle2} text={`${data.clientReview} zadań oczekuje na weryfikację`} actionText="Zobacz" />
+          <AlertBanner color="red" icon={AlertTriangle} text={`Masz ${data.overdue} zaległych zadań`} actionText="Zobacz" navigateTo="/tasks?filter=overdue" />
+          <AlertBanner color="orange" icon={RefreshCcw} text={`${data.corrections} zadań w poprawkach`} actionText="Zobacz" navigateTo="/tasks?status=corrections" />
+          <AlertBanner color="orange" icon={CheckCircle2} text={`${data.clientReview} zadań oczekuje na weryfikację`} actionText="Zobacz" navigateTo="/tasks?status=client_review" />
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <StatCard title="Klienci" value={data.activeClients} subtitle={`/ ${data.totalClients} ogółem`} icon={Users} />
-          <StatCard title="Wartość lejka" value={data.pipelineValue} subtitle={data.pipelineCount} icon={TrendingUp} />
-          <StatCard title="Zaległe" value={data.overdue} icon={Clock} />
+          <StatCard title="Klienci" value={data.activeClients} subtitle={`/ ${data.totalClients} ogółem`} icon={Users} navigateTo="/clients" />
+          <StatCard title="Wartość lejka" value={data.pipelineValue} subtitle={data.pipelineCount} icon={TrendingUp} navigateTo="/crm" />
+          <StatCard title="Zaległe" value={data.overdue} icon={Clock} navigateTo="/tasks?filter=overdue" />
           <StatCard title="Zgłoszenia" value="0" subtitle="/ 0 ogółem" icon={TicketCheck} />
-          <StatCard title="W poprawkach" value={data.corrections} icon={RefreshCcw} />
-          <StatCard title="Do akceptacji" value={data.clientReview} icon={Eye} />
+          <StatCard title="W poprawkach" value={data.corrections} icon={RefreshCcw} navigateTo="/tasks?status=corrections" />
+          <StatCard title="Do akceptacji" value={data.clientReview} icon={Eye} navigateTo="/tasks?status=client_review" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
