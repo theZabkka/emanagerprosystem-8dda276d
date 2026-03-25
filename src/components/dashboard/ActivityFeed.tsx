@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ActivityItem {
   id: string;
@@ -11,16 +12,29 @@ interface ActivityItem {
 
 interface ActivityFeedProps {
   activities: ActivityItem[];
+  isLoading?: boolean;
 }
 
-export function ActivityFeed({ activities }: ActivityFeedProps) {
+export function ActivityFeed({ activities, isLoading }: ActivityFeedProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base">Ostatnia aktywność</CardTitle>
       </CardHeader>
       <CardContent>
-        {activities.length > 0 ? (
+        {isLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <Skeleton className="h-7 w-7 rounded-full" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : activities.length > 0 ? (
           <div className="space-y-3">
             {activities.map((act) => (
               <div key={act.id} className="flex items-start gap-3">
