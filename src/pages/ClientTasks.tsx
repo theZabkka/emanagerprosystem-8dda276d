@@ -149,7 +149,7 @@ export default function ClientTasks() {
             </Card>
             <Card>
               <CardContent className="p-3 text-center">
-                <p className="text-2xl font-bold text-blue-600">
+                <p className="text-2xl font-bold text-primary">
                   {tasks.filter((t: any) => ACTIVE_STATUSES.includes(t.status)).length}
                 </p>
                 <p className="text-xs text-muted-foreground">W realizacji</p>
@@ -157,7 +157,7 @@ export default function ClientTasks() {
             </Card>
             <Card>
               <CardContent className="p-3 text-center">
-                <p className="text-2xl font-bold text-amber-600">
+                <p className="text-2xl font-bold text-accent-foreground">
                   {tasks.filter((t: any) => REVIEW_STATUSES.includes(t.status)).length}
                 </p>
                 <p className="text-xs text-muted-foreground">Do akceptacji</p>
@@ -165,7 +165,7 @@ export default function ClientTasks() {
             </Card>
             <Card>
               <CardContent className="p-3 text-center">
-                <p className="text-2xl font-bold text-emerald-600">
+                <p className="text-2xl font-bold text-secondary-foreground">
                   {tasks.filter((t: any) => DONE_STATUSES.includes(t.status)).length}
                 </p>
                 <p className="text-xs text-muted-foreground">Zakończonych</p>
