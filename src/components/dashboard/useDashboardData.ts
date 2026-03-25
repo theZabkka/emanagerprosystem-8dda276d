@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 const PIPELINE_STAGES = [
@@ -14,6 +14,8 @@ const PIPELINE_STAGES = [
 const EMPTY_PIPELINE = PIPELINE_STAGES.map((s) => ({ ...s, value: "0 zł", count: 0 }));
 
 export function useDashboardData() {
+  const queryClient = useQueryClient();
+
   const { data: clientCount } = useQuery({
     queryKey: ["clients-count"],
     queryFn: async () => {
@@ -105,20 +107,17 @@ export function useDashboardData() {
   const { data: unassignedTasksCount } = useQuery({
     queryKey: ["dashboard-unassigned-tasks"],
     queryFn: async () => {
-      // Get all non-archived, active tasks with their primary assignments
-      const { data: allTasks } = await supabase
+      const { data: activeTasks } = await supabase
         .from("tasks")
-        .select("id, task_assignments(task_id, role)")
+        .select("id, title, task_assignments(task_id)")
         .eq("is_archived", false)
-        .not("status", "in", '("done","closed","cancelled")');
+        .not("status", "in", '("done","closed","cancelled")')
+        .not("title", "is", null)
+        .neq("title", "");
 
-      if (!allTasks || allTasks.length === 0) return 0;
+      if (!activeTasks || activeTasks.length === 0) return 0;
 
-      // Count tasks that have NO primary assignment
-      return allTasks.filter((t: any) => {
-        const assignments = t.task_assignments || [];
-        return !assignments.some((a: any) => a.role === "primary");
-      }).length;
+      return activeTasks.filter((t: any) => (t.task_assignments || []).length === 0).length;
     },
   });
 
@@ -129,6 +128,22 @@ export function useDashboardData() {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("dashboard-unassigned-sync")
+      .on("postgres_changes", { event: "*", schema: "public", table: "task_assignments" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["dashboard-unassigned-tasks"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["dashboard-unassigned-tasks"] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const pipeline = pipelineDeals
     ? PIPELINE_STAGES.map((s) => {

@@ -30,19 +30,35 @@ export default function Tasks() {
   const [unassignedFilter, setUnassignedFilter] = useState(false);
   const [autoOpenTaskId, setAutoOpenTaskId] = useState<string | null>(null);
 
+  const isTerminalStatus = (status?: string | null) => ["done", "cancelled", "closed"].includes(status || "");
+  const hasNonEmptyTitle = (task: any) => typeof task.title === "string" && task.title.trim().length > 0;
+  const isTaskUnassigned = (task: any) => (task.task_assignments || []).length === 0;
+  const isUnassignedAlertCandidate = (task: any) => !isTerminalStatus(task.status) && hasNonEmptyTitle(task) && isTaskUnassigned(task);
+
   // Read URL params on mount
   useEffect(() => {
     const urlStatus = searchParams.get("status");
     const urlFilter = searchParams.get("filter");
     const urlTaskId = searchParams.get("taskId");
     const urlUnassigned = searchParams.get("unassigned");
-    if (urlStatus) setStatusFilter(urlStatus);
-    if (urlFilter === "overdue") setOverdueFilter(true);
-    if (urlUnassigned === "true") setUnassignedFilter(true);
+
+    if (urlUnassigned === "true") {
+      setSearch("");
+      setPriorityFilter("all");
+      setTypeFilter("all");
+      setStatusFilter("all");
+      setOverdueFilter(false);
+      setUnassignedFilter(true);
+    } else {
+      if (urlStatus) setStatusFilter(urlStatus);
+      if (urlFilter === "overdue") setOverdueFilter(true);
+    }
+
     if (urlTaskId) {
       setAutoOpenTaskId(urlTaskId);
       navigate(`/tasks/${urlTaskId}`, { replace: true });
     }
+
     // Clear params after reading
     if (urlStatus || urlFilter || urlTaskId || urlUnassigned) {
       const newParams = new URLSearchParams(searchParams);
@@ -72,15 +88,12 @@ export default function Tasks() {
   const today = new Date().toISOString().split("T")[0];
 
   const filteredTasks = (tasks || []).filter((t: any) => {
-    const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) || t.id.toLowerCase().includes(search.toLowerCase());
+    const title = typeof t.title === "string" ? t.title : "";
+    const matchesSearch = title.toLowerCase().includes(search.toLowerCase()) || t.id.toLowerCase().includes(search.toLowerCase());
     if (!matchesSearch) return false;
     if (statusFilter !== "all" && t.status !== statusFilter) return false;
     if (overdueFilter && (!t.due_date || t.due_date >= today)) return false;
-    if (unassignedFilter) {
-      const hasAssignment = t.task_assignments?.some((a: any) => a.role === "primary");
-      if (hasAssignment) return false;
-      if (["done", "cancelled", "closed"].includes(t.status)) return false;
-    }
+    if (unassignedFilter && !isUnassignedAlertCandidate(t)) return false;
     if (typeFilter === "parent") return !(t as any).parent_task_id && (tasks || []).some((mt: any) => mt.parent_task_id === t.id);
     if (typeFilter === "subtask") return !!(t as any).parent_task_id;
     if (typeFilter === "standalone") return !(t as any).parent_task_id && !(tasks || []).some((mt: any) => mt.parent_task_id === t.id);
@@ -88,10 +101,7 @@ export default function Tasks() {
   });
 
   const allTasks = tasks || [];
-  const unassignedCount = allTasks.filter((t: any) => {
-    const hasAssignment = t.task_assignments?.some((a: any) => a.role === "primary");
-    return !hasAssignment && t.status !== "done" && t.status !== "cancelled" && t.status !== "closed";
-  }).length;
+  const unassignedCount = allTasks.filter((t: any) => isUnassignedAlertCandidate(t)).length;
   const reviewCount = allTasks.filter((t: any) => t.status === "review").length;
   const clientReviewCount = allTasks.filter((t: any) => t.status === "client_review").length;
   const notUnderstoodCount = allTasks.filter((t: any) => t.not_understood).length;
@@ -106,9 +116,12 @@ export default function Tasks() {
   };
 
   const handleFilterUnassigned = () => {
-    setUnassignedFilter(true);
+    setSearch("");
+    setPriorityFilter("all");
+    setTypeFilter("all");
     setStatusFilter("all");
     setOverdueFilter(false);
+    setUnassignedFilter(true);
   };
 
   const handleStatusChange = useCallback(async (taskId: string, newStatus: string) => {
