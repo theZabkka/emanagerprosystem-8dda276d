@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Webhook } from "https://esm.sh/svix@1.21.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,18 +18,43 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Verify webhook secret
+  // Verify webhook signature via Svix (Resend standard)
   const webhookSecret = Deno.env.get("INBOUND_WEBHOOK_SECRET");
-  if (webhookSecret) {
-    const authHeader = req.headers.get("Authorization");
-    if (authHeader !== `Bearer ${webhookSecret}`) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-  } else {
-    console.warn("INBOUND_WEBHOOK_SECRET not set — endpoint is unprotected!");
+  if (!webhookSecret) {
+    console.error("Missing INBOUND_WEBHOOK_SECRET environment variable.");
+    return new Response(JSON.stringify({ error: "Server configuration error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const svix_id = req.headers.get("svix-id");
+  const svix_timestamp = req.headers.get("svix-timestamp");
+  const svix_signature = req.headers.get("svix-signature");
+
+  if (!svix_id || !svix_timestamp || !svix_signature) {
+    return new Response(JSON.stringify({ error: "Missing svix headers" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const payload = await req.text();
+  let body: any;
+
+  try {
+    const wh = new Webhook(webhookSecret);
+    body = wh.verify(payload, {
+      "svix-id": svix_id,
+      "svix-timestamp": svix_timestamp,
+      "svix-signature": svix_signature,
+    });
+  } catch (err) {
+    console.error("Webhook signature verification failed:", err.message);
+    return new Response(JSON.stringify({ error: "Unauthorized - Invalid Signature" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   const supabaseAdmin = createClient(
@@ -37,16 +63,13 @@ Deno.serve(async (req) => {
   );
 
   try {
-    const body = await req.json();
-
-    // Extract email fields from payload (compatible with Resend / SendGrid / generic)
+    // Extract email fields from verified payload
     const senderEmail: string =
       body.from_email || body.from || body.sender_email || body.envelope?.from || "";
     const subject: string = body.subject || body.title || "(Brak tematu)";
     const htmlBody: string = body.html || body.body_html || "";
     const textBody: string = body.text || body.body_plain || body.body || "";
     const description = htmlBody || textBody || "";
-
     if (!senderEmail) {
       return new Response(
         JSON.stringify({ error: "Missing sender email in payload" }),
