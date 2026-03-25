@@ -619,6 +619,7 @@ export type Database = {
           country: string | null
           created_at: string | null
           email: string | null
+          has_retainer: boolean
           id: string
           monthly_value: number | null
           name: string
@@ -639,6 +640,7 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           email?: string | null
+          has_retainer?: boolean
           id?: string
           monthly_value?: number | null
           name: string
@@ -659,6 +661,7 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           email?: string | null
+          has_retainer?: boolean
           id?: string
           monthly_value?: number | null
           name?: string
@@ -1700,6 +1703,79 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_url: string
+          id: string
+          ticket_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_url: string
+          id?: string
+          ticket_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_url?: string
+          id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_attachments_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tickets: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          department: string
+          description: string | null
+          id: string
+          status: string
+          title: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          department?: string
+          description?: string | null
+          id?: string
+          status?: string
+          title: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          department?: string
+          description?: string | null
+          id?: string
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]

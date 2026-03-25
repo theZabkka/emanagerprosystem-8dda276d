@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -45,6 +46,7 @@ export function EditClientDialog({ open, onOpenChange, client, onUpdated }: Edit
     voivodeship: "",
     country: "Poland",
     monthly_value: "",
+    has_retainer: false,
   });
 
   useEffect(() => {
@@ -62,6 +64,7 @@ export function EditClientDialog({ open, onOpenChange, client, onUpdated }: Edit
         voivodeship: client.voivodeship || "",
         country: client.country || "Poland",
         monthly_value: client.monthly_value?.toString() || "0",
+        has_retainer: client.has_retainer || false,
       });
     }
   }, [client, open]);
@@ -89,6 +92,7 @@ export function EditClientDialog({ open, onOpenChange, client, onUpdated }: Edit
           voivodeship: form.voivodeship || null,
           country: form.country || null,
           monthly_value: form.monthly_value ? Number(form.monthly_value) : 0,
+          has_retainer: form.has_retainer,
         })
         .eq("id", client.id);
 
@@ -174,6 +178,16 @@ export function EditClientDialog({ open, onOpenChange, client, onUpdated }: Edit
             <div className="space-y-2">
               <Label>Wartość miesięczna (PLN)</Label>
               <Input type="number" value={form.monthly_value} onChange={(e) => updateField("monthly_value", e.target.value)} />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-input p-3">
+              <div>
+                <Label className="text-sm font-medium">Stała opieka</Label>
+                <p className="text-xs text-muted-foreground">Klient na stałej opiece (retainer)</p>
+              </div>
+              <Switch
+                checked={form.has_retainer}
+                onCheckedChange={(v) => setForm((prev) => ({ ...prev, has_retainer: v }))}
+              />
             </div>
           </div>
         </div>
