@@ -155,9 +155,10 @@ export function Topbar({ title = "Pulpit" }: TopbarProps) {
 
       {isClient && <div className="flex-1" />}
 
-      <BugReportModalWrapper />
-
       <div className="flex items-center gap-1">
+        {/* Bug report button */}
+        <BugReportButton />
+
         <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" onClick={toggleTheme}>
           {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
