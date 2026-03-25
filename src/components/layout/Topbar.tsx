@@ -1,5 +1,6 @@
 import { Search, Moon, Sun, Bell, User, Settings, LogOut, X, Bug } from "lucide-react";
 import { BugReportModal } from "@/components/bugs/BugReportModal";
+import { NotificationCenter } from "@/components/layout/NotificationCenter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -162,26 +163,8 @@ export function Topbar({ title = "Pulpit" }: TopbarProps) {
           {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
 
-        {/* Notifications Popover */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground relative">
-              <Bell className="h-4 w-4" />
-              <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-primary text-primary-foreground">
-                0
-              </Badge>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-80 p-0">
-            <div className="p-3 border-b border-border">
-              <p className="text-sm font-semibold text-foreground">Powiadomienia</p>
-            </div>
-            <div className="p-6 text-center">
-              <Bell className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Brak nowych powiadomień</p>
-            </div>
-          </PopoverContent>
-        </Popover>
+        {/* Notifications */}
+        <NotificationCenter />
 
         {/* Profile Dropdown */}
         <DropdownMenu>
