@@ -44,6 +44,19 @@ export default function AdminBugs() {
   const queryClient = useQueryClient();
   const [selectedBug, setSelectedBug] = useState<BugReport | null>(null);
 
+  const markAsRead = async (bug: BugReport) => {
+    if (!(bug as any).is_read) {
+      await supabase.from("bug_reports").update({ is_read: true } as any).eq("id", bug.id);
+      queryClient.invalidateQueries({ queryKey: ["bug-reports"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-unread-bugs"] });
+    }
+  };
+
+  const handleSelectBug = (bug: BugReport) => {
+    setSelectedBug(bug);
+    markAsRead(bug);
+  };
+
   // Role guard
   const allowed = ["superadmin", "boss", "koordynator"];
   if (!allowed.includes(currentRole)) return <Navigate to="/dashboard" replace />;
@@ -124,7 +137,7 @@ export default function AdminBugs() {
                 {bugs.map((bug) => {
                   const st = STATUS_MAP[bug.status] || STATUS_MAP.new;
                   return (
-                    <TableRow key={bug.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedBug(bug)}>
+                    <TableRow key={bug.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleSelectBug(bug)}>
                       <TableCell className="text-xs text-muted-foreground">
                         {format(new Date(bug.created_at), "dd MMM yyyy HH:mm", { locale: pl })}
                       </TableCell>
