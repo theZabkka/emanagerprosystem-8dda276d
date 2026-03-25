@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Separator } from "@/components/ui/separator";
 
 const statuses = [
   { value: "new", label: "Nowy" },
@@ -23,6 +26,7 @@ const statusColors: Record<string, string> = {
 
 export default function StaffIdeas() {
   const queryClient = useQueryClient();
+  const [selectedIdea, setSelectedIdea] = useState<any>(null);
 
   const { data: ideas, isLoading } = useQuery({
     queryKey: ["all-client-ideas"],
@@ -71,7 +75,11 @@ export default function StaffIdeas() {
                 </TableHeader>
                 <TableBody>
                   {ideas.map((idea: any) => (
-                    <TableRow key={idea.id}>
+                    <TableRow
+                      key={idea.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setSelectedIdea(idea)}
+                    >
                       <TableCell>
                         <div>
                           <p className="font-medium">{idea.title}</p>
@@ -85,7 +93,7 @@ export default function StaffIdeas() {
                       <TableCell className="text-sm text-muted-foreground">
                         {new Date(idea.created_at).toLocaleDateString("pl-PL")}
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <Select
                           value={idea.status}
                           onValueChange={(v) => updateStatus.mutate({ id: idea.id, status: v })}
@@ -112,6 +120,77 @@ export default function StaffIdeas() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Idea Detail Sheet */}
+      <Sheet open={!!selectedIdea} onOpenChange={(open) => !open && setSelectedIdea(null)}>
+        <SheetContent className="sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>{selectedIdea?.title}</SheetTitle>
+          </SheetHeader>
+          {selectedIdea && (
+            <div className="space-y-4 mt-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="outline" className={`text-xs ${statusColors[selectedIdea.status] || ""}`}>
+                  {statuses.find(s => s.value === selectedIdea.status)?.label || selectedIdea.status}
+                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  {new Date(selectedIdea.created_at).toLocaleDateString("pl-PL")}
+                </span>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Klient</p>
+                <p className="text-sm text-foreground">{selectedIdea.clients?.name || "—"}</p>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Zgłosił</p>
+                <p className="text-sm text-foreground">{selectedIdea.profiles?.full_name || "—"}</p>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Głosy</p>
+                <p className="text-sm text-foreground font-semibold">{selectedIdea.votes || 0}</p>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Opis</p>
+                <p className="text-sm text-foreground whitespace-pre-wrap">
+                  {selectedIdea.description || "Brak opisu."}
+                </p>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Zmień status</p>
+                <Select
+                  value={selectedIdea.status}
+                  onValueChange={(v) => {
+                    updateStatus.mutate({ id: selectedIdea.id, status: v });
+                    setSelectedIdea({ ...selectedIdea, status: v });
+                  }}
+                >
+                  <SelectTrigger className={`h-9 w-full text-sm font-medium border ${statusColors[selectedIdea.status] || ""}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statuses.map(s => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </AppLayout>
   );
 }

@@ -163,8 +163,8 @@ export function AppSidebar() {
         )}
       </SidebarHeader>
 
-      <SidebarContent>
-        <ScrollArea className="flex-1">
+      <SidebarContent className="overflow-hidden">
+        <ScrollArea className="h-full">
           {sections.map((section) => {
             const visibleItems = section.items.filter(item => canViewModule(item.title));
             if (visibleItems.length === 0) return null;

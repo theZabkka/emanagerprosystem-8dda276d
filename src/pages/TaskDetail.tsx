@@ -1348,11 +1348,11 @@ export default function TaskDetail() {
       {/* Brief Edit Dialog */}
       <Dialog open={briefOpen} onOpenChange={setBriefOpen}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
-          <DialogHeader>
+          <DialogHeader className="px-1">
             <DialogTitle>Edytuj brief zadania</DialogTitle>
             <DialogDescription>Uzupełnij pola briefu, aby zespół wiedział, co i jak zrealizować.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+          <div className="space-y-3 overflow-y-auto flex-1 px-1 py-1">
             {briefFields.map(f => (
               <div key={f.key} className="space-y-1">
                 <Label className="text-sm">{f.label}</Label>

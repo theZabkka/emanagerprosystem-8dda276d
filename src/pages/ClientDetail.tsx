@@ -29,6 +29,7 @@ import { pl } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
 import CallsList from "@/components/calls/CallsList";
 import { EditClientDialog } from "@/components/clients/EditClientDialog";
+import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";
 
 const statusLabels: Record<string, string> = {
   active: "AKTYWNY", potential: "POTENCJALNY", negotiations: "NEGOCJACJE", project: "PROJEKT", inactive: "NIEAKTYWNY",
@@ -103,6 +104,7 @@ export default function ClientDetail() {
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [showInvoiceEdit, setShowInvoiceEdit] = useState(false);
   const [showEditClient, setShowEditClient] = useState(false);
+  const [showCreateTask, setShowCreateTask] = useState(false);
   const [newIdeaTitle, setNewIdeaTitle] = useState("");
   const [newIdeaDesc, setNewIdeaDesc] = useState("");
   const [newLinkName, setNewLinkName] = useState("");
@@ -477,6 +479,11 @@ await supabase.from("client_files").delete().eq("id", fileId);
             client={client}
             onUpdated={() => queryClient.invalidateQueries({ queryKey: ["client-detail", id] })}
           />
+          <CreateTaskDialog
+            open={showCreateTask}
+            onOpenChange={setShowCreateTask}
+            onCreated={() => queryClient.invalidateQueries({ queryKey: ["client-tasks", id] })}
+          />
         </div>
 
         {/* ─── KPI Cards ──────────────────────────────────────── */}
@@ -635,7 +642,7 @@ await supabase.from("client_files").delete().eq("id", fileId);
                 </Select>
               </div>
               <div className="flex items-center gap-2">
-                <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Nowe zadanie</Button>
+                <Button size="sm" onClick={() => setShowCreateTask(true)}><Plus className="h-4 w-4 mr-1" /> Nowe zadanie</Button>
                 <div className="flex bg-muted rounded-md p-0.5">
                   <button onClick={() => setViewMode("kanban")} className={`p-1.5 rounded ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><LayoutGrid className="h-4 w-4" /></button>
                   <button onClick={() => setViewMode("list")} className={`p-1.5 rounded ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><List className="h-4 w-4" /></button>

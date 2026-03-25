@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 
 export default function TeamCalendar() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const navigate = useNavigate();
 
   const { data: tasks = [] } = useQuery({
     queryKey: ["calendar-tasks", format(currentMonth, "yyyy-MM")],
@@ -121,6 +123,7 @@ export default function TeamCalendar() {
                           key={t.id}
                           className="flex items-center gap-1 px-1 py-0.5 rounded text-[10px] bg-accent/50 truncate cursor-pointer hover:bg-accent"
                           title={t.title}
+                          onClick={() => navigate(`/tasks/${t.id}`)}
                         >
                           <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${PRIORITY_COLORS[t.priority] || "bg-muted-foreground"}`} />
                           <span className="truncate text-foreground">{t.title}</span>
