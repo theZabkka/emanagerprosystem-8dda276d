@@ -147,53 +147,38 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 7. Pobranie załączników przez API Resend (webhook zawiera tylko metadane)
-    const emailId = emailData.email_id;
+    // 7. Pobranie załączników bezpośrednio z payloadu Resend
+    const attachments = emailData.attachments || [];
 
-    if (emailId && emailData.attachments && emailData.attachments.length > 0) {
-      console.log(`Pobieranie ${emailData.attachments.length} załączników z API Resend dla maila: ${emailId}`);
+    if (attachments.length > 0) {
+      console.log(`Znaleziono ${attachments.length} załączników w payloadzie maila.`);
 
-      try {
-        const resendApiKey = Deno.env.get("RESEND_API_KEY");
-        if (!resendApiKey) throw new Error("Brak zmiennej środowiskowej RESEND_API_KEY");
-
-        // KROK 1: Pobranie listy załączników z API Resend (zawierających 'download_url')
-        const attResponse = await fetch(`https://api.resend.com/emails/${emailId}/attachments`, {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${resendApiKey}` }
-        });
-
-        if (!attResponse.ok) {
-          throw new Error(`Błąd API Resend przy pobieraniu metadanych: ${attResponse.status} ${attResponse.statusText}`);
-        }
-
-        const attData = await attResponse.json();
-        const attachmentsList = attData.data || [];
-
-        // KROK 2: Iteracja, pobieranie zawartości i wgrywanie do Supabase
-        for (const att of attachmentsList) {
-          if (!att.download_url) {
-            console.warn(`Załącznik ${att.filename} nie posiada download_url. Pomijam.`);
+      for (const att of attachments) {
+        try {
+          if (!att.content) {
+            console.warn(`Załącznik ${att.filename} jest pusty. Pomijam.`);
             continue;
           }
 
-          console.log(`Pobieranie pliku: ${att.filename} z Resend...`);
-          const fileRes = await fetch(att.download_url);
+          let fileData;
 
-          if (!fileRes.ok) {
-            console.error(`Nie udało się pobrać pliku ${att.filename} z linku download_url`);
+          if (att.content && att.content.type === 'Buffer') {
+            fileData = new Uint8Array(att.content.data);
+          } else if (Array.isArray(att.content)) {
+            fileData = new Uint8Array(att.content);
+          } else if (typeof att.content === 'string') {
+            const binary = atob(att.content);
+            fileData = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) fileData[i] = binary.charCodeAt(i);
+          } else {
+            console.error(`Nieobsługiwany format zawartości dla pliku: ${att.filename}`);
             continue;
           }
 
-          // Konwersja na format binarny akceptowany przez Supabase w Deno
-          const arrayBuffer = await fileRes.arrayBuffer();
-          const fileData = new Uint8Array(arrayBuffer);
-
-          const fileNameSafe = att.filename ? att.filename.replace(/[^a-zA-Z0-9.\-_]/g, '') : 'attachment.file';
+          const fileNameSafe = att.filename ? att.filename.replace(/[^a-zA-Z0-9.\-_]/g, '') : `file-${Date.now()}`;
           const filePath = `${ticket.id}/${crypto.randomUUID()}-${fileNameSafe}`;
 
-          console.log(`Wgrywanie ${fileNameSafe} do bucketu ticket_attachments...`);
-
+          console.log(`Wgrywanie pliku: ${fileNameSafe} do Supabase Storage...`);
           const { error: uploadErr } = await supabaseAdmin.storage
             .from('ticket_attachments')
             .upload(filePath, fileData, {
@@ -202,11 +187,10 @@ Deno.serve(async (req) => {
             });
 
           if (uploadErr) {
-            console.error(`Błąd wgrywania do Supabase dla ${fileNameSafe}:`, uploadErr);
+            console.error(`Błąd wgrywania pliku ${fileNameSafe}:`, uploadErr);
             continue;
           }
 
-          // KROK 3: Zapis do tabeli relacyjnej
           const { data: publicUrlData } = supabaseAdmin.storage
             .from('ticket_attachments')
             .getPublicUrl(filePath);
@@ -218,12 +202,12 @@ Deno.serve(async (req) => {
           });
 
           console.log(`Sukces: Zapisano i podpięto załącznik ${att.filename}`);
+        } catch (attErr) {
+          console.error(`Krytyczny błąd podczas przetwarzania załącznika ${att.filename}:`, attErr);
         }
-      } catch (attErr) {
-        console.error("Krytyczny błąd podczas przetwarzania załączników API Resend:", attErr);
       }
     } else {
-      console.log("Mail nie zawierał informacji o załącznikach.");
+      console.log("Mail nie zawierał żadnych załączników.");
     }
 
     console.log(`Ticket created: ${ticket.id} for client: ${clientId} from: ${senderEmail}`);
