@@ -14,11 +14,13 @@ export default function StaffDashboard() {
   return (
     <AppLayout title="Pulpit">
       <div className="space-y-6 max-w-7xl mx-auto">
+        {(data.overdue > 0 || data.corrections > 0 || data.clientReview > 0) && (
         <div className="space-y-2">
-          <AlertBanner color="red" icon={AlertTriangle} text={`Masz ${data.overdue} zaległych zadań`} actionText="Zobacz" navigateTo="/tasks?filter=overdue" />
-          <AlertBanner color="orange" icon={RefreshCcw} text={`${data.corrections} zadań w poprawkach`} actionText="Zobacz" navigateTo="/tasks?status=corrections" />
-          <AlertBanner color="orange" icon={CheckCircle2} text={`${data.clientReview} zadań oczekuje na weryfikację`} actionText="Zobacz" navigateTo="/tasks?status=client_review" />
+          {data.overdue > 0 && <AlertBanner color="red" icon={AlertTriangle} text={`Masz ${data.overdue} zaległych zadań`} actionText="Zobacz" navigateTo="/tasks?filter=overdue" />}
+          {data.corrections > 0 && <AlertBanner color="orange" icon={RefreshCcw} text={`${data.corrections} zadań w poprawkach`} actionText="Zobacz" navigateTo="/tasks?status=corrections" />}
+          {data.clientReview > 0 && <AlertBanner color="orange" icon={CheckCircle2} text={`${data.clientReview} zadań oczekuje na weryfikację`} actionText="Zobacz" navigateTo="/tasks?status=client_review" />}
         </div>
+        )}
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <StatCard title="Klienci" value={data.activeClients} subtitle={`/ ${data.totalClients} ogółem`} icon={Users} navigateTo="/clients" />
