@@ -1,4 +1,5 @@
-import { Search, Moon, Sun, Bell, User, Settings, LogOut, X } from "lucide-react";
+import { Search, Moon, Sun, Bell, User, Settings, LogOut, X, Bug } from "lucide-react";
+import { BugReportModal } from "@/components/bugs/BugReportModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -154,6 +155,9 @@ export function Topbar({ title = "Pulpit" }: TopbarProps) {
       {isClient && <div className="flex-1" />}
 
       <div className="flex items-center gap-1">
+        {/* Bug report button */}
+        <BugReportButton />
+
         <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" onClick={toggleTheme}>
           {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
@@ -206,5 +210,17 @@ export function Topbar({ title = "Pulpit" }: TopbarProps) {
         </DropdownMenu>
       </div>
     </header>
+  );
+}
+
+function BugReportButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" onClick={() => setOpen(true)} title="Zgłoś błąd">
+        <Bug className="h-4 w-4" />
+      </Button>
+      <BugReportModal open={open} onOpenChange={setOpen} />
+    </>
   );
 }
