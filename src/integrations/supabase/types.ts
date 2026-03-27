@@ -557,6 +557,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          is_pinned: boolean
           updated_at: string
         }
         Insert: {
@@ -565,6 +566,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          is_pinned?: boolean
           updated_at?: string
         }
         Update: {
@@ -573,6 +575,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          is_pinned?: boolean
           updated_at?: string
         }
         Relationships: [

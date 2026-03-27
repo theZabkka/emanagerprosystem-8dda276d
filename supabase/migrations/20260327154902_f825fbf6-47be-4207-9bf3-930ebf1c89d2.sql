@@ -1,0 +1,1 @@
+ALTER TABLE public.client_notes ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN NOT NULL DEFAULT false;
