@@ -89,7 +89,12 @@ export default function AdminTicketDetails() {
           <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">{ticket.title}</CardTitle>
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className="font-mono text-sm px-2 py-0.5">
+                    #{String(ticket.ticket_number ?? '').padStart(4, '0')}
+                  </Badge>
+                  <CardTitle className="text-lg">{ticket.title}</CardTitle>
+                </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span>{ticket.department}</span>
                   <span>·</span>
@@ -167,6 +172,7 @@ export default function AdminTicketDetails() {
 
                 <div className="space-y-1 text-xs text-muted-foreground">
                   <p>Utworzono: {new Date(ticket.created_at).toLocaleString("pl-PL")}</p>
+                  <p>Numer: <span className="font-mono font-semibold text-foreground">#{String(ticket.ticket_number ?? '').padStart(4, '0')}</span></p>
                   <p>ID: <span className="font-mono">{ticket.id.slice(0, 8)}</span></p>
                 </div>
               </CardContent>

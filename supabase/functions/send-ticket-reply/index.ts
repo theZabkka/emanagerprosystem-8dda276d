@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
 
     const { data: ticket, error: ticketError } = await supabaseService
       .from("tickets")
-      .select("title, client_id, clients(email, name, contact_person)")
+      .select("title, ticket_number, client_id, clients(email, name, contact_person)")
       .eq("id", ticket_id)
       .single();
 
@@ -78,6 +78,8 @@ Deno.serve(async (req) => {
 
     const shortId = ticket_id.split("-")[0];
     const ticketTitle = ticket.title || "Zgłoszenie";
+    const ticketNum = (ticket as any).ticket_number;
+    const formattedNumber = '#' + String(ticketNum || 0).padStart(4, '0');
 
     // Derive client first name
     const rawName = client?.contact_person || client?.name || "";
@@ -87,7 +89,9 @@ Deno.serve(async (req) => {
     const notificationHtml = `
 <p>Witaj ${contactFirstname},</p>
 
-<p>Konsultant właśnie odpowiedział na Twoje zgłoszenie <strong>"${ticketTitle}"</strong> (#${shortId}).</p>
+<p>Konsultant właśnie odpowiedział na Twoje zgłoszenie <strong>[Zgłoszenie ${formattedNumber}] "${ticketTitle}"</strong>.</p>
+
+<p>Numer Twojego zgłoszenia: <strong>${formattedNumber}</strong></p>
 
 <p>Aby zobaczyć jego odpowiedź, kliknij poniższy przycisk:</p>
 
@@ -100,7 +104,7 @@ Deno.serve(async (req) => {
 <p style="font-size: 12px; color: #666;">Zespół Emanager.pro</p>
 `.trim();
 
-    const notificationText = `Witaj ${contactFirstname}, konsultant odpowiedział na Twoje zgłoszenie "${ticketTitle}" (#${shortId}). Zobacz odpowiedź: https://emanagerprosystem.lovable.app/client/tickets/${ticket_id}`;
+    const notificationText = `Witaj ${contactFirstname}, konsultant odpowiedział na Twoje zgłoszenie [Zgłoszenie ${formattedNumber}] "${ticketTitle}". Zobacz odpowiedź: https://emanagerprosystem.lovable.app/client/tickets/${ticket_id}`;
 
     const resendRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -111,7 +115,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: `Support Emanager <ticket-${shortId}@crm.emanager.pro>`,
         to: [clientEmail],
-        subject: `Re: ${ticketTitle}`,
+        subject: `[Zgłoszenie ${formattedNumber}] Re: ${ticketTitle}`,
         html: notificationHtml,
         text: notificationText,
       }),

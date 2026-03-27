@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tickets_ticket_number ON public.tickets (ticket_number);
