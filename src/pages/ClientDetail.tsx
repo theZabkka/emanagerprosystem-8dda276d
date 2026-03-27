@@ -103,11 +103,10 @@ export default function ClientDetail() {
   const [newLinkName, setNewLinkName] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
-  const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
 
   // ─── Fetch client ──────────────────────────────────────────────
   const { data: client, isLoading: loadingClient } = useQuery({
-    queryKey: ["client-detail", id],
+    queryKey: ["client", id],
     queryFn: async () => {
       const { data, error } = await supabase.from("clients").select("*").eq("id", id!).single();
       if (error) throw error;
@@ -463,53 +462,77 @@ await supabase.from("client_files").delete().eq("id", fileId);
                 <MessageSquare className="h-4 w-4 mr-1" /> SMS
               </Button>
               {(() => {
-                const displayStatus = optimisticStatus || client.status || "Nowy kontakt";
+                const displayStatus = client.status || "Nowy kontakt";
                 return (
                   <Select
+                    key={`${client.status ?? ""}-${(client as any).updated_at ?? ""}`}
                     value={displayStatus}
-                    onValueChange={async (val) => {
-                      const prevStatus = client.status;
-                      setOptimisticStatus(val);
+                    onValueChange={async (newStatus) => {
+                      if (updatingStatus) return;
+
+                      const clientId = client.id;
+                      const clientQueryKey = ["client", clientId] as const;
+                      const previousClient = queryClient.getQueryData<any>(clientQueryKey);
+                      const previousClients = queryClient.getQueryData<any[]>(["clients"]);
+
                       setUpdatingStatus(true);
+
                       try {
-                        // KROK 1: Zatrzymaj trwające refetche
-                        await queryClient.cancelQueries({ queryKey: ["client-detail", id] });
+                        // KROK 1: Stopujemy aktywne pobrania
                         await queryClient.cancelQueries({ queryKey: ["clients"] });
+                        await queryClient.cancelQueries({ queryKey: clientQueryKey });
 
-                        // KROK 2: Optymistyczny zapis do cache
-                        queryClient.setQueryData(["client-detail", id], (old: any) =>
-                          old ? { ...old, status: val } : old
+                        // KROK 2: Optymistyczna aktualizacja tylko przez cache React Query
+                        queryClient.setQueryData(clientQueryKey, (old: any) =>
+                          old ? { ...old, status: newStatus } : old
                         );
                         queryClient.setQueryData(["clients"], (old: any[] | undefined) =>
-                          old?.map((c: any) => c.id === client.id ? { ...c, status: val } : c)
+                          old?.map((c: any) => (c.id === clientId ? { ...c, status: newStatus } : c))
                         );
 
-                        // KROK 3: Twardy zapis w Supabase
-                        const { error } = await supabase.from("clients").update({ status: val as any }).eq("id", client.id);
-                        if (error) throw error;
+                        // KROK 4: Twarda weryfikacja zapisu
+                        const { data, error } = await supabase
+                          .from("clients")
+                          .update({ status: newStatus as any })
+                          .eq("id", clientId)
+                          .select();
 
-                        toast.success(`Status zmieniony na: ${val}`);
+                        const updatedClient = data?.[0];
+                        if (error || !updatedClient || updatedClient.status !== newStatus) {
+                          if (previousClient !== undefined) {
+                            queryClient.setQueryData(clientQueryKey, previousClient);
+                          } else {
+                            queryClient.removeQueries({ queryKey: clientQueryKey, exact: true });
+                          }
 
-                        // KROK 4: Rewalidacja po sukcesie
-                        await queryClient.invalidateQueries({ queryKey: ["client-detail", id] });
-                        await queryClient.invalidateQueries({ queryKey: ["clients"] });
-                      } catch {
-                        // Rollback cache
-                        queryClient.setQueryData(["client-detail", id], (old: any) =>
-                          old ? { ...old, status: prevStatus } : old
-                        );
-                        queryClient.setQueryData(["clients"], (old: any[] | undefined) =>
-                          old?.map((c: any) => c.id === client.id ? { ...c, status: prevStatus } : c)
-                        );
-                        setOptimisticStatus(prevStatus || null);
-                        toast.error("Błąd połączenia. Zmiana statusu nieudana.");
+                          if (previousClients !== undefined) {
+                            queryClient.setQueryData(["clients"], previousClients);
+                          } else {
+                            queryClient.removeQueries({ queryKey: ["clients"], exact: true });
+                          }
+
+                          alert(error?.message || "Błąd zapisu statusu klienta. Zmiana została cofnięta.");
+                          return;
+                        }
+
+                        // KROK 3: Twarde czyszczenie cache klientów
+                        await queryClient.removeQueries({ queryKey: ["clients"] });
+                        await queryClient.removeQueries({ queryKey: ["client"] });
+                        toast.success(`Status zmieniony na: ${newStatus}`);
+                      } catch (err: any) {
+                        if (previousClient !== undefined) {
+                          queryClient.setQueryData(clientQueryKey, previousClient);
+                        }
+                        if (previousClients !== undefined) {
+                          queryClient.setQueryData(["clients"], previousClients);
+                        }
+                        alert(err?.message || "Błąd połączenia. Zmiana statusu nieudana.");
                       } finally {
                         setUpdatingStatus(false);
-                        setOptimisticStatus(null);
                       }
                     }}
                   >
-                    <SelectTrigger className="w-auto h-auto border-0 p-0 shadow-none focus:ring-0">
+                    <SelectTrigger onPointerDown={(e) => e.stopPropagation()} className="w-auto h-auto border-0 p-0 shadow-none focus:ring-0">
                       <Badge variant="outline" className={`text-xs font-bold px-3 py-1 cursor-pointer transition-opacity ${updatingStatus ? "opacity-50" : ""} ${getClientStatusColor(displayStatus)}`}>
                         {getClientStatusLabel(displayStatus)}
                       </Badge>
@@ -539,7 +562,7 @@ await supabase.from("client_files").delete().eq("id", fileId);
             open={showEditClient}
             onOpenChange={setShowEditClient}
             client={client}
-            onUpdated={() => { queryClient.invalidateQueries({ queryKey: ["client-detail", id] }); queryClient.invalidateQueries({ queryKey: ["clients"] }); }}
+            onUpdated={() => { queryClient.invalidateQueries({ queryKey: ["client", id] }); queryClient.invalidateQueries({ queryKey: ["clients"] }); }}
           />
           <CreateTaskDialog
             open={showCreateTask}
