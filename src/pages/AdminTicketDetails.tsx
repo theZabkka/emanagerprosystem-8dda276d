@@ -172,6 +172,7 @@ export default function AdminTicketDetails() {
 
                 <div className="space-y-1 text-xs text-muted-foreground">
                   <p>Utworzono: {new Date(ticket.created_at).toLocaleString("pl-PL")}</p>
+                  <p>Numer: <span className="font-mono font-semibold text-foreground">#{String(ticket.ticket_number ?? '').padStart(4, '0')}</span></p>
                   <p>ID: <span className="font-mono">{ticket.id.slice(0, 8)}</span></p>
                 </div>
               </CardContent>
