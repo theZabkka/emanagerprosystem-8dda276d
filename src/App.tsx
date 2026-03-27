@@ -123,12 +123,12 @@ const App = () => (
             <Route path="/team/calendar" element={<ProtectedRoute><TeamCalendar /></ProtectedRoute>} />
             <Route path="/reports/time" element={<ProtectedRoute><TimeReports /></ProtectedRoute>} />
             <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/settings" element={<AdminRoute><Settings /></AdminRoute>} />
             <Route path="/automations" element={<ProtectedRoute><Automations /></ProtectedRoute>} />
             <Route path="/automation-center" element={<ProtectedRoute><AutomationCenter /></ProtectedRoute>} />
             <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
             <Route path="/whats-new" element={<ProtectedRoute><WhatsNew /></ProtectedRoute>} />
-            <Route path="/settings/permissions" element={<ProtectedRoute><Permissions /></ProtectedRoute>} />
+            <Route path="/settings/permissions" element={<AdminRoute><Permissions /></AdminRoute>} />
             <Route path="/client-ideas" element={<ProtectedRoute><ClientIdeas /></ProtectedRoute>} />
             <Route path="/staff-ideas" element={<ProtectedRoute><StaffIdeas /></ProtectedRoute>} />
             <Route path="/docs" element={<ProtectedRoute><Documentation /></ProtectedRoute>} />
@@ -140,7 +140,7 @@ const App = () => (
             <Route path="/client/tickets/new" element={<ProtectedRoute><ClientNewTicket /></ProtectedRoute>} />
             <Route path="/client/tickets/:id" element={<ProtectedRoute><ClientTicketDetails /></ProtectedRoute>} />
             <Route path="/admin/bugs" element={<ProtectedRoute><AdminBugs /></ProtectedRoute>} />
-            <Route path="/admin/templates" element={<ProtectedRoute><ResponseTemplates /></ProtectedRoute>} />
+            <Route path="/admin/templates" element={<AdminRoute><ResponseTemplates /></AdminRoute>} />
             {stubRoutes.map((r) => (
               <Route key={r.path} path={r.path} element={<ProtectedRoute><StubPage title={r.title} /></ProtectedRoute>} />
             ))}
