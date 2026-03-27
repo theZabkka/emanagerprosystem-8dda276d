@@ -29,10 +29,12 @@ import {
 } from "@/components/ui/collapsible";
 import {
   Eye, EyeOff, Copy, Plus, Trash2, Edit, ShieldCheck, Clock, User,
-  KeyRound, Loader2, Share2, ChevronDown, X, Timer, Users,
+  KeyRound, Loader2, Share2, X, Timer, Users, Key,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { pl } from "date-fns/locale";
+
+type SecretType = "password" | "api_key";
 
 interface Credential {
   id: string;
@@ -44,6 +46,7 @@ interface Credential {
   url: string | null;
   notes: string | null;
   created_at: string;
+  secret_type: SecretType;
 }
 
 interface AuditLog {
@@ -86,7 +89,7 @@ function VaultPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ title: "", username: "", password: "", url: "", notes: "" });
+  const [formData, setFormData] = useState({ title: "", username: "", password: "", url: "", notes: "", secret_type: "password" as SecretType });
   const [saving, setSaving] = useState(false);
 
   // Revealed passwords
@@ -177,7 +180,6 @@ function VaultPage() {
       user_email: profileMap[g.user_id]?.email || "",
     }));
 
-    // Group by credential_id for admin view
     const grouped: Record<string, AccessGrant[]> = {};
     enriched.forEach((g) => {
       if (!grouped[g.credential_id]) grouped[g.credential_id] = [];
@@ -185,7 +187,6 @@ function VaultPage() {
     });
     setGrants(grouped);
 
-    // My grants for non-admin view
     if (profile?.id) {
       const mine: Record<string, AccessGrant> = {};
       enriched.filter((g) => g.user_id === profile.id).forEach((g) => {
@@ -221,7 +222,7 @@ function VaultPage() {
 
   const handleSave = async () => {
     if (!formData.title || !formData.username || (!editingId && !formData.password)) {
-      toast.error("Wypełnij tytuł, login i hasło");
+      toast.error("Wypełnij tytuł, login i hasło/klucz");
       return;
     }
     setSaving(true);
@@ -231,6 +232,7 @@ function VaultPage() {
         username: formData.username,
         url: formData.url || null,
         notes: formData.notes || null,
+        secret_type: formData.secret_type,
       };
 
       if (formData.password) {
@@ -238,7 +240,7 @@ function VaultPage() {
           body: { action: "ENCRYPT", password: formData.password },
         });
         if (encErr || !encData?.encrypted_password) {
-          toast.error("Błąd szyfrowania hasła");
+          toast.error("Błąd szyfrowania");
           setSaving(false);
           return;
         }
@@ -262,7 +264,7 @@ function VaultPage() {
 
       setFormOpen(false);
       setEditingId(null);
-      setFormData({ title: "", username: "", password: "", url: "", notes: "" });
+      setFormData({ title: "", username: "", password: "", url: "", notes: "", secret_type: "password" });
       fetchCredentials();
     } catch (err: any) {
       toast.error(err.message || "Błąd zapisu");
@@ -291,7 +293,7 @@ function VaultPage() {
         },
       });
       if (error || !data?.password) {
-        const errMsg = data?.error || "Nie udało się odszyfrować hasła";
+        const errMsg = data?.error || "Nie udało się odszyfrować";
         toast.error(errMsg);
         setRevealingId(null);
         return;
@@ -318,12 +320,8 @@ function VaultPage() {
     try {
       await navigator.clipboard.writeText(pw);
       toast.success("Skopiowano do schowka");
-      // COPY always logs for everyone (including admins)
       await supabase.functions.invoke("vault-manager", {
-        body: {
-          action: "COPY_TO_CLIPBOARD",
-          credential_id: cred.id,
-        },
+        body: { action: "COPY_TO_CLIPBOARD", credential_id: cred.id },
       });
     } catch {
       toast.error("Nie udało się skopiować");
@@ -350,11 +348,11 @@ function VaultPage() {
       password: "",
       url: cred.url || "",
       notes: cred.notes || "",
+      secret_type: cred.secret_type || "password",
     });
     setFormOpen(true);
   };
 
-  // --- PAM: Grant access ---
   const handleGrantAccess = async () => {
     if (!shareOpen || !selectedStaff) return;
     setGranting(true);
@@ -435,6 +433,190 @@ function VaultPage() {
         return true;
       });
 
+  const passwordCredentials = visibleCredentials.filter((c) => (c.secret_type || "password") === "password");
+  const apiKeyCredentials = visibleCredentials.filter((c) => c.secret_type === "api_key");
+
+  const secretLabel = (type: SecretType) => type === "api_key" ? "Klucz API" : "Hasło";
+
+  const renderCredentialRow = (cred: Credential) => {
+    const isRevealed = !!revealedPasswords[cred.id];
+    const isRevealing = revealingId === cred.id;
+    const credGrants = grants[cred.id] || [];
+    const isExpanded = expandedRow === cred.id;
+    const myGrant = myGrants[cred.id];
+    const isApiKey = cred.secret_type === "api_key";
+
+    return (
+      <Collapsible key={cred.id} open={isExpanded} onOpenChange={() => setExpandedRow(isExpanded ? null : cred.id)} asChild>
+        <>
+          <TableRow className={isExpanded ? "border-b-0" : ""}>
+            <TableCell className="font-medium">{cred.title}</TableCell>
+            <TableCell className="font-mono text-sm">{cred.username}</TableCell>
+            <TableCell>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-sm min-w-[80px]">
+                  {isRevealed ? revealedPasswords[cred.id] : "••••••••"}
+                </span>
+                {isRevealed ? (
+                  <>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleHide(cred.id)} title="Ukryj">
+                      <EyeOff className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(cred)} title="Kopiuj">
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  </>
+                ) : (
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleReveal(cred)} disabled={isRevealing} title={`Odkryj ${isApiKey ? "klucz" : "hasło"}`}>
+                    {isRevealing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+                  </Button>
+                )}
+              </div>
+            </TableCell>
+            <TableCell>
+              {cred.url ? (
+                <a href={cred.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm truncate block max-w-[200px]">
+                  {cred.url}
+                </a>
+              ) : (
+                <span className="text-muted-foreground text-sm">—</span>
+              )}
+            </TableCell>
+            {!isAdmin && (
+              <TableCell>
+                {myGrant?.expires_at ? (
+                  <Badge variant="outline" className="gap-1 text-amber-700 bg-amber-500/10">
+                    <Timer className="h-3 w-3" />
+                    {formatDistanceToNow(new Date(myGrant.expires_at), { locale: pl, addSuffix: true })}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-green-700 bg-green-500/10">Bezterminowo</Badge>
+                )}
+              </TableCell>
+            )}
+            <TableCell className="text-right">
+              <div className="flex justify-end gap-1">
+                {isAdmin && (
+                  <>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShareOpen(cred.id)} title="Udostępnij">
+                      <Share2 className="h-3.5 w-3.5" />
+                    </Button>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 relative" title="Zarządzaj dostępami">
+                        <Users className="h-3.5 w-3.5" />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(cred)} title="Edytuj">
+                      <Edit className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(cred.id)} title="Usuń">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            </TableCell>
+          </TableRow>
+          {isAdmin && (
+            <CollapsibleContent asChild>
+              <tr>
+                <td colSpan={5} className="p-0">
+                  <div className="bg-muted/50 px-6 py-3 border-b">
+                    <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
+                      Osoby z dostępem ({credGrants.length})
+                    </p>
+                    {credGrants.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Nikt nie ma przyznanego dostępu.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {credGrants.map((g) => {
+                          const isExpired = g.expires_at && new Date(g.expires_at) < new Date();
+                          return (
+                            <div key={g.id} className="flex items-center justify-between bg-background rounded-md px-3 py-2 border">
+                              <div className="flex items-center gap-2">
+                                <User className="h-3.5 w-3.5 text-muted-foreground" />
+                                <div>
+                                  <p className="text-sm font-medium">{g.user_name}</p>
+                                  <p className="text-xs text-muted-foreground">{g.user_email}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {g.expires_at ? (
+                                  <Badge
+                                    variant="outline"
+                                    className={isExpired ? "text-destructive bg-destructive/10" : "text-amber-700 bg-amber-500/10"}
+                                  >
+                                    <Timer className="h-3 w-3 mr-1" />
+                                    {isExpired
+                                      ? "Wygasł"
+                                      : formatDistanceToNow(new Date(g.expires_at), { locale: pl, addSuffix: true })}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-green-700 bg-green-500/10">
+                                    Bezterminowo
+                                  </Badge>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => handleRevokeAccess(g.credential_id, g.user_id)}
+                                >
+                                  <X className="h-3.5 w-3.5 mr-1" />
+                                  Zabierz
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            </CollapsibleContent>
+          )}
+        </>
+      </Collapsible>
+    );
+  };
+
+  const renderCredentialsTable = (items: Credential[], emptyMessage: string) => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
+    if (items.length === 0) {
+      return <p className="text-center py-8 text-muted-foreground">{emptyMessage}</p>;
+    }
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Tytuł</TableHead>
+            <TableHead>Login / Identyfikator</TableHead>
+            <TableHead>Sekret</TableHead>
+            <TableHead>URL</TableHead>
+            {!isAdmin && <TableHead>Wygasa</TableHead>}
+            <TableHead className="text-right">Akcje</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.map(renderCredentialRow)}
+        </TableBody>
+      </Table>
+    );
+  };
+
+  const openNewForm = (type: SecretType) => {
+    setEditingId(null);
+    setFormData({ title: "", username: "", password: "", url: "", notes: "", secret_type: type });
+    setFormOpen(true);
+  };
+
   return (
     <AppLayout title="Sejf firmowy">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -446,21 +628,16 @@ function VaultPage() {
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
               {isAdmin
-                ? "Zarządzanie hasłami z kontrolą dostępu (PAM)"
+                ? "Zarządzanie danymi dostępowymi z kontrolą dostępu (PAM)"
                 : "Twoje przydzielone dane dostępowe"}
             </p>
           </div>
-          {isAdmin && (
-            <Button onClick={() => { setEditingId(null); setFormData({ title: "", username: "", password: "", url: "", notes: "" }); setFormOpen(true); }}>
-              <Plus className="h-4 w-4 mr-2" /> Dodaj wpis
-            </Button>
-          )}
         </div>
 
         <Tabs defaultValue="credentials">
           <TabsList>
             <TabsTrigger value="credentials" className="gap-1.5">
-              <KeyRound className="h-3.5 w-3.5" /> Hasła
+              <KeyRound className="h-3.5 w-3.5" /> Dane dostępowe
             </TabsTrigger>
             {isAdmin && (
               <TabsTrigger value="audit" className="gap-1.5">
@@ -469,188 +646,59 @@ function VaultPage() {
             )}
           </TabsList>
 
-          <TabsContent value="credentials">
+          <TabsContent value="credentials" className="space-y-6">
+            {/* === SEKCJA: Hasła === */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">
-                  {isAdmin ? "Wszystkie dane dostępowe" : "Przydzielone hasła"}
-                </CardTitle>
-                <CardDescription>
-                  Kliknij ikonę oka, aby odszyfrować hasło. Hasło ukryje się po 10 sekundach.
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <KeyRound className="h-4 w-4 text-primary" />
+                      Hasła
+                    </CardTitle>
+                    <CardDescription>
+                      Kliknij ikonę oka, aby odszyfrować. Hasło ukryje się po 10 sekundach.
+                    </CardDescription>
+                  </div>
+                  {isAdmin && (
+                    <Button size="sm" onClick={() => openNewForm("password")}>
+                      <Plus className="h-4 w-4 mr-1" /> Dodaj hasło
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                {loading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : visibleCredentials.length === 0 ? (
-                  <p className="text-center py-12 text-muted-foreground">
-                    {isAdmin ? "Sejf jest pusty. Dodaj pierwszy wpis." : "Nie masz przydzielonych haseł."}
-                  </p>
-                ) : (
-                  <div className="space-y-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Tytuł</TableHead>
-                          <TableHead>Login</TableHead>
-                          <TableHead>Hasło</TableHead>
-                          <TableHead>URL</TableHead>
-                          {!isAdmin && <TableHead>Wygasa</TableHead>}
-                          <TableHead className="text-right">Akcje</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {visibleCredentials.map((cred) => {
-                          const isRevealed = !!revealedPasswords[cred.id];
-                          const isRevealing = revealingId === cred.id;
-                          const credGrants = grants[cred.id] || [];
-                          const isExpanded = expandedRow === cred.id;
-                          const myGrant = myGrants[cred.id];
+                {renderCredentialsTable(
+                  passwordCredentials,
+                  isAdmin ? "Brak haseł w sejfie. Dodaj pierwszy wpis." : "Nie masz przydzielonych haseł."
+                )}
+              </CardContent>
+            </Card>
 
-                          return (
-                            <Collapsible key={cred.id} open={isExpanded} onOpenChange={() => setExpandedRow(isExpanded ? null : cred.id)} asChild>
-                              <>
-                                <TableRow className={isExpanded ? "border-b-0" : ""}>
-                                  <TableCell className="font-medium">{cred.title}</TableCell>
-                                  <TableCell className="font-mono text-sm">{cred.username}</TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-mono text-sm min-w-[80px]">
-                                        {isRevealed ? revealedPasswords[cred.id] : "••••••••"}
-                                      </span>
-                                      {isRevealed ? (
-                                        <>
-                                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleHide(cred.id)} title="Ukryj">
-                                            <EyeOff className="h-3.5 w-3.5" />
-                                          </Button>
-                                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(cred)} title="Kopiuj">
-                                            <Copy className="h-3.5 w-3.5" />
-                                          </Button>
-                                        </>
-                                      ) : (
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleReveal(cred)} disabled={isRevealing} title="Odkryj hasło">
-                                          {isRevealing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    {cred.url ? (
-                                      <a href={cred.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm truncate block max-w-[200px]">
-                                        {cred.url}
-                                      </a>
-                                    ) : (
-                                      <span className="text-muted-foreground text-sm">—</span>
-                                    )}
-                                  </TableCell>
-                                  {!isAdmin && (
-                                    <TableCell>
-                                      {myGrant?.expires_at ? (
-                                        <Badge variant="outline" className="gap-1 text-amber-700 bg-amber-500/10">
-                                          <Timer className="h-3 w-3" />
-                                          {formatDistanceToNow(new Date(myGrant.expires_at), { locale: pl, addSuffix: true })}
-                                        </Badge>
-                                      ) : (
-                                        <Badge variant="outline" className="text-green-700 bg-green-500/10">Bezterminowo</Badge>
-                                      )}
-                                    </TableCell>
-                                  )}
-                                  <TableCell className="text-right">
-                                    <div className="flex justify-end gap-1">
-                                      {isAdmin && (
-                                        <>
-                                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShareOpen(cred.id)} title="Udostępnij">
-                                            <Share2 className="h-3.5 w-3.5" />
-                                          </Button>
-                                          <CollapsibleTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7" title="Zarządzaj dostępami">
-                                              <Users className="h-3.5 w-3.5" />
-                                              {credGrants.length > 0 && (
-                                                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center">
-                                                  {credGrants.length}
-                                                </span>
-                                              )}
-                                            </Button>
-                                          </CollapsibleTrigger>
-                                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(cred)} title="Edytuj">
-                                            <Edit className="h-3.5 w-3.5" />
-                                          </Button>
-                                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(cred.id)} title="Usuń">
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                          </Button>
-                                        </>
-                                      )}
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                                {isAdmin && (
-                                  <CollapsibleContent asChild>
-                                    <tr>
-                                      <td colSpan={5} className="p-0">
-                                        <div className="bg-muted/50 px-6 py-3 border-b">
-                                          <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
-                                            Osoby z dostępem ({credGrants.length})
-                                          </p>
-                                          {credGrants.length === 0 ? (
-                                            <p className="text-sm text-muted-foreground">Nikt nie ma przyznanego dostępu.</p>
-                                          ) : (
-                                            <div className="space-y-2">
-                                              {credGrants.map((g) => {
-                                                const isExpired = g.expires_at && new Date(g.expires_at) < new Date();
-                                                return (
-                                                  <div key={g.id} className="flex items-center justify-between bg-background rounded-md px-3 py-2 border">
-                                                    <div className="flex items-center gap-2">
-                                                      <User className="h-3.5 w-3.5 text-muted-foreground" />
-                                                      <div>
-                                                        <p className="text-sm font-medium">{g.user_name}</p>
-                                                        <p className="text-xs text-muted-foreground">{g.user_email}</p>
-                                                      </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                      {g.expires_at ? (
-                                                        <Badge
-                                                          variant="outline"
-                                                          className={isExpired ? "text-destructive bg-destructive/10" : "text-amber-700 bg-amber-500/10"}
-                                                        >
-                                                          <Timer className="h-3 w-3 mr-1" />
-                                                          {isExpired
-                                                            ? "Wygasł"
-                                                            : formatDistanceToNow(new Date(g.expires_at), { locale: pl, addSuffix: true })}
-                                                        </Badge>
-                                                      ) : (
-                                                        <Badge variant="outline" className="text-green-700 bg-green-500/10">
-                                                          Bezterminowo
-                                                        </Badge>
-                                                      )}
-                                                      <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                        onClick={() => handleRevokeAccess(g.credential_id, g.user_id)}
-                                                      >
-                                                        <X className="h-3.5 w-3.5 mr-1" />
-                                                        Zabierz
-                                                      </Button>
-                                                    </div>
-                                                  </div>
-                                                );
-                                              })}
-                                            </div>
-                                          )}
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  </CollapsibleContent>
-                                )}
-                              </>
-                            </Collapsible>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
+            {/* === SEKCJA: Klucze API === */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Key className="h-4 w-4 text-primary" />
+                      Klucze API
+                    </CardTitle>
+                    <CardDescription>
+                      Klucze API do usług zewnętrznych. Ta sama logika PAM co dla haseł.
+                    </CardDescription>
                   </div>
+                  {isAdmin && (
+                    <Button size="sm" onClick={() => openNewForm("api_key")}>
+                      <Plus className="h-4 w-4 mr-1" /> Dodaj klucz API
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {renderCredentialsTable(
+                  apiKeyCredentials,
+                  isAdmin ? "Brak kluczy API. Dodaj pierwszy wpis." : "Nie masz przydzielonych kluczy API."
                 )}
               </CardContent>
             </Card>
@@ -661,7 +709,7 @@ function VaultPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Logi audytu sejfu</CardTitle>
-                  <CardDescription>Pełna historia dostępu do haseł i zmian uprawnień</CardDescription>
+                  <CardDescription>Pełna historia dostępu do sekretów i zmian uprawnień</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {auditLogs.length === 0 ? (
@@ -672,7 +720,7 @@ function VaultPage() {
                         <TableRow>
                           <TableHead>Kto</TableHead>
                           <TableHead>Akcja</TableHead>
-                          <TableHead>Hasło</TableHead>
+                          <TableHead>Wpis</TableHead>
                           <TableHead>Kiedy</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -714,10 +762,10 @@ function VaultPage() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Share2 className="h-5 w-5 text-primary" />
-                Udostępnij hasło
+                Udostępnij sekret
               </DialogTitle>
               <DialogDescription>
-                Nadaj dostęp pracownikowi do wybranego hasła z opcjonalnym limitem czasowym.
+                Nadaj dostęp pracownikowi z opcjonalnym limitem czasowym.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">
@@ -727,7 +775,7 @@ function VaultPage() {
                   <SelectTrigger>
                     <SelectValue placeholder="Wybierz pracownika..." />
                   </SelectTrigger>
-                   <SelectContent className="max-h-[200px] overflow-y-auto">
+                  <SelectContent className="max-h-[200px] overflow-y-auto">
                     {staffList
                       .filter((s) => s.id !== profile?.id)
                       .map((s) => (
@@ -772,27 +820,63 @@ function VaultPage() {
           <Dialog open={formOpen} onOpenChange={setFormOpen}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>{editingId ? "Edytuj wpis" : "Dodaj nowy wpis"}</DialogTitle>
+                <DialogTitle>{editingId ? "Edytuj wpis" : `Dodaj ${formData.secret_type === "api_key" ? "klucz API" : "hasło"}`}</DialogTitle>
                 <DialogDescription>
-                  {editingId ? "Zmień dane. Zostaw hasło puste, aby zachować obecne." : "Wypełnij dane dostępowe. Hasło zostanie zaszyfrowane AES-256-GCM."}
+                  {editingId ? "Zmień dane. Zostaw sekret pusty, aby zachować obecny." : "Wypełnij dane. Sekret zostanie zaszyfrowany AES-256-GCM."}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-2">
                 <div>
+                  <Label>Typ wpisu</Label>
+                  <Select
+                    value={formData.secret_type}
+                    onValueChange={(v) => setFormData((p) => ({ ...p, secret_type: v as SecretType }))}
+                    disabled={!!editingId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="password">Hasło</SelectItem>
+                      <SelectItem value="api_key">Klucz API</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <Label>Tytuł *</Label>
-                  <Input placeholder="np. Panel hostingu" value={formData.title} onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))} />
+                  <Input
+                    placeholder={formData.secret_type === "api_key" ? "np. OpenAI API Key" : "np. Panel hostingu"}
+                    value={formData.title}
+                    onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))}
+                  />
                 </div>
                 <div>
-                  <Label>Login / E-mail *</Label>
-                  <Input placeholder="admin@firma.pl" value={formData.username} onChange={(e) => setFormData((p) => ({ ...p, username: e.target.value }))} />
+                  <Label>{formData.secret_type === "api_key" ? "Identyfikator / Nazwa klucza *" : "Login / E-mail *"}</Label>
+                  <Input
+                    placeholder={formData.secret_type === "api_key" ? "np. sk-proj-..." : "admin@firma.pl"}
+                    value={formData.username}
+                    onChange={(e) => setFormData((p) => ({ ...p, username: e.target.value }))}
+                  />
                 </div>
                 <div>
-                  <Label>Hasło {editingId ? "(zostaw puste = bez zmian)" : "*"}</Label>
-                  <Input type="password" placeholder="••••••••" value={formData.password} onChange={(e) => setFormData((p) => ({ ...p, password: e.target.value }))} />
+                  <Label>
+                    {formData.secret_type === "api_key" ? "Klucz API" : "Hasło"}{" "}
+                    {editingId ? "(zostaw puste = bez zmian)" : "*"}
+                  </Label>
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    value={formData.password}
+                    onChange={(e) => setFormData((p) => ({ ...p, password: e.target.value }))}
+                  />
                 </div>
                 <div>
                   <Label>URL</Label>
-                  <Input placeholder="https://panel.hosting.pl" value={formData.url} onChange={(e) => setFormData((p) => ({ ...p, url: e.target.value }))} />
+                  <Input
+                    placeholder={formData.secret_type === "api_key" ? "https://api.openai.com" : "https://panel.hosting.pl"}
+                    value={formData.url}
+                    onChange={(e) => setFormData((p) => ({ ...p, url: e.target.value }))}
+                  />
                 </div>
                 <div>
                   <Label>Notatki</Label>
@@ -816,7 +900,7 @@ function VaultPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Usunąć wpis?</AlertDialogTitle>
               <AlertDialogDescription>
-                Ta operacja jest nieodwracalna. Zaszyfrowane hasło i wszystkie nadane dostępy zostaną trwale usunięte.
+                Ta operacja jest nieodwracalna. Zaszyfrowany sekret i wszystkie nadane dostępy zostaną trwale usunięte.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
