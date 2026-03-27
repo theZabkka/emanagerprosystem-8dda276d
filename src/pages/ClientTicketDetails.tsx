@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { PageLoader } from "@/components/layout/PageLoader";
-import TicketComments from "@/components/tickets/TicketComments";
-import { ArrowLeft, Download, Paperclip } from "lucide-react";
+import TicketConversation from "@/components/tickets/TicketConversation";
+import { ArrowLeft } from "lucide-react";
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   "Nowe": { label: "Nowe", className: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300" },
@@ -77,34 +77,13 @@ export default function ClientTicketDetails() {
             </div>
             <Badge variant="secondary" className={sc.className}>{sc.label}</Badge>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {ticket.description && (
-              <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: ticket.description }} />
-            )}
-
-            {(attachments || []).length > 0 && (
-              <>
-                <Separator />
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium flex items-center gap-1.5"><Paperclip className="h-4 w-4" /> Załączniki</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {attachments!.map((a: any) => (
-                      <a key={a.id} href={a.file_url} target="_blank" rel="noopener noreferrer">
-                        <Badge variant="outline" className="gap-1 cursor-pointer hover:bg-accent">
-                          <Download className="h-3 w-3" /> {a.file_name}
-                        </Badge>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <TicketComments ticketId={id!} />
+          <CardContent>
+            <TicketConversation
+              ticketId={id!}
+              ticket={ticket}
+              originalAttachments={attachments}
+              isAdmin={false}
+            />
           </CardContent>
         </Card>
       </div>
