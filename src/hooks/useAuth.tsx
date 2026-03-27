@@ -1,5 +1,7 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
+import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ProfileData {
@@ -29,15 +31,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
         setTimeout(() => fetchProfile(session.user.id), 0);
       } else {
         setProfile(null);
+        // Global fallback: on SIGNED_OUT force redirect to login
+        if (event === "SIGNED_OUT") {
+          queryClient.clear();
+          navigate("/login", { replace: true });
+        }
       }
     });
 
@@ -51,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate, queryClient]);
 
   async function fetchProfile(userId: string) {
     const { data } = await supabase
@@ -67,12 +76,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   }
 
-  async function signOut() {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setSession(null);
     setUser(null);
     setProfile(null);
-  }
+    queryClient.clear();
+    navigate("/login", { replace: true });
+  }, [navigate, queryClient]);
 
   return (
     <AuthContext.Provider value={{ session, user, profile, loading, signIn, signOut }}>
