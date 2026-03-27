@@ -106,6 +106,8 @@ const sections = [
   },
 ];
 
+const SCROLL_KEY = "sidebar_scroll_pos";
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -113,6 +115,7 @@ export function AppSidebar() {
   const { profile, signOut, user } = useAuth();
   const { canViewModule, currentRole } = useRole();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
 
   const initials = profile?.full_name
@@ -151,6 +154,27 @@ export function AppSidebar() {
     qc.invalidateQueries({ queryKey: ["auth"] });
     toast.success("Avatar zaktualizowany!");
   };
+
+  // --- Scroll memory ---
+  const handleScroll = useCallback(() => {
+    if (scrollRef.current) {
+      sessionStorage.setItem(SCROLL_KEY, String(scrollRef.current.scrollTop));
+    }
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, [handleScroll]);
+
+  useLayoutEffect(() => {
+    const saved = sessionStorage.getItem(SCROLL_KEY);
+    if (saved && scrollRef.current) {
+      scrollRef.current.scrollTop = Number(saved);
+    }
+  }, [location.pathname]);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
