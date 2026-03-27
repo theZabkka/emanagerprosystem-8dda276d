@@ -44,7 +44,7 @@ export default function ResponseTemplates() {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data || []) as Template[];
+      return (data || []) as unknown as Template[];
     },
   });
 

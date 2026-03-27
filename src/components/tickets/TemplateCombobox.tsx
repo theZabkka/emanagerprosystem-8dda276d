@@ -21,7 +21,7 @@ export default function TemplateCombobox({ onSelect }: TemplateComboboxProps) {
         .select("id, title, content")
         .order("title", { ascending: true });
       if (error) throw error;
-      return (data || []) as { id: string; title: string; content: string }[];
+      return (data || []) as unknown as { id: string; title: string; content: string }[];
     },
   });
 
