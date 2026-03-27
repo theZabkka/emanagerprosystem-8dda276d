@@ -4,7 +4,7 @@ import {
   CheckSquare, FolderKanban, Columns3, Users2, RotateCcw, Archive,
   Building2, FileText, Briefcase, TrendingUp, Lightbulb, MessageCircle, Zap,
   MessagesSquare, Inbox, TicketCheck,
-  Users, Calendar as CalendarIcon, Video, PalmtreeIcon, Monitor,
+  Users, Calendar as CalendarIcon, Video, PalmtreeIcon, Monitor, ShieldCheck,
   BarChart3, Activity, FileBarChart, Clock, Award, StickyNote,
   Bot, Workflow, Lock, RefreshCcw, Sparkles, Bell, Settings, BookOpen, FileQuestion,
   LogOut, ChevronDown, Bug
@@ -97,6 +97,7 @@ const sections = [
       { title: "Analityka zespołu 🔒", url: "/team-analytics", icon: Lock },
       { title: "Zadania cykliczne", url: "/recurring-tasks", icon: RefreshCcw },
       { title: "Zgłoszenia błędów", url: "/admin/bugs", icon: Bug, roles: ["koordynator", "boss", "superadmin"] as string[] },
+      { title: "Sejf firmowy", url: "/vault", icon: ShieldCheck, roles: ["koordynator", "boss", "superadmin"] as string[] },
       { title: "Sugestie", url: "/suggestions", icon: Sparkles },
       { title: "Co nowego", url: "/whats-new", icon: Bell },
       { title: "Ustawienia", url: "/settings", icon: Settings },
