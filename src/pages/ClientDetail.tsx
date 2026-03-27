@@ -30,6 +30,7 @@ import { useAuth } from "@/hooks/useAuth";
 import CallsList from "@/components/calls/CallsList";
 import { EditClientDialog } from "@/components/clients/EditClientDialog";
 import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";
+import { ClientNotesTimeline } from "@/components/clients/ClientNotesTimeline";
 
 const statusLabels: Record<string, string> = {
   active: "AKTYWNY", potential: "POTENCJALNY", negotiations: "NEGOCJACJE", project: "PROJEKT", inactive: "NIEAKTYWNY",
@@ -63,6 +64,7 @@ const convTypeIcons: Record<string, { icon: typeof Phone; label: string }> = {
 
 const CLIENT_TABS = [
   { key: "tasks", label: "Zadania" },
+  { key: "notes", label: "Notatki" },
   { key: "conversations", label: "Rozmowy" },
   { key: "voip", label: "Rozmowy VoIP" },
   { key: "offers", label: "Oferty" },
@@ -659,6 +661,11 @@ await supabase.from("client_files").delete().eq("id", fileId);
                 </div>
               ))
             )}
+          </TabsContent>
+
+          {/* ─── Notes Tab ─────────────────────────────────────── */}
+          <TabsContent value="notes" className="mt-4">
+            <ClientNotesTimeline clientId={id!} />
           </TabsContent>
 
           {/* ─── Offers Tab ───────────────────────────────────── */}
