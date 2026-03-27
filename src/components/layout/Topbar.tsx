@@ -15,9 +15,12 @@ interface TopbarProps {
   title?: string;
 }
 
+const ADMIN_ROLES = ["superadmin", "boss", "koordynator"];
+
 export function Topbar({ title = "Pulpit" }: TopbarProps) {
   const { profile } = useAuth();
-  const { isClient } = useRole();
+  const { isClient, currentRole } = useRole();
+  const isAdmin = ADMIN_ROLES.includes(currentRole);
   const [isDark, setIsDark] = useState(false);
   const navigate = useNavigate();
 
@@ -156,10 +159,12 @@ export function Topbar({ title = "Pulpit" }: TopbarProps) {
         {/* Notifications */}
         <NotificationCenter />
 
-        {/* Settings */}
-        <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" onClick={() => navigate("/settings")} title="Ustawienia">
-          <Settings className="h-4 w-4" />
-        </Button>
+        {/* Settings - only for admin roles */}
+        {isAdmin && (
+          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" onClick={() => navigate("/settings")} title="Ustawienia">
+            <Settings className="h-4 w-4" />
+          </Button>
+        )}
       </div>
     </header>
   );
