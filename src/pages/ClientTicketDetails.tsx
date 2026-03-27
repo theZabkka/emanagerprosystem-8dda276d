@@ -68,7 +68,12 @@ export default function ClientTicketDetails() {
         <Card>
           <CardHeader className="flex flex-row items-start justify-between gap-4">
             <div className="space-y-1">
-              <CardTitle className="text-lg">{ticket.title}</CardTitle>
+              <div className="flex items-center gap-3">
+                <Badge variant="outline" className="font-mono text-sm px-2 py-0.5">
+                  #{String(ticket.ticket_number ?? '').padStart(4, '0')}
+                </Badge>
+                <CardTitle className="text-lg">{ticket.title}</CardTitle>
+              </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span>{ticket.department}</span>
                 <span>·</span>
