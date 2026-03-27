@@ -499,19 +499,12 @@ await supabase.from("client_files").delete().eq("id", fileId);
 
                         const updatedClient = data?.[0];
                         if (error || !updatedClient || updatedClient.status !== newStatus) {
-                          if (previousClient !== undefined) {
-                            queryClient.setQueryData(clientQueryKey, previousClient);
-                          } else {
-                            queryClient.removeQueries({ queryKey: clientQueryKey, exact: true });
-                          }
+                          // Rollback cache
+                          if (previousClient !== undefined) queryClient.setQueryData(clientQueryKey, previousClient);
+                          if (previousClients !== undefined) queryClient.setQueryData(["clients"], previousClients);
 
-                          if (previousClients !== undefined) {
-                            queryClient.setQueryData(["clients"], previousClients);
-                          } else {
-                            queryClient.removeQueries({ queryKey: ["clients"], exact: true });
-                          }
-
-                          alert(error?.message || "Błąd zapisu statusu klienta. Zmiana została cofnięta.");
+                          console.error("Szczegóły błędu zapisu:", error);
+                          toast.error(error?.message || "Błąd zapisu statusu klienta. Zmiana została cofnięta.");
                           return;
                         }
 
@@ -520,13 +513,10 @@ await supabase.from("client_files").delete().eq("id", fileId);
                         await queryClient.removeQueries({ queryKey: ["client"] });
                         toast.success(`Status zmieniony na: ${newStatus}`);
                       } catch (err: any) {
-                        if (previousClient !== undefined) {
-                          queryClient.setQueryData(clientQueryKey, previousClient);
-                        }
-                        if (previousClients !== undefined) {
-                          queryClient.setQueryData(["clients"], previousClients);
-                        }
-                        alert(err?.message || "Błąd połączenia. Zmiana statusu nieudana.");
+                        if (previousClient !== undefined) queryClient.setQueryData(clientQueryKey, previousClient);
+                        if (previousClients !== undefined) queryClient.setQueryData(["clients"], previousClients);
+                        console.error("Błąd połączenia przy zmianie statusu:", err);
+                        toast.error(err?.message || "Błąd połączenia. Zmiana statusu nieudana.");
                       } finally {
                         setUpdatingStatus(false);
                       }
