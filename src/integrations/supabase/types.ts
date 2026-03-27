@@ -2223,6 +2223,7 @@ export type Database = {
           id: string
           iv: string
           notes: string | null
+          secret_type: string
           title: string
           updated_at: string
           url: string | null
@@ -2236,6 +2237,7 @@ export type Database = {
           id?: string
           iv: string
           notes?: string | null
+          secret_type?: string
           title: string
           updated_at?: string
           url?: string | null
@@ -2249,6 +2251,7 @@ export type Database = {
           id?: string
           iv?: string
           notes?: string | null
+          secret_type?: string
           title?: string
           updated_at?: string
           url?: string | null
