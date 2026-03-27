@@ -15,12 +15,9 @@ interface TopbarProps {
   title?: string;
 }
 
-const ADMIN_ROLES = ["superadmin", "boss", "koordynator"];
-
 export function Topbar({ title = "Pulpit" }: TopbarProps) {
   const { profile } = useAuth();
-  const { isClient, currentRole } = useRole();
-  const isAdmin = ADMIN_ROLES.includes(currentRole);
+  const { isClient } = useRole();
   const [isDark, setIsDark] = useState(false);
   const navigate = useNavigate();
 
