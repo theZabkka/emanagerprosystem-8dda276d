@@ -2147,6 +2147,80 @@ export type Database = {
           },
         ]
       }
+      vault_audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          credential_id: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          credential_id: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          credential_id?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_audit_logs_credential_id_fkey"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "vault_credentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vault_credentials: {
+        Row: {
+          auth_tag: string
+          created_at: string
+          created_by: string | null
+          encrypted_password: string
+          id: string
+          iv: string
+          notes: string | null
+          title: string
+          updated_at: string
+          url: string | null
+          username: string
+        }
+        Insert: {
+          auth_tag: string
+          created_at?: string
+          created_by?: string | null
+          encrypted_password: string
+          id?: string
+          iv: string
+          notes?: string | null
+          title: string
+          updated_at?: string
+          url?: string | null
+          username: string
+        }
+        Update: {
+          auth_tag?: string
+          created_at?: string
+          created_by?: string | null
+          encrypted_password?: string
+          id?: string
+          iv?: string
+          notes?: string | null
+          title?: string
+          updated_at?: string
+          url?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
