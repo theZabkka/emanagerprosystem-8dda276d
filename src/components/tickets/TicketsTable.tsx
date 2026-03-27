@@ -57,7 +57,8 @@ export default function TicketsTable({ isAdmin, clientId }: TicketsTableProps) {
     return tickets.filter((t: any) => {
       const title = (t.title ?? "").toLowerCase();
       const clientName = (t.clients?.name ?? "").toLowerCase();
-      return title.includes(q) || clientName.includes(q);
+      const ticketNum = '#' + String(t.ticket_number ?? '').padStart(4, '0');
+      return title.includes(q) || clientName.includes(q) || ticketNum.includes(q);
     });
   }, [tickets, search]);
 
@@ -93,7 +94,7 @@ export default function TicketsTable({ isAdmin, clientId }: TicketsTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-24">ID</TableHead>
+              <TableHead className="w-28">Numer</TableHead>
               <TableHead>Temat</TableHead>
               <TableHead className="hidden md:table-cell">Departament</TableHead>
               {isAdmin && <TableHead>Klient</TableHead>}
@@ -117,8 +118,8 @@ export default function TicketsTable({ isAdmin, clientId }: TicketsTableProps) {
                     key={ticket.id}
                     className={highlighted ? "bg-red-50 dark:bg-red-950/30" : ""}
                   >
-                    <TableCell className="text-xs text-muted-foreground font-mono">
-                      {ticket.id.slice(0, 8)}
+                    <TableCell className="text-xs font-mono font-semibold text-primary">
+                      #{String(ticket.ticket_number ?? '').padStart(4, '0')}
                     </TableCell>
                     <TableCell>
                       <Link
