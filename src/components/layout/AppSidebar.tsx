@@ -96,7 +96,7 @@ const sections = [
       { title: "Analityka zespołu 🔒", url: "/team-analytics", icon: Lock },
       { title: "Zadania cykliczne", url: "/recurring-tasks", icon: RefreshCcw },
       { title: "Zgłoszenia błędów", url: "/admin/bugs", icon: Bug, roles: ["koordynator", "boss", "superadmin"] as string[] },
-      { title: "Sejf firmowy", url: "/vault", icon: ShieldCheck, roles: ["koordynator", "boss", "superadmin"] as string[] },
+      { title: "Sejf firmowy", url: "/vault", icon: ShieldCheck },
       { title: "Sugestie", url: "/suggestions", icon: Sparkles },
       { title: "Co nowego", url: "/whats-new", icon: Bell },
       { title: "Ustawienia", url: "/settings", icon: Settings },

@@ -200,7 +200,8 @@ function VaultPage() {
     const { data } = await supabase
       .from("profiles")
       .select("id, full_name, email, role")
-      .neq("role", "klient")
+      .in("role", ["superadmin", "boss", "koordynator", "specjalista", "praktykant"])
+      .neq("status", "inactive")
       .order("full_name");
     setStaffList((data as StaffProfile[]) || []);
   }, [isAdmin]);
@@ -282,7 +283,7 @@ function VaultPage() {
     try {
       const { data, error } = await supabase.functions.invoke("vault-manager", {
         body: {
-          action: "DECRYPT",
+          action: "DECRYPT_REVEAL",
           credential_id: cred.id,
           encrypted_password: cred.encrypted_password,
           iv: cred.iv,
@@ -317,11 +318,13 @@ function VaultPage() {
     try {
       await navigator.clipboard.writeText(pw);
       toast.success("Skopiowano do schowka");
-      supabase.from("vault_audit_logs").insert({
-        credential_id: cred.id,
-        user_id: (await supabase.auth.getUser()).data.user?.id,
-        action: "COPIED",
-      } as any);
+      // COPY always logs for everyone (including admins)
+      await supabase.functions.invoke("vault-manager", {
+        body: {
+          action: "COPY_TO_CLIPBOARD",
+          credential_id: cred.id,
+        },
+      });
     } catch {
       toast.error("Nie udało się skopiować");
     }
@@ -724,7 +727,7 @@ function VaultPage() {
                   <SelectTrigger>
                     <SelectValue placeholder="Wybierz pracownika..." />
                   </SelectTrigger>
-                  <SelectContent>
+                   <SelectContent className="max-h-[200px] overflow-y-auto">
                     {staffList
                       .filter((s) => s.id !== profile?.id)
                       .map((s) => (

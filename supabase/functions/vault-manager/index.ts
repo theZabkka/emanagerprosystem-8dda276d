@@ -109,8 +109,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ========== DECRYPT (PAM model) ==========
-    if (action === "DECRYPT") {
+    // ========== DECRYPT_REVEAL (show password - conditional logging) ==========
+    if (action === "DECRYPT" || action === "DECRYPT_REVEAL") {
       const { credential_id, encrypted_password, iv, auth_tag } = payload;
       if (!credential_id || !encrypted_password || !iv || !auth_tag) {
         return new Response(JSON.stringify({ error: "Missing decryption parameters" }), {
@@ -119,7 +119,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Step 1: Get user role from profiles
       const { data: profile } = await supabaseAdmin
         .from("profiles")
         .select("role")
@@ -127,10 +126,10 @@ Deno.serve(async (req) => {
         .single();
 
       const userRole = profile?.role || "";
-      const isAdmin = ["superadmin", "boss", "admin"].includes(userRole);
+      const isAdminUser = ["superadmin", "boss", "admin"].includes(userRole);
 
-      if (!isAdmin) {
-        // Step 2: Check ACL in vault_access_grants (server-side time check)
+      if (!isAdminUser) {
+        // Check ACL
         const { data: grant, error: grantErr } = await supabaseAdmin
           .from("vault_access_grants")
           .select("id, expires_at")
@@ -145,7 +144,6 @@ Deno.serve(async (req) => {
           );
         }
 
-        // Server-side TTL check
         if (grant.expires_at && new Date(grant.expires_at) < new Date()) {
           return new Response(
             JSON.stringify({ error: "Dostęp wygasł" }),
@@ -153,7 +151,7 @@ Deno.serve(async (req) => {
           );
         }
 
-        // CRITICAL: Audit log BEFORE decryption for non-admin
+        // Audit log for non-admin REVEAL
         const { error: auditErr } = await supabaseAdmin
           .from("vault_audit_logs")
           .insert({
@@ -170,7 +168,7 @@ Deno.serve(async (req) => {
           );
         }
       }
-      // Admin/boss/superadmin: NO audit log for REVEALED, skip ACL check
+      // Admin/boss/superadmin: NO audit log for REVEAL, skip ACL check
 
       // Decrypt
       const encData = fromBase64(encrypted_password);
@@ -191,6 +189,29 @@ Deno.serve(async (req) => {
         JSON.stringify({ password: new TextDecoder().decode(decryptedBuffer) }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // ========== COPY_TO_CLIPBOARD (always logged, even for admins) ==========
+    if (action === "COPY_TO_CLIPBOARD") {
+      const { credential_id } = payload;
+      if (!credential_id) {
+        return new Response(JSON.stringify({ error: "Missing credential_id" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await supabaseAdmin
+        .from("vault_audit_logs")
+        .insert({
+          credential_id,
+          user_id: userId,
+          action: "COPIED",
+        });
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // ========== GRANT_ACCESS ==========
