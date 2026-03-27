@@ -34,10 +34,6 @@ export function Topbar({ title = "Pulpit" }: TopbarProps) {
     document.documentElement.classList.toggle("dark");
   };
 
-  const initials = profile?.full_name
-    ? profile.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-    : "U";
-
   // Debounced search
   const performSearch = useCallback(async (query: string) => {
     if (query.length < 2) { setSearchResults([]); setSearchOpen(false); return; }
