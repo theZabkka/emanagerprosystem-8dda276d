@@ -2,15 +2,7 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
-
-const statusLabels: Record<string, string> = {
-  active: "Aktywny", potential: "Potencjalny", negotiations: "Negocjacje", project: "Projekt", inactive: "Nieaktywny",
-};
-const statusColors: Record<string, string> = {
-  active: "bg-success/15 text-foreground", potential: "bg-info/15 text-info-foreground",
-  negotiations: "bg-warning/15 text-warning-foreground", project: "bg-primary/15 text-primary",
-  inactive: "bg-muted text-muted-foreground",
-};
+import { getClientStatusColor, getClientStatusLabel } from "@/constants/clientStatuses";
 
 interface ClientsTableProps {
   clients: any[];
@@ -49,8 +41,8 @@ export function ClientsTable({ clients, isLoading }: ClientsTableProps) {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="secondary" className={`text-xs ${statusColors[c.status] || ""}`}>
-                    {statusLabels[c.status] || c.status}
+                  <Badge variant="outline" className={`text-xs ${getClientStatusColor(c.status)}`}>
+                    {getClientStatusLabel(c.status)}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-sm">{c.score || 0}</TableCell>

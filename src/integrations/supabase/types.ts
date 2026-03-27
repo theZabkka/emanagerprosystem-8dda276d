@@ -748,7 +748,7 @@ export type Database = {
           postal_code: string | null
           public_status_token: string | null
           score: number | null
-          status: Database["public"]["Enums"]["client_status"] | null
+          status: string | null
           tags: string[] | null
           voivodeship: string | null
         }
@@ -770,7 +770,7 @@ export type Database = {
           postal_code?: string | null
           public_status_token?: string | null
           score?: number | null
-          status?: Database["public"]["Enums"]["client_status"] | null
+          status?: string | null
           tags?: string[] | null
           voivodeship?: string | null
         }
@@ -792,7 +792,7 @@ export type Database = {
           postal_code?: string | null
           public_status_token?: string | null
           score?: number | null
-          status?: Database["public"]["Enums"]["client_status"] | null
+          status?: string | null
           tags?: string[] | null
           voivodeship?: string | null
         }
@@ -2423,12 +2423,6 @@ export type Database = {
     Enums: {
       app_role: "admin" | "moderator" | "user" | "superadmin"
       assignment_role: "primary" | "collaborator" | "reviewer"
-      client_status:
-        | "active"
-        | "potential"
-        | "negotiations"
-        | "project"
-        | "inactive"
       notification_type: "bug" | "message" | "ticket"
       pipeline_stage:
         | "potential"
@@ -2579,13 +2573,6 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "moderator", "user", "superadmin"],
       assignment_role: ["primary", "collaborator", "reviewer"],
-      client_status: [
-        "active",
-        "potential",
-        "negotiations",
-        "project",
-        "inactive",
-      ],
       notification_type: ["bug", "message", "ticket"],
       pipeline_stage: [
         "potential",

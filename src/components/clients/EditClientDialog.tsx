@@ -16,13 +16,7 @@ const voivodeships = [
   "świętokrzyskie", "warmińsko-mazurskie", "wielkopolskie", "zachodniopomorskie",
 ];
 
-const statusOptions = [
-  { value: "active", label: "Aktywny" },
-  { value: "potential", label: "Potencjalny" },
-  { value: "negotiations", label: "Negocjacje" },
-  { value: "project", label: "Projekt" },
-  { value: "inactive", label: "Nieaktywny" },
-];
+import { CLIENT_STATUS_GROUPS } from "@/constants/clientStatuses";
 
 interface EditClientDialogProps {
   open: boolean;
@@ -39,7 +33,7 @@ export function EditClientDialog({ open, onOpenChange, client, onUpdated }: Edit
     email: "",
     phone: "",
     nip: "",
-    status: "active",
+    status: "Nowy kontakt",
     address: "",
     city: "",
     postal_code: "",
@@ -57,7 +51,7 @@ export function EditClientDialog({ open, onOpenChange, client, onUpdated }: Edit
         email: client.email || "",
         phone: client.phone || "",
         nip: client.nip || "",
-        status: client.status || "active",
+        status: client.status || "Nowy kontakt",
         address: client.address || "",
         city: client.city || "",
         postal_code: client.postal_code || "",
@@ -139,8 +133,13 @@ export function EditClientDialog({ open, onOpenChange, client, onUpdated }: Edit
               <Select value={form.status} onValueChange={(v) => updateField("status", v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {statusOptions.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  {CLIENT_STATUS_GROUPS.map((group) => (
+                    <div key={group.name}>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{group.name}</div>
+                      {group.statuses.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                      ))}
+                    </div>
                   ))}
                 </SelectContent>
               </Select>
