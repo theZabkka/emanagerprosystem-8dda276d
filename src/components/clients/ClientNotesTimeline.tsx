@@ -254,7 +254,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
               new Date(note.updated_at).getTime() - new Date(note.created_at).getTime() > 1000;
 
             return (
-              <Card key={note.id} className="group transition-shadow hover:shadow-md">
+              <Card key={note.id} className={`group transition-shadow hover:shadow-md ${note.is_pinned ? "border-amber-200 bg-amber-50/40 dark:border-amber-800/40 dark:bg-amber-950/20" : ""}`}>
                 <CardContent className="p-4">
                   {/* Header */}
                   <div className="flex items-start justify-between gap-3 mb-2">
@@ -271,6 +271,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
                         </p>
                         <p className="text-xs text-muted-foreground" title={fullDate}>
                           {timeAgo}
+                          {note.is_pinned && <Pin className="inline h-3 w-3 ml-1 text-amber-600 fill-current" />}
                           {wasEdited && <span className="ml-1 italic">(edytowano)</span>}
                         </p>
                       </div>
@@ -288,6 +289,10 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleTogglePin(note.id, note.is_pinned)}>
+                            <Pin className={`h-4 w-4 mr-2 ${note.is_pinned ? "fill-current text-amber-600" : ""}`} />
+                            {note.is_pinned ? "Odepnij" : "Przypnij"}
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => {
                             setEditingId(note.id);
                             setEditContent(note.content);
