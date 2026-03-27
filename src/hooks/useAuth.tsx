@@ -77,13 +77,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error("signOut error:", e);
+    }
     setSession(null);
     setUser(null);
     setProfile(null);
     queryClient.clear();
-    navigate("/login", { replace: true });
-  }, [navigate, queryClient]);
+    // Hard redirect — window.location guarantees navigation even if React router state is stale
+    window.location.href = "/login";
+  }, [queryClient]);
 
   return (
     <AuthContext.Provider value={{ session, user, profile, loading, signIn, signOut }}>
