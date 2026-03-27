@@ -465,7 +465,7 @@ await supabase.from("client_files").delete().eq("id", fileId);
                 const displayStatus = client.status || "Nowy kontakt";
                 return (
                   <Select
-                    key={`${client.status ?? ""}-${client.updated_at ?? ""}`}
+                    key={`${client.status ?? ""}-${(client as any).updated_at ?? ""}`}
                     value={displayStatus}
                     onValueChange={async (newStatus) => {
                       if (updatingStatus) return;
