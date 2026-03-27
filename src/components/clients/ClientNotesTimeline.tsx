@@ -245,7 +245,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
         </Card>
       ) : (
         <div className="space-y-3">
-          {notes.map(note => {
+          {sortedNotes.map(note => {
             const author = note.author_id ? profileMap.get(note.author_id) : null;
             const isEditing = editingId === note.id;
             const timeAgo = formatDistanceToNow(new Date(note.created_at), { addSuffix: true, locale: pl });
