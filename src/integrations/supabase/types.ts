@@ -1867,6 +1867,7 @@ export type Database = {
           file_name: string
           file_url: string
           id: string
+          message_id: string | null
           ticket_id: string
         }
         Insert: {
@@ -1874,6 +1875,7 @@ export type Database = {
           file_name: string
           file_url: string
           id?: string
+          message_id?: string | null
           ticket_id: string
         }
         Update: {
@@ -1881,9 +1883,17 @@ export type Database = {
           file_name?: string
           file_url?: string
           id?: string
+          message_id?: string | null
           ticket_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ticket_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ticket_attachments_ticket_id_fkey"
             columns: ["ticket_id"]
@@ -1918,6 +1928,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ticket_comments_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_messages: {
+        Row: {
+          body_html: string | null
+          body_text: string | null
+          created_at: string
+          id: string
+          sender_id: string | null
+          sender_type: string
+          ticket_id: string
+        }
+        Insert: {
+          body_html?: string | null
+          body_text?: string | null
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_type?: string
+          ticket_id: string
+        }
+        Update: {
+          body_html?: string | null
+          body_text?: string | null
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_type?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_messages_ticket_id_fkey"
             columns: ["ticket_id"]
             isOneToOne: false
             referencedRelation: "tickets"
