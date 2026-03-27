@@ -1388,6 +1388,27 @@ export type Database = {
           },
         ]
       }
+      response_templates: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          title: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          title: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          title?: string
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           can_view: boolean
