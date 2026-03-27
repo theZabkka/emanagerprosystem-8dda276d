@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Pencil, Trash2, Send } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Send, Pin } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow, format } from "date-fns";
 import { pl } from "date-fns/locale";
@@ -24,6 +24,7 @@ interface ClientNote {
   content: string;
   created_at: string;
   updated_at: string;
+  is_pinned: boolean;
 }
 
 interface ClientNotesTimelineProps {
@@ -90,6 +91,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
       content: newNote.trim(),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      is_pinned: false,
     };
 
     queryClient.setQueryData<ClientNote[]>(queryKey, old => [optimisticNote, ...(old || [])]);
@@ -153,6 +155,39 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
     }
   };
 
+  // Toggle pin
+  const handleTogglePin = async (noteId: string, currentlyPinned: boolean) => {
+    const prev = queryClient.getQueryData<ClientNote[]>(queryKey);
+    queryClient.setQueryData<ClientNote[]>(queryKey, old =>
+      (old || []).map(n => ({
+        ...n,
+        is_pinned: n.id === noteId ? !currentlyPinned : false,
+      }))
+    );
+    try {
+      if (!currentlyPinned) {
+        await (supabase.from("client_notes" as any) as any)
+          .update({ is_pinned: false })
+          .eq("client_id", clientId)
+          .eq("is_pinned", true);
+      }
+      await (supabase.from("client_notes" as any) as any)
+        .update({ is_pinned: !currentlyPinned })
+        .eq("id", noteId);
+      queryClient.invalidateQueries({ queryKey });
+    } catch {
+      queryClient.setQueryData(queryKey, prev);
+      toast.error("Nie udało się zmienić przypięcia");
+    }
+  };
+
+  // Sort: pinned first, then by date
+  const sortedNotes = [...notes].sort((a, b) => {
+    if (a.is_pinned && !b.is_pinned) return -1;
+    if (!a.is_pinned && b.is_pinned) return 1;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
   // Auto-resize textarea
   const autoResize = (el: HTMLTextAreaElement) => {
     el.style.height = "auto";
@@ -210,7 +245,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
         </Card>
       ) : (
         <div className="space-y-3">
-          {notes.map(note => {
+          {sortedNotes.map(note => {
             const author = note.author_id ? profileMap.get(note.author_id) : null;
             const isEditing = editingId === note.id;
             const timeAgo = formatDistanceToNow(new Date(note.created_at), { addSuffix: true, locale: pl });
@@ -219,7 +254,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
               new Date(note.updated_at).getTime() - new Date(note.created_at).getTime() > 1000;
 
             return (
-              <Card key={note.id} className="group transition-shadow hover:shadow-md">
+              <Card key={note.id} className={`group transition-shadow hover:shadow-md ${note.is_pinned ? "border-amber-200 bg-amber-50/40 dark:border-amber-800/40 dark:bg-amber-950/20" : ""}`}>
                 <CardContent className="p-4">
                   {/* Header */}
                   <div className="flex items-start justify-between gap-3 mb-2">
@@ -236,6 +271,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
                         </p>
                         <p className="text-xs text-muted-foreground" title={fullDate}>
                           {timeAgo}
+                          {note.is_pinned && <Pin className="inline h-3 w-3 ml-1 text-amber-600 fill-current" />}
                           {wasEdited && <span className="ml-1 italic">(edytowano)</span>}
                         </p>
                       </div>
@@ -253,6 +289,10 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleTogglePin(note.id, note.is_pinned)}>
+                            <Pin className={`h-4 w-4 mr-2 ${note.is_pinned ? "fill-current text-amber-600" : ""}`} />
+                            {note.is_pinned ? "Odepnij" : "Przypnij"}
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => {
                             setEditingId(note.id);
                             setEditContent(note.content);
