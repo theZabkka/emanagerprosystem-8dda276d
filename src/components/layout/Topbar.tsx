@@ -16,7 +16,7 @@ interface TopbarProps {
 }
 
 export function Topbar({ title = "Pulpit" }: TopbarProps) {
-  const { profile, signOut } = useAuth();
+  const { profile } = useAuth();
   const { isClient } = useRole();
   const [isDark, setIsDark] = useState(false);
   const navigate = useNavigate();
