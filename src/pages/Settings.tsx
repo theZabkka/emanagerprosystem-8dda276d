@@ -11,11 +11,14 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Eye, Bell, Briefcase, Users, Shield, Bot, Settings2, Clock, LayoutList, RotateCcw, Phone, Tag } from "lucide-react";
-import { useRole } from "@/hooks/useRole";
+import { Eye, Bell, Briefcase, Users, Shield, Bot, Settings2, Clock, LayoutList, RotateCcw, Phone, Tag, User, Lock } from "lucide-react";
+import { useRole, STAFF_ROLES } from "@/hooks/useRole";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { SipLoginManager } from "@/components/settings/SipLoginManager";
 import { CrmLabelManager } from "@/components/crm/CrmLabelManager";
+import { cn } from "@/lib/utils";
+
+const ADMIN_ROLES = ["superadmin", "boss", "koordynator"];
 
 function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
   return (
@@ -38,9 +41,36 @@ function SettingRow({ label, description, children }: { label: string; descripti
   );
 }
 
+// ─── Tab definitions ───
+interface SettingsTab {
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  adminOnly?: boolean;
+}
+
+const SETTINGS_TABS: SettingsTab[] = [
+  { id: "profile", label: "Profil", icon: User },
+  { id: "notifications", label: "Powiadomienia", icon: Bell },
+  { id: "security", label: "Bezpieczeństwo", icon: Shield },
+  { id: "appearance", label: "Wygląd", icon: Eye, adminOnly: false },
+  // Admin-only tabs below
+  { id: "tasks", label: "Zadania i praca", icon: Briefcase, adminOnly: true },
+  { id: "team", label: "Zespół", icon: Users, adminOnly: true },
+  { id: "client-portal", label: "Portal klienta", icon: LayoutList, adminOnly: true },
+  { id: "ai", label: "AI i automatyzacja", icon: Bot, adminOnly: true },
+  { id: "voip", label: "VoIP — Zadarma", icon: Phone, adminOnly: true },
+  { id: "crm-labels", label: "Etykiety CRM", icon: Tag, adminOnly: true },
+];
+
 export default function Settings() {
   const { profile, user } = useAuth();
   const { currentRole } = useRole();
+  const isAdmin = ADMIN_ROLES.includes(currentRole);
+
+  const visibleTabs = SETTINGS_TABS.filter(t => !t.adminOnly || isAdmin);
+  const [activeTab, setActiveTab] = useState(visibleTabs[0]?.id || "profile");
+
   // Appearance
   const [theme, setTheme] = useState("system");
   const [compactSidebar, setCompactSidebar] = useState(false);
@@ -96,6 +126,11 @@ export default function Settings() {
   const [forcePasswordChange, setForcePasswordChange] = useState(false);
   const [loginHistory, setLoginHistory] = useState(true);
 
+  // Password change
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+
   const allDays = ["Pn", "Wt", "Śr", "Cz", "Pt", "Sb", "Nd"];
 
   const toggleWorkDay = (day: string) => {
@@ -106,263 +141,366 @@ export default function Settings() {
     toast.success("Przywrócono domyślne ustawienia");
   };
 
+  const handlePasswordChange = async () => {
+    if (newPassword.length < 6) { toast.error("Hasło musi mieć min. 6 znaków"); return; }
+    if (newPassword !== confirmPassword) { toast.error("Hasła nie są identyczne"); return; }
+    setChangingPassword(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setChangingPassword(false);
+    if (error) { toast.error("Błąd zmiany hasła: " + error.message); return; }
+    toast.success("Hasło zostało zmienione");
+    setNewPassword("");
+    setConfirmPassword("");
+  };
+
   return (
     <AppLayout title="Ustawienia">
-      <div className="max-w-3xl mx-auto space-y-1 pb-12">
-        <p className="text-sm text-muted-foreground mb-6">Zarządzaj preferencjami systemu</p>
+      <div className="flex gap-6 max-w-5xl mx-auto pb-12">
+        {/* Sidebar tabs */}
+        <nav className="w-56 shrink-0 space-y-1 pt-2 hidden md:block">
+          {visibleTabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors text-left",
+                activeTab === tab.id
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+            >
+              <tab.icon className="h-4 w-4 shrink-0" />
+              {tab.label}
+            </button>
+          ))}
+        </nav>
 
-        <Card>
-          <CardContent className="p-6">
-            {/* Appearance */}
-            <SectionHeader icon={Eye} title="Wygląd i interfejs" />
-            <SettingRow label="Motyw kolorystyczny" description="Jasny, ciemny lub automatyczny">
-              <Select value={theme} onValueChange={setTheme}>
-                <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="system">🌓 Systemowy</SelectItem>
-                  <SelectItem value="light">☀️ Jasny</SelectItem>
-                  <SelectItem value="dark">🌙 Ciemny</SelectItem>
-                </SelectContent>
-              </Select>
-            </SettingRow>
-            <SettingRow label="Kompaktowy sidebar" description="Mniejsza nawigacja boczna w zwiniętej formie">
-              <Switch checked={compactSidebar} onCheckedChange={setCompactSidebar} />
-            </SettingRow>
-            <SettingRow label="Animacje" description="Efekty i animacje w interfejsie">
-              <Switch checked={animations} onCheckedChange={setAnimations} />
-            </SettingRow>
-            <SettingRow label="Gęstość tabel" description="Ilość pustej przestrzeni w wierszach tabel">
-              <Select value={tableDensity} onValueChange={setTableDensity}>
-                <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="compact">Kompaktowa</SelectItem>
-                  <SelectItem value="normal">Normalna</SelectItem>
-                  <SelectItem value="comfortable">Wygodna</SelectItem>
-                </SelectContent>
-              </Select>
-            </SettingRow>
-            <SettingRow label="Strona startowa" description="Domyślna strona po zalogowaniu">
-              <Select value={startPage} onValueChange={setStartPage}>
-                <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="dashboard">Pulpit</SelectItem>
-                  <SelectItem value="my-day">Mój dzień</SelectItem>
-                  <SelectItem value="tasks">Zadania</SelectItem>
-                </SelectContent>
-              </Select>
-            </SettingRow>
+        {/* Mobile tab select */}
+        <div className="md:hidden w-full mb-4">
+          <Select value={activeTab} onValueChange={setActiveTab}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {visibleTabs.map(tab => (
+                <SelectItem key={tab.id} value={tab.id}>{tab.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-            <Separator className="my-2" />
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <Card>
+            <CardContent className="p-6">
 
-            {/* Notifications */}
-            <SectionHeader icon={Bell} title="Powiadomienia" />
-            <SettingRow label="Powiadomienia email" description="Otrzymuj maile o ważnych zdarzeniach">
-              <Switch checked={emailNotif} onCheckedChange={setEmailNotif} />
-            </SettingRow>
-            <SettingRow label="Powiadomienia push" description="Natychmiastowe powiadomienia w przeglądarce">
-              <Switch checked={pushNotif} onCheckedChange={setPushNotif} />
-            </SettingRow>
-            <SettingRow label="Alerty o wspomnieniach (@)" description="Powiadomienia gdy ktoś Cię wspomni">
-              <Switch checked={mentionAlerts} onCheckedChange={setMentionAlerts} />
-            </SettingRow>
-            <SettingRow label="Przypomnienia o deadline'ach" description="Automatyczne przypomnienia przed terminem">
-              <Switch checked={deadlineReminders} onCheckedChange={setDeadlineReminders} />
-            </SettingRow>
-            <SettingRow label="Czas przed deadline'em" description="Na ile godzin przed terminem przypominać">
-              <div className="flex items-center gap-2">
-                <Input className="w-16 text-center" value={preDeadlineHours} onChange={e => setPreDeadlineHours(e.target.value)} />
-                <span className="text-xs text-muted-foreground">godz.</span>
-              </div>
-            </SettingRow>
-            <SettingRow label="Dźwięki" description="Efekty dźwiękowe przy powiadomieniach">
-              <Switch checked={sounds} onCheckedChange={setSounds} />
-            </SettingRow>
-            <SettingRow label="Częstotliwość digestu" description="Podsumowanie zdarzeń mailowe">
-              <Select value={digestFrequency} onValueChange={setDigestFrequency}>
-                <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="daily">Codziennie</SelectItem>
-                  <SelectItem value="weekly">Co tydzień</SelectItem>
-                  <SelectItem value="never">Nigdy</SelectItem>
-                </SelectContent>
-              </Select>
-            </SettingRow>
-            <SettingRow label="Godzina wysyłki digestu">
-              <Input type="time" className="w-28" value={digestTime} onChange={e => setDigestTime(e.target.value)} />
-            </SettingRow>
+              {/* ─── PROFILE ─── */}
+              {activeTab === "profile" && (
+                <>
+                  <SectionHeader icon={User} title="Profil" />
+                  <SettingRow label="Imię i nazwisko">
+                    <span className="text-sm text-foreground">{profile?.full_name || "—"}</span>
+                  </SettingRow>
+                  <SettingRow label="Email">
+                    <span className="text-sm text-foreground">{profile?.email || "—"}</span>
+                  </SettingRow>
+                  <SettingRow label="Rola">
+                    <Badge variant="outline">{currentRole.toUpperCase()}</Badge>
+                  </SettingRow>
+                  <SettingRow label="Departament">
+                    <span className="text-sm text-foreground">{profile?.department || "—"}</span>
+                  </SettingRow>
+                </>
+              )}
 
-            <Separator className="my-2" />
+              {/* ─── NOTIFICATIONS ─── */}
+              {activeTab === "notifications" && (
+                <>
+                  <SectionHeader icon={Bell} title="Powiadomienia" />
+                  <SettingRow label="Powiadomienia email" description="Otrzymuj maile o ważnych zdarzeniach">
+                    <Switch checked={emailNotif} onCheckedChange={setEmailNotif} />
+                  </SettingRow>
+                  <SettingRow label="Powiadomienia push" description="Natychmiastowe powiadomienia w przeglądarce">
+                    <Switch checked={pushNotif} onCheckedChange={setPushNotif} />
+                  </SettingRow>
+                  <SettingRow label="Alerty o wspomnieniach (@)" description="Powiadomienia gdy ktoś Cię wspomni">
+                    <Switch checked={mentionAlerts} onCheckedChange={setMentionAlerts} />
+                  </SettingRow>
+                  <SettingRow label="Przypomnienia o deadline'ach" description="Automatyczne przypomnienia przed terminem">
+                    <Switch checked={deadlineReminders} onCheckedChange={setDeadlineReminders} />
+                  </SettingRow>
+                  <SettingRow label="Czas przed deadline'em" description="Na ile godzin przed terminem przypominać">
+                    <div className="flex items-center gap-2">
+                      <Input className="w-16 text-center" value={preDeadlineHours} onChange={e => setPreDeadlineHours(e.target.value)} />
+                      <span className="text-xs text-muted-foreground">godz.</span>
+                    </div>
+                  </SettingRow>
+                  <SettingRow label="Dźwięki" description="Efekty dźwiękowe przy powiadomieniach">
+                    <Switch checked={sounds} onCheckedChange={setSounds} />
+                  </SettingRow>
+                  <SettingRow label="Częstotliwość digestu" description="Podsumowanie zdarzeń mailowe">
+                    <Select value={digestFrequency} onValueChange={setDigestFrequency}>
+                      <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">Codziennie</SelectItem>
+                        <SelectItem value="weekly">Co tydzień</SelectItem>
+                        <SelectItem value="never">Nigdy</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </SettingRow>
+                  <SettingRow label="Godzina wysyłki digestu">
+                    <Input type="time" className="w-28" value={digestTime} onChange={e => setDigestTime(e.target.value)} />
+                  </SettingRow>
+                </>
+              )}
 
-            {/* Tasks & work */}
-            <SectionHeader icon={Briefcase} title="Zadania i czas pracy" />
-            <SettingRow label="Domyślny widok zadań" description="Lista, kanban lub kalendarz">
-              <Select value={defaultTaskView} onValueChange={setDefaultTaskView}>
-                <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="list">📋 Lista</SelectItem>
-                  <SelectItem value="kanban">📊 Kanban</SelectItem>
-                  <SelectItem value="calendar">📅 Kalendarz</SelectItem>
-                </SelectContent>
-              </Select>
-            </SettingRow>
-            <SettingRow label="Domyślny priorytet" description="Priorytet nowych zadań">
-              <Select value={defaultPriority} onValueChange={setDefaultPriority}>
-                <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Niski</SelectItem>
-                  <SelectItem value="medium">Średni</SelectItem>
-                  <SelectItem value="high">Wysoki</SelectItem>
-                  <SelectItem value="critical">Krytyczny</SelectItem>
-                </SelectContent>
-              </Select>
-            </SettingRow>
-            <SettingRow label="Pokazuj postęp podzadań" description="Pasek postępu na kartach zadań">
-              <Switch checked={showSubtaskProgress} onCheckedChange={setShowSubtaskProgress} />
-            </SettingRow>
-            <SettingRow label="Przypomnienie o rejestracji czasu" description="Okresowe przypomnienia o wpisach czasu">
-              <Switch checked={timeLogReminder} onCheckedChange={setTimeLogReminder} />
-            </SettingRow>
-            <SettingRow label="Interwał przypomnienia" description="Co ile minut przypominać">
-              <div className="flex items-center gap-2">
-                <Input className="w-16 text-center" value={reminderInterval} onChange={e => setReminderInterval(e.target.value)} />
-                <span className="text-xs text-muted-foreground">min</span>
-              </div>
-            </SettingRow>
-            <SettingRow label="Wymagaj wpisu czasu" description="Nie pozwalaj zamykać zadania bez wpisu czasu">
-              <Switch checked={requireTimeLog} onCheckedChange={setRequireTimeLog} />
-            </SettingRow>
+              {/* ─── SECURITY ─── */}
+              {activeTab === "security" && (
+                <>
+                  <SectionHeader icon={Shield} title="Bezpieczeństwo" />
+                  <div className="space-y-4 py-4">
+                    <div>
+                      <Label className="text-sm">Nowe hasło</Label>
+                      <Input type="password" className="mt-1" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Min. 6 znaków" />
+                    </div>
+                    <div>
+                      <Label className="text-sm">Potwierdź hasło</Label>
+                      <Input type="password" className="mt-1" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Powtórz nowe hasło" />
+                    </div>
+                    <Button onClick={handlePasswordChange} disabled={changingPassword}>
+                      {changingPassword ? "Zmieniam..." : "Zmień hasło"}
+                    </Button>
+                  </div>
+                  {isAdmin && (
+                    <>
+                      <Separator className="my-4" />
+                      <SettingRow label="Timeout sesji" description="Automatyczne wylogowanie po braku aktywności">
+                        <div className="flex items-center gap-2">
+                          <Input className="w-16 text-center" value={sessionTimeout} onChange={e => setSessionTimeout(e.target.value)} />
+                          <span className="text-xs text-muted-foreground">min</span>
+                        </div>
+                      </SettingRow>
+                      <SettingRow label="Wymuszaj zmianę hasła" description="Co pewien czas wymagaj zmiany hasła">
+                        <Switch checked={forcePasswordChange} onCheckedChange={setForcePasswordChange} />
+                      </SettingRow>
+                      <SettingRow label="Historia logowań" description="Zapisuj historię logowań użytkowników">
+                        <Switch checked={loginHistory} onCheckedChange={setLoginHistory} />
+                      </SettingRow>
+                    </>
+                  )}
+                </>
+              )}
 
-            <Separator className="my-2" />
+              {/* ─── APPEARANCE ─── */}
+              {activeTab === "appearance" && (
+                <>
+                  <SectionHeader icon={Eye} title="Wygląd i interfejs" />
+                  <SettingRow label="Motyw kolorystyczny" description="Jasny, ciemny lub automatyczny">
+                    <Select value={theme} onValueChange={setTheme}>
+                      <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="system">🌓 Systemowy</SelectItem>
+                        <SelectItem value="light">☀️ Jasny</SelectItem>
+                        <SelectItem value="dark">🌙 Ciemny</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </SettingRow>
+                  <SettingRow label="Kompaktowy sidebar" description="Mniejsza nawigacja boczna w zwiniętej formie">
+                    <Switch checked={compactSidebar} onCheckedChange={setCompactSidebar} />
+                  </SettingRow>
+                  <SettingRow label="Animacje" description="Efekty i animacje w interfejsie">
+                    <Switch checked={animations} onCheckedChange={setAnimations} />
+                  </SettingRow>
+                  <SettingRow label="Gęstość tabel" description="Ilość pustej przestrzeni w wierszach tabel">
+                    <Select value={tableDensity} onValueChange={setTableDensity}>
+                      <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="compact">Kompaktowa</SelectItem>
+                        <SelectItem value="normal">Normalna</SelectItem>
+                        <SelectItem value="comfortable">Wygodna</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </SettingRow>
+                  <SettingRow label="Strona startowa" description="Domyślna strona po zalogowaniu">
+                    <Select value={startPage} onValueChange={setStartPage}>
+                      <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="dashboard">Pulpit</SelectItem>
+                        <SelectItem value="my-day">Mój dzień</SelectItem>
+                        <SelectItem value="tasks">Zadania</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </SettingRow>
+                </>
+              )}
 
-            {/* Team & Gamification */}
-            <SectionHeader icon={Users} title="Zespół i gamifikacja" />
-            <SettingRow label="Gamifikacja" description="System punktów, odznak i nagród za aktywność">
-              <Switch checked={gamification} onCheckedChange={setGamification} />
-            </SettingRow>
-            <SettingRow label="Śledzenie serii logowań" description="Streaki — seria dni z aktywnością">
-              <Switch checked={streaks} onCheckedChange={setStreaks} />
-            </SettingRow>
-            <SettingRow label="Widoczność leaderboardu" description="Ranking, statystyki zbiorowe dla zespołu">
-              <Switch checked={leaderboardVisibility} onCheckedChange={setLeaderboardVisibility} />
-            </SettingRow>
-            <SettingRow label="Poranny briefing" description="Automatyczne podsumowanie na start dnia">
-              <Switch checked={morningBriefing} onCheckedChange={setMorningBriefing} />
-            </SettingRow>
-            <SettingRow label="Godzina briefingu">
-              <Input type="time" className="w-28" value={briefingTime} onChange={e => setBriefingTime(e.target.value)} />
-            </SettingRow>
-            <SettingRow label="Godziny pracy" description="Domyślny zakres godzin pracy zespołu">
-              <div className="flex items-center gap-2">
-                <Input type="time" className="w-24" value={workStart} onChange={e => setWorkStart(e.target.value)} />
-                <span className="text-muted-foreground">—</span>
-                <Input type="time" className="w-24" value={workEnd} onChange={e => setWorkEnd(e.target.value)} />
-              </div>
-            </SettingRow>
-            <div className="py-3">
-              <Label className="text-sm font-medium">Dni robocze</Label>
-              <div className="flex gap-2 mt-2">
-                {allDays.map(day => (
-                  <button
-                    key={day}
-                    onClick={() => toggleWorkDay(day)}
-                    className={`w-9 h-9 rounded-full text-xs font-medium transition-colors ${
-                      workDays.includes(day)
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-accent"
-                    }`}
-                  >
-                    {day}
-                  </button>
-                ))}
-              </div>
+              {/* ─── TASKS (Admin only) ─── */}
+              {activeTab === "tasks" && isAdmin && (
+                <>
+                  <SectionHeader icon={Briefcase} title="Zadania i czas pracy" />
+                  <SettingRow label="Domyślny widok zadań" description="Lista, kanban lub kalendarz">
+                    <Select value={defaultTaskView} onValueChange={setDefaultTaskView}>
+                      <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="list">📋 Lista</SelectItem>
+                        <SelectItem value="kanban">📊 Kanban</SelectItem>
+                        <SelectItem value="calendar">📅 Kalendarz</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </SettingRow>
+                  <SettingRow label="Domyślny priorytet" description="Priorytet nowych zadań">
+                    <Select value={defaultPriority} onValueChange={setDefaultPriority}>
+                      <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Niski</SelectItem>
+                        <SelectItem value="medium">Średni</SelectItem>
+                        <SelectItem value="high">Wysoki</SelectItem>
+                        <SelectItem value="critical">Krytyczny</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </SettingRow>
+                  <SettingRow label="Pokazuj postęp podzadań" description="Pasek postępu na kartach zadań">
+                    <Switch checked={showSubtaskProgress} onCheckedChange={setShowSubtaskProgress} />
+                  </SettingRow>
+                  <SettingRow label="Przypomnienie o rejestracji czasu" description="Okresowe przypomnienia o wpisach czasu">
+                    <Switch checked={timeLogReminder} onCheckedChange={setTimeLogReminder} />
+                  </SettingRow>
+                  <SettingRow label="Interwał przypomnienia" description="Co ile minut przypominać">
+                    <div className="flex items-center gap-2">
+                      <Input className="w-16 text-center" value={reminderInterval} onChange={e => setReminderInterval(e.target.value)} />
+                      <span className="text-xs text-muted-foreground">min</span>
+                    </div>
+                  </SettingRow>
+                  <SettingRow label="Wymagaj wpisu czasu" description="Nie pozwalaj zamykać zadania bez wpisu czasu">
+                    <Switch checked={requireTimeLog} onCheckedChange={setRequireTimeLog} />
+                  </SettingRow>
+                </>
+              )}
+
+              {/* ─── TEAM (Admin only) ─── */}
+              {activeTab === "team" && isAdmin && (
+                <>
+                  <SectionHeader icon={Users} title="Zespół i gamifikacja" />
+                  <SettingRow label="Gamifikacja" description="System punktów, odznak i nagród za aktywność">
+                    <Switch checked={gamification} onCheckedChange={setGamification} />
+                  </SettingRow>
+                  <SettingRow label="Śledzenie serii logowań" description="Streaki — seria dni z aktywnością">
+                    <Switch checked={streaks} onCheckedChange={setStreaks} />
+                  </SettingRow>
+                  <SettingRow label="Widoczność leaderboardu" description="Ranking, statystyki zbiorowe dla zespołu">
+                    <Switch checked={leaderboardVisibility} onCheckedChange={setLeaderboardVisibility} />
+                  </SettingRow>
+                  <SettingRow label="Poranny briefing" description="Automatyczne podsumowanie na start dnia">
+                    <Switch checked={morningBriefing} onCheckedChange={setMorningBriefing} />
+                  </SettingRow>
+                  <SettingRow label="Godzina briefingu">
+                    <Input type="time" className="w-28" value={briefingTime} onChange={e => setBriefingTime(e.target.value)} />
+                  </SettingRow>
+                  <SettingRow label="Godziny pracy" description="Domyślny zakres godzin pracy zespołu">
+                    <div className="flex items-center gap-2">
+                      <Input type="time" className="w-24" value={workStart} onChange={e => setWorkStart(e.target.value)} />
+                      <span className="text-muted-foreground">—</span>
+                      <Input type="time" className="w-24" value={workEnd} onChange={e => setWorkEnd(e.target.value)} />
+                    </div>
+                  </SettingRow>
+                  <div className="py-3">
+                    <Label className="text-sm font-medium">Dni robocze</Label>
+                    <div className="flex gap-2 mt-2">
+                      {allDays.map(day => (
+                        <button
+                          key={day}
+                          onClick={() => toggleWorkDay(day)}
+                          className={`w-9 h-9 rounded-full text-xs font-medium transition-colors ${
+                            workDays.includes(day)
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground hover:bg-accent"
+                          }`}
+                        >
+                          {day}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* ─── CLIENT PORTAL (Admin only) ─── */}
+              {activeTab === "client-portal" && isAdmin && (
+                <>
+                  <SectionHeader icon={LayoutList} title="Portal klienta" />
+                  <SettingRow label="Chat z klientami" description="Moduł czatu w portalu klienta">
+                    <Switch checked={clientChat} onCheckedChange={setClientChat} />
+                  </SettingRow>
+                  <SettingRow label="Permisje klientów" description="Klienci mogą edytować priorytety">
+                    <Switch checked={clientPermissions} onCheckedChange={setClientPermissions} />
+                  </SettingRow>
+                  <SettingRow label="Pliki w portalu" description="Klienci mają dostęp do swoich plików">
+                    <Switch checked={clientFiles} onCheckedChange={setClientFiles} />
+                  </SettingRow>
+                  <SettingRow label="Formularz feedbacku" description="Ankieta satysfakcji dla klientów">
+                    <Switch checked={feedbackForm} onCheckedChange={setFeedbackForm} />
+                  </SettingRow>
+                  <SettingRow label="Auto-powiadomienia do klientów" description="Klient dostaje maile o zmianach statusu">
+                    <Switch checked={autoClientNotif} onCheckedChange={setAutoClientNotif} />
+                  </SettingRow>
+                  <SettingRow label="Cotygodniowy raport dla klienta" description="Automatyczny raport o postępach projektów">
+                    <Switch checked={weeklyClientReport} onCheckedChange={setWeeklyClientReport} />
+                  </SettingRow>
+                </>
+              )}
+
+              {/* ─── AI (Admin only) ─── */}
+              {activeTab === "ai" && isAdmin && (
+                <>
+                  <SectionHeader icon={Bot} title="AI i automatyzacja" />
+                  <SettingRow label="Sugestie AI" description="Inteligentne podpowiedzi przy przypisaniu i szacowaniu">
+                    <Switch checked={aiSuggestions} onCheckedChange={setAiSuggestions} />
+                  </SettingRow>
+                  <SettingRow label="Automatyczna transkrypcja" description="Transkrypcja nagrań spotkań">
+                    <Switch checked={autoTranscription} onCheckedChange={setAutoTranscription} />
+                  </SettingRow>
+                  <SettingRow label="Smart Digest AI" description="AI analizuje powiadomienia i rekomenduje ważne">
+                    <Switch checked={smartDigest} onCheckedChange={setSmartDigest} />
+                  </SettingRow>
+                  <SettingRow label="Podsumowania spotkań AI" description="Automatyczne notatki i action items po spotkaniach">
+                    <Switch checked={meetingSummary} onCheckedChange={setMeetingSummary} />
+                  </SettingRow>
+                  <SettingRow label="Próg detekcji spamu" description="Punkt powyżej którego wiadomość jest traktowana jako spam">
+                    <div className="flex items-center gap-2">
+                      <Input className="w-16 text-center" value={spamThreshold} onChange={e => setSpamThreshold(e.target.value)} />
+                      <span className="text-xs text-muted-foreground">%</span>
+                    </div>
+                  </SettingRow>
+                </>
+              )}
+
+              {/* ─── VoIP (Admin only) ─── */}
+              {activeTab === "voip" && isAdmin && (
+                <>
+                  <SectionHeader icon={Phone} title="VoIP — Zadarma" />
+                  <SipLoginManager />
+                </>
+              )}
+
+              {/* ─── CRM Labels (Admin only) ─── */}
+              {activeTab === "crm-labels" && isAdmin && (
+                <>
+                  <SectionHeader icon={Tag} title="Etykiety (Lejek sprzedaży)" />
+                  <CrmLabelManager />
+                </>
+              )}
+
+            </CardContent>
+          </Card>
+
+          {/* Reset button - admin only */}
+          {isAdmin && (
+            <div className="flex items-center justify-between pt-4">
+              <Button variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={handleResetDefaults}>
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Przywróć domyślne
+              </Button>
+              <p className="text-xs text-muted-foreground">Zmiany zapisywane są automatycznie</p>
             </div>
-
-            <Separator className="my-2" />
-
-            {/* Client Portal */}
-            <SectionHeader icon={LayoutList} title="Portal klienta" />
-            <SettingRow label="Chat z klientami" description="Moduł czatu w portalu klienta">
-              <Switch checked={clientChat} onCheckedChange={setClientChat} />
-            </SettingRow>
-            <SettingRow label="Permisje klientów" description="Klienci mogą edytować priorytety">
-              <Switch checked={clientPermissions} onCheckedChange={setClientPermissions} />
-            </SettingRow>
-            <SettingRow label="Pliki w portalu" description="Klienci mają dostęp do swoich plików">
-              <Switch checked={clientFiles} onCheckedChange={setClientFiles} />
-            </SettingRow>
-            <SettingRow label="Formularz feedbacku" description="Ankieta satysfakcji dla klientów">
-              <Switch checked={feedbackForm} onCheckedChange={setFeedbackForm} />
-            </SettingRow>
-            <SettingRow label="Auto-powiadomienia do klientów" description="Klient dostaje maile o zmianach statusu">
-              <Switch checked={autoClientNotif} onCheckedChange={setAutoClientNotif} />
-            </SettingRow>
-            <SettingRow label="Cotygodniowy raport dla klienta" description="Automatyczny raport o postępach projektów">
-              <Switch checked={weeklyClientReport} onCheckedChange={setWeeklyClientReport} />
-            </SettingRow>
-
-            <Separator className="my-2" />
-
-            {/* AI & Automation */}
-            <SectionHeader icon={Bot} title="AI i automatyzacja" />
-            <SettingRow label="Sugestie AI" description="Inteligentne podpowiedzi przy przypisaniu i szacowaniu">
-              <Switch checked={aiSuggestions} onCheckedChange={setAiSuggestions} />
-            </SettingRow>
-            <SettingRow label="Automatyczna transkrypcja" description="Transkrypcja nagrań spotkań">
-              <Switch checked={autoTranscription} onCheckedChange={setAutoTranscription} />
-            </SettingRow>
-            <SettingRow label="Smart Digest AI" description="AI analizuje powiadomienia i rekomenduje ważne">
-              <Switch checked={smartDigest} onCheckedChange={setSmartDigest} />
-            </SettingRow>
-            <SettingRow label="Podsumowania spotkań AI" description="Automatyczne notatki i action items po spotkaniach">
-              <Switch checked={meetingSummary} onCheckedChange={setMeetingSummary} />
-            </SettingRow>
-            <SettingRow label="Próg detekcji spamu" description="Punkt powyżej którego wiadomość jest traktowana jako spam">
-              <div className="flex items-center gap-2">
-                <Input className="w-16 text-center" value={spamThreshold} onChange={e => setSpamThreshold(e.target.value)} />
-                <span className="text-xs text-muted-foreground">%</span>
-              </div>
-            </SettingRow>
-
-            <Separator className="my-2" />
-
-            {/* VoIP / Zadarma */}
-            {(currentRole === "superadmin" || currentRole === "boss") && (
-              <>
-                <SectionHeader icon={Phone} title="VoIP — Zadarma" />
-                <SipLoginManager />
-              </>
-            )}
-
-            <Separator className="my-2" />
-
-            {/* CRM Labels */}
-            <SectionHeader icon={Tag} title="Etykiety (Lejek sprzedaży)" />
-            <CrmLabelManager />
-
-            <Separator className="my-2" />
-            <SectionHeader icon={Shield} title="Bezpieczeństwo" />
-            <SettingRow label="Timeout sesji" description="Automatyczne wylogowanie po braku aktywności">
-              <div className="flex items-center gap-2">
-                <Input className="w-16 text-center" value={sessionTimeout} onChange={e => setSessionTimeout(e.target.value)} />
-                <span className="text-xs text-muted-foreground">min</span>
-              </div>
-            </SettingRow>
-            <SettingRow label="Wymuszaj zmianę hasła" description="Co pewien czas wymagaj zmiany hasła">
-              <Switch checked={forcePasswordChange} onCheckedChange={setForcePasswordChange} />
-            </SettingRow>
-            <SettingRow label="Historia logowań" description="Zapisuj historię logowań użytkowników">
-              <Switch checked={loginHistory} onCheckedChange={setLoginHistory} />
-            </SettingRow>
-          </CardContent>
-        </Card>
-
-        {/* Reset button */}
-        <div className="flex items-center justify-between pt-4">
-          <Button variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={handleResetDefaults}>
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Przywróć domyślne
-          </Button>
-          <p className="text-xs text-muted-foreground">Zmiany zapisywane są automatycznie</p>
+          )}
         </div>
       </div>
     </AppLayout>
