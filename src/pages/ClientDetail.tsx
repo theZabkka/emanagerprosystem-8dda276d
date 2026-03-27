@@ -663,6 +663,11 @@ await supabase.from("client_files").delete().eq("id", fileId);
             )}
           </TabsContent>
 
+          {/* ─── Notes Tab ─────────────────────────────────────── */}
+          <TabsContent value="notes" className="mt-4">
+            <ClientNotesTimeline clientId={id!} />
+          </TabsContent>
+
           {/* ─── Offers Tab ───────────────────────────────────── */}
           <TabsContent value="offers" className="mt-4">
             <Card>
