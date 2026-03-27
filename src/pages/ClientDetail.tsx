@@ -103,11 +103,10 @@ export default function ClientDetail() {
   const [newLinkName, setNewLinkName] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
-  const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
 
   // ─── Fetch client ──────────────────────────────────────────────
   const { data: client, isLoading: loadingClient } = useQuery({
-    queryKey: ["client-detail", id],
+    queryKey: ["client", id],
     queryFn: async () => {
       const { data, error } = await supabase.from("clients").select("*").eq("id", id!).single();
       if (error) throw error;
