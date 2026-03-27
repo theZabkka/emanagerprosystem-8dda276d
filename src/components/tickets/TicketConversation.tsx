@@ -190,7 +190,7 @@ export default function TicketConversation({
           value={reply}
           onChange={(e) => setReply(e.target.value)}
           placeholder="Napisz odpowiedź..."
-          className="min-h-[80px] resize-none"
+          className="min-h-[220px] resize-y text-sm leading-relaxed"
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) sendReply.mutate();
           }}
