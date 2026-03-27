@@ -159,12 +159,10 @@ export function Topbar({ title = "Pulpit" }: TopbarProps) {
         {/* Notifications */}
         <NotificationCenter />
 
-        {/* Settings - only for admin roles */}
-        {isAdmin && (
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" onClick={() => navigate("/settings")} title="Ustawienia">
-            <Settings className="h-4 w-4" />
-          </Button>
-        )}
+        {/* Settings - all logged-in users */}
+        <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" onClick={() => navigate("/settings")} title="Ustawienia">
+          <Settings className="h-4 w-4" />
+        </Button>
       </div>
     </header>
   );

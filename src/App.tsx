@@ -124,7 +124,7 @@ const App = () => (
             <Route path="/team/calendar" element={<ProtectedRoute><TeamCalendar /></ProtectedRoute>} />
             <Route path="/reports/time" element={<ProtectedRoute><TimeReports /></ProtectedRoute>} />
             <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
-            <Route path="/settings" element={<AdminRoute><Settings /></AdminRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/automations" element={<ProtectedRoute><Automations /></ProtectedRoute>} />
             <Route path="/automation-center" element={<ProtectedRoute><AutomationCenter /></ProtectedRoute>} />
             <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
