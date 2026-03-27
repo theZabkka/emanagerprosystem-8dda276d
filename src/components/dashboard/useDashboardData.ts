@@ -131,12 +131,15 @@ export function useDashboardData() {
 
   useEffect(() => {
     const channel = supabase
-      .channel("dashboard-unassigned-sync")
+      .channel("dashboard-tasks-sync")
       .on("postgres_changes", { event: "*", schema: "public", table: "task_assignments" }, () => {
         queryClient.invalidateQueries({ queryKey: ["dashboard-unassigned-tasks"] });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => {
         queryClient.invalidateQueries({ queryKey: ["dashboard-unassigned-tasks"] });
+        queryClient.invalidateQueries({ queryKey: ["task-stats"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-client-review-tasks"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-correction-tasks"] });
       })
       .subscribe();
 
