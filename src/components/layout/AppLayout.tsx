@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { useRoutePrefetch } from "@/hooks/useRoutePrefetch";
 import { CoordinatorFreezeOverlay } from "@/components/tasks/CoordinatorFreezeOverlay";
+import { ProfileGatekeeper } from "./ProfileGatekeeper";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -34,6 +35,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
       <AIAssistantButton />
       {!isClient && <ZadarmaWidget sipLogin={profile?.zadarma_sip_login} />}
       <CoordinatorFreezeOverlay />
+      <ProfileGatekeeper />
     </SidebarProvider>
   );
 }
