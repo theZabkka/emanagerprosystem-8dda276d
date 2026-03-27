@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import {
   Sun, LayoutDashboard, Target,
   CheckSquare, FolderKanban, Columns3, Users2, RotateCcw, Archive,
@@ -21,7 +21,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -107,6 +106,8 @@ const sections = [
   },
 ];
 
+const SCROLL_KEY = "sidebar_scroll_pos";
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -114,6 +115,7 @@ export function AppSidebar() {
   const { profile, signOut, user } = useAuth();
   const { canViewModule, currentRole } = useRole();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
 
   const initials = profile?.full_name
@@ -153,6 +155,27 @@ export function AppSidebar() {
     toast.success("Avatar zaktualizowany!");
   };
 
+  // --- Scroll memory ---
+  const handleScroll = useCallback(() => {
+    if (scrollRef.current) {
+      sessionStorage.setItem(SCROLL_KEY, String(scrollRef.current.scrollTop));
+    }
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, [handleScroll]);
+
+  useLayoutEffect(() => {
+    const saved = sessionStorage.getItem(SCROLL_KEY);
+    if (saved && scrollRef.current) {
+      scrollRef.current.scrollTop = Number(saved);
+    }
+  }, [location.pathname]);
+
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="p-4">
@@ -167,7 +190,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="overflow-hidden">
-        <ScrollArea className="h-full">
+        <div ref={scrollRef} className="h-full overflow-y-auto scrollbar-thin">
           {sections.map((section) => {
             const visibleItems = section.items.filter(item => {
               if ((item as any).roles && !(item as any).roles.includes(currentRole)) return false;
@@ -207,7 +230,7 @@ export function AppSidebar() {
             </SidebarGroup>
             );
           })}
-        </ScrollArea>
+        </div>
       </SidebarContent>
 
       <SidebarFooter>
