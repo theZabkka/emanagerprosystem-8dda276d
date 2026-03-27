@@ -2147,6 +2147,41 @@ export type Database = {
           },
         ]
       }
+      vault_access_grants: {
+        Row: {
+          created_at: string
+          credential_id: string
+          expires_at: string | null
+          granted_by: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credential_id: string
+          expires_at?: string | null
+          granted_by?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credential_id?: string
+          expires_at?: string | null
+          granted_by?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_access_grants_credential_id_fkey"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "vault_credentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vault_audit_logs: {
         Row: {
           action: string
