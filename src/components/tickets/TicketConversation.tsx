@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import SafeHtmlRenderer from "./SafeHtmlRenderer";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import TemplateCombobox from "./TemplateCombobox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -186,6 +187,13 @@ export default function TicketConversation({
       {/* Reply box */}
       <Separator />
       <div className="space-y-2">
+        {isAdmin && (
+          <TemplateCombobox
+            onSelect={(tplContent) =>
+              setReply((prev) => prev ? prev + "\n\n" + tplContent : tplContent)
+            }
+          />
+        )}
         <Textarea
           value={reply}
           onChange={(e) => setReply(e.target.value)}
