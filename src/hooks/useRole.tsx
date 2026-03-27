@@ -23,6 +23,7 @@ interface Permission {
 
 interface RoleContextType {
   currentRole: AppRoleName;
+  roleLoading: boolean;
   isClient: boolean;
   clientId: string | null;
   permissions: Permission[];
@@ -34,9 +35,10 @@ interface RoleContextType {
 const RoleContext = createContext<RoleContextType | null>(null);
 
 export function RoleProvider({ children }: { children: ReactNode }) {
-  const { profile } = useAuth();
+  const { profile, loading: authLoading } = useAuth();
   const [permissions, setPermissions] = useState<Permission[]>([]);
 
+  const roleLoading = authLoading || !profile;
   const currentRole: AppRoleName = (profile?.role as AppRoleName) || "specjalista";
   const isClient = currentRole === "klient";
   const clientId = (profile as any)?.client_id || null;
@@ -57,7 +59,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
 
   return (
     <RoleContext.Provider value={{
-      currentRole, isClient, clientId, permissions, setPermissions, canViewModule, refreshPermissions: fetchPermissions,
+      currentRole, roleLoading, isClient, clientId, permissions, setPermissions, canViewModule, refreshPermissions: fetchPermissions,
     }}>
       {children}
     </RoleContext.Provider>

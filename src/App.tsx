@@ -5,7 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
-import { RoleProvider } from "@/hooks/useRole";
+import { RoleProvider, useRole } from "@/hooks/useRole";
 import { ErrorBoundary } from "@/components/layout/ErrorBoundary";
 import { PageLoader } from "@/components/layout/PageLoader";
 import { AdminRoute } from "@/components/layout/AdminRoute";
@@ -57,7 +57,8 @@ const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth();
-  if (loading) return <PageLoader />;
+  const { roleLoading } = useRole();
+  if (loading || roleLoading) return <PageLoader />;
   if (!session) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
