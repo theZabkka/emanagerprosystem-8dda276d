@@ -12,7 +12,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -37,9 +36,14 @@ Deno.serve(async (req) => {
     }
     const userId = claimsData.claims.sub;
 
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
     const { action, ...payload } = await req.json();
 
-    // Get the 32-byte key
+    // Derive AES-256 key
     const keyHex = Deno.env.get("VAULT_SECRET_KEY");
     if (!keyHex || keyHex.length < 32) {
       console.error("VAULT_SECRET_KEY missing or too short");
@@ -49,7 +53,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Derive a proper 32-byte key from the secret
     const encoder = new TextEncoder();
     const keyMaterial = await crypto.subtle.importKey(
       "raw",
@@ -71,6 +74,11 @@ Deno.serve(async (req) => {
       ["encrypt", "decrypt"]
     );
 
+    const toBase64 = (arr: Uint8Array) => btoa(String.fromCharCode(...arr));
+    const fromBase64 = (b64: string) =>
+      Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+
+    // ========== ENCRYPT ==========
     if (action === "ENCRYPT") {
       const { password } = payload;
       if (!password) {
@@ -81,20 +89,15 @@ Deno.serve(async (req) => {
       }
 
       const iv = crypto.getRandomValues(new Uint8Array(12));
-      const encodedPassword = encoder.encode(password);
-
       const cipherBuffer = await crypto.subtle.encrypt(
         { name: "AES-GCM", iv, tagLength: 128 },
         aesKey,
-        encodedPassword
+        encoder.encode(password)
       );
 
-      // AES-GCM appends the auth tag at the end (last 16 bytes)
       const cipherArray = new Uint8Array(cipherBuffer);
       const encryptedData = cipherArray.slice(0, cipherArray.length - 16);
       const authTag = cipherArray.slice(cipherArray.length - 16);
-
-      const toBase64 = (arr: Uint8Array) => btoa(String.fromCharCode(...arr));
 
       return new Response(
         JSON.stringify({
@@ -106,6 +109,7 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ========== DECRYPT (PAM model) ==========
     if (action === "DECRYPT") {
       const { credential_id, encrypted_password, iv, auth_tag } = payload;
       if (!credential_id || !encrypted_password || !iv || !auth_tag) {
@@ -115,39 +119,64 @@ Deno.serve(async (req) => {
         });
       }
 
-      // CRITICAL: Write audit log BEFORE decrypting
-      const supabaseAdmin = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-      );
+      // Step 1: Get user role from profiles
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .single();
 
-      const { error: auditErr } = await supabaseAdmin
-        .from("vault_audit_logs")
-        .insert({
-          credential_id,
-          user_id: userId,
-          action: "REVEALED",
-        });
+      const userRole = profile?.role || "";
+      const isAdmin = ["superadmin", "boss", "admin"].includes(userRole);
 
-      if (auditErr) {
-        console.error("Audit log failed, blocking decryption:", auditErr);
-        return new Response(
-          JSON.stringify({ error: "Audit log failed. Decryption blocked for security." }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
+      if (!isAdmin) {
+        // Step 2: Check ACL in vault_access_grants (server-side time check)
+        const { data: grant, error: grantErr } = await supabaseAdmin
+          .from("vault_access_grants")
+          .select("id, expires_at")
+          .eq("credential_id", credential_id)
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (grantErr || !grant) {
+          return new Response(
+            JSON.stringify({ error: "Brak uprawnień do tego hasła" }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Server-side TTL check
+        if (grant.expires_at && new Date(grant.expires_at) < new Date()) {
+          return new Response(
+            JSON.stringify({ error: "Dostęp wygasł" }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // CRITICAL: Audit log BEFORE decryption for non-admin
+        const { error: auditErr } = await supabaseAdmin
+          .from("vault_audit_logs")
+          .insert({
+            credential_id,
+            user_id: userId,
+            action: "REVEALED",
+          });
+
+        if (auditErr) {
+          console.error("Audit log failed, blocking decryption:", auditErr);
+          return new Response(
+            JSON.stringify({ error: "Audit log failed. Decryption blocked." }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
       }
+      // Admin/boss/superadmin: NO audit log for REVEALED, skip ACL check
 
-      const fromBase64 = (b64: string) =>
-        Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-
+      // Decrypt
       const encData = fromBase64(encrypted_password);
       const ivData = fromBase64(iv);
       const tagData = fromBase64(auth_tag);
 
-      // Reconstruct ciphertext with appended auth tag
       const combined = new Uint8Array(encData.length + tagData.length);
       combined.set(encData);
       combined.set(tagData, encData.length);
@@ -158,13 +187,81 @@ Deno.serve(async (req) => {
         combined
       );
 
-      const decoder = new TextDecoder();
-      const decryptedPassword = decoder.decode(decryptedBuffer);
-
       return new Response(
-        JSON.stringify({ password: decryptedPassword }),
+        JSON.stringify({ password: new TextDecoder().decode(decryptedBuffer) }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // ========== GRANT_ACCESS ==========
+    if (action === "GRANT_ACCESS") {
+      const { credential_id, target_user_id, expires_at } = payload;
+      if (!credential_id || !target_user_id) {
+        return new Response(JSON.stringify({ error: "Missing parameters" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error } = await supabaseAdmin
+        .from("vault_access_grants")
+        .upsert({
+          credential_id,
+          user_id: target_user_id,
+          granted_by: userId,
+          expires_at: expires_at || null,
+        }, { onConflict: "credential_id,user_id" });
+
+      if (error) {
+        console.error("Grant access error:", error);
+        return new Response(JSON.stringify({ error: "Failed to grant access" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Audit log
+      await supabaseAdmin.from("vault_audit_logs").insert({
+        credential_id,
+        user_id: userId,
+        action: "GRANTED_ACCESS",
+      });
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ========== REVOKE_ACCESS ==========
+    if (action === "REVOKE_ACCESS") {
+      const { credential_id, target_user_id } = payload;
+      if (!credential_id || !target_user_id) {
+        return new Response(JSON.stringify({ error: "Missing parameters" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error } = await supabaseAdmin
+        .from("vault_access_grants")
+        .delete()
+        .eq("credential_id", credential_id)
+        .eq("user_id", target_user_id);
+
+      if (error) {
+        console.error("Revoke access error:", error);
+        return new Response(JSON.stringify({ error: "Failed to revoke access" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Audit log
+      await supabaseAdmin.from("vault_audit_logs").insert({
+        credential_id,
+        user_id: userId,
+        action: "REVOKED_ACCESS",
+      });
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     return new Response(JSON.stringify({ error: "Unknown action" }), {
@@ -175,10 +272,7 @@ Deno.serve(async (req) => {
     console.error("Vault manager error:", err);
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
