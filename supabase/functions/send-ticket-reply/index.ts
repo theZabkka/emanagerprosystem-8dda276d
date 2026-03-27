@@ -12,7 +12,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // 1. Verify JWT
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -40,7 +39,6 @@ Deno.serve(async (req) => {
 
     const userId = claimsData.claims.sub;
 
-    // 2. Parse body
     const { ticket_id, body_html, body_text } = await req.json();
 
     if (!ticket_id || (!body_html && !body_text)) {
@@ -50,7 +48,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 3. Fetch ticket + client email using service role for reliable access
     const supabaseService = createClient(
       supabaseUrl,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -58,7 +55,7 @@ Deno.serve(async (req) => {
 
     const { data: ticket, error: ticketError } = await supabaseService
       .from("tickets")
-      .select("title, client_id, clients(email)")
+      .select("title, client_id, clients(email, name, contact_person)")
       .eq("id", ticket_id)
       .single();
 
@@ -70,7 +67,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    const clientEmail = (ticket as any).clients?.email;
+    const client = (ticket as any).clients;
+    const clientEmail = client?.email;
     if (!clientEmail) {
       return new Response(
         JSON.stringify({ error: "Client email not found" }),
@@ -78,11 +76,32 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 4. Build short ID for unique reply address
     const shortId = ticket_id.split("-")[0];
     const ticketTitle = ticket.title || "Zgłoszenie";
 
-    // 5. Send email via Resend API
+    // Derive client first name
+    const rawName = client?.contact_person || client?.name || "";
+    const contactFirstname = rawName.split(" ")[0] || "Kliencie";
+
+    // Build notification-only email (no reply content)
+    const notificationHtml = `
+<p>Witaj ${contactFirstname},</p>
+
+<p>Konsultant właśnie odpowiedział na Twoje zgłoszenie <strong>"${ticketTitle}"</strong> (#${shortId}).</p>
+
+<p>Aby zobaczyć jego odpowiedź, kliknij poniższy przycisk:</p>
+
+<a href="https://emanagerprosystem.lovable.app/client/tickets/${ticket_id}" style="display: inline-block; padding: 10px 20px; background-color: #e53e3e; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 15px 0;">Zobacz odpowiedź</a>
+
+<hr style="margin: 30px 0; border: none; border-top: 1px solid #eaeaea;" />
+
+<p style="font-size: 12px; color: #666;">Potrzebujesz stałej opieki informatycznej? Zapoznaj się z naszą ofertą na <a href="https://emanager.pro" style="color: #e53e3e;">stałą opiekę IT</a>.</p>
+
+<p style="font-size: 12px; color: #666;">Zespół Emanager.pro</p>
+`.trim();
+
+    const notificationText = `Witaj ${contactFirstname}, konsultant odpowiedział na Twoje zgłoszenie "${ticketTitle}" (#${shortId}). Zobacz odpowiedź: https://emanagerprosystem.lovable.app/client/tickets/${ticket_id}`;
+
     const resendRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -93,8 +112,8 @@ Deno.serve(async (req) => {
         from: `Support Emanager <ticket-${shortId}@crm.emanager.pro>`,
         to: [clientEmail],
         subject: `Re: ${ticketTitle}`,
-        html: body_html || `<p>${(body_text || "").replace(/\n/g, "<br/>")}</p>`,
-        text: body_text || "",
+        html: notificationHtml,
+        text: notificationText,
       }),
     });
 
@@ -110,7 +129,7 @@ Deno.serve(async (req) => {
     const resendData = await resendRes.json();
     console.log("Email sent successfully via Resend:", resendData.id);
 
-    // 6. Only after successful send → INSERT into ticket_messages
+    // Save the actual reply content to DB (not the notification template)
     const { error: insertError } = await supabaseService
       .from("ticket_messages")
       .insert({
