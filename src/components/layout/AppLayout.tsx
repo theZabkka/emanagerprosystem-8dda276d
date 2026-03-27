@@ -15,7 +15,7 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children, title }: AppLayoutProps) {
-  const { profile } = useAuth();
+  const { isClient } = useRole();
   const { isClient } = useRole();
   useRoutePrefetch();
 
