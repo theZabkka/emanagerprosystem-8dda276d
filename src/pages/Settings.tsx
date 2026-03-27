@@ -127,6 +127,7 @@ export default function Settings() {
   const [loginHistory, setLoginHistory] = useState(true);
 
   // Password change
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
@@ -142,15 +143,28 @@ export default function Settings() {
   };
 
   const handlePasswordChange = async () => {
-    if (newPassword.length < 6) { toast.error("Hasło musi mieć min. 6 znaków"); return; }
+    if (!currentPassword) { toast.error("Wprowadź obecne hasło"); return; }
+    if (newPassword.length < 6) { toast.error("Nowe hasło musi mieć min. 6 znaków"); return; }
     if (newPassword !== confirmPassword) { toast.error("Hasła nie są identyczne"); return; }
     setChangingPassword(true);
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    setChangingPassword(false);
-    if (error) { toast.error("Błąd zmiany hasła: " + error.message); return; }
-    toast.success("Hasło zostało zmienione");
-    setNewPassword("");
-    setConfirmPassword("");
+    try {
+      // Re-authenticate with current password
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser?.email) { toast.error("Nie można pobrać danych użytkownika"); setChangingPassword(false); return; }
+      const { error: authError } = await supabase.auth.signInWithPassword({ email: currentUser.email, password: currentPassword });
+      if (authError) { toast.error("Obecne hasło jest nieprawidłowe"); setChangingPassword(false); return; }
+      // Update password
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) { toast.error("Błąd zmiany hasła: " + error.message); setChangingPassword(false); return; }
+      toast.success("Hasło zostało zmienione. Zaloguj się ponownie nowym hasłem.");
+      setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
+      // Sign out and redirect
+      await supabase.auth.signOut();
+      window.location.href = "/login";
+    } catch (e) {
+      toast.error("Wystąpił nieoczekiwany błąd");
+      setChangingPassword(false);
+    }
   };
 
   return (
@@ -256,19 +270,23 @@ export default function Settings() {
               {activeTab === "security" && (
                 <>
                   <SectionHeader icon={Shield} title="Bezpieczeństwo" />
-                  <div className="space-y-4 py-4">
-                    <div>
-                      <Label className="text-sm">Nowe hasło</Label>
-                      <Input type="password" className="mt-1" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Min. 6 znaków" />
-                    </div>
-                    <div>
-                      <Label className="text-sm">Potwierdź hasło</Label>
-                      <Input type="password" className="mt-1" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Powtórz nowe hasło" />
-                    </div>
-                    <Button onClick={handlePasswordChange} disabled={changingPassword}>
-                      {changingPassword ? "Zmieniam..." : "Zmień hasło"}
-                    </Button>
-                  </div>
+                   <div className="space-y-4 py-4">
+                     <div>
+                       <Label className="text-sm">Obecne hasło</Label>
+                       <Input type="password" className="mt-1" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="Twoje aktualne hasło" />
+                     </div>
+                     <div>
+                       <Label className="text-sm">Nowe hasło</Label>
+                       <Input type="password" className="mt-1" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Min. 6 znaków" />
+                     </div>
+                     <div>
+                       <Label className="text-sm">Potwierdź nowe hasło</Label>
+                       <Input type="password" className="mt-1" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Powtórz nowe hasło" />
+                     </div>
+                     <Button onClick={handlePasswordChange} disabled={changingPassword}>
+                       {changingPassword ? "Zmieniam..." : "Zmień hasło"}
+                     </Button>
+                   </div>
                   {isAdmin && (
                     <>
                       <Separator className="my-4" />
