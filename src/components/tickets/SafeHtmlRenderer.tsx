@@ -5,7 +5,7 @@ interface SafeHtmlRendererProps {
   className?: string;
 }
 
-const PURIFY_CONFIG: DOMPurify.Config = {
+const PURIFY_CONFIG = {
   ALLOWED_TAGS: [
     "a", "b", "i", "u", "em", "strong", "p", "br", "div", "span",
     "ul", "ol", "li", "h1", "h2", "h3", "h4", "h5", "h6",
