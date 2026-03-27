@@ -4,8 +4,6 @@ import { AppSidebar } from "./AppSidebar";
 import { ClientSidebar } from "./ClientSidebar";
 import { Topbar } from "./Topbar";
 import { AIAssistantButton } from "./AIAssistantButton";
-import { ZadarmaWidget } from "./ZadarmaWidget";
-import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { useRoutePrefetch } from "@/hooks/useRoutePrefetch";
 import { CoordinatorFreezeOverlay } from "@/components/tasks/CoordinatorFreezeOverlay";
