@@ -155,6 +155,39 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
     }
   };
 
+  // Toggle pin
+  const handleTogglePin = async (noteId: string, currentlyPinned: boolean) => {
+    const prev = queryClient.getQueryData<ClientNote[]>(queryKey);
+    queryClient.setQueryData<ClientNote[]>(queryKey, old =>
+      (old || []).map(n => ({
+        ...n,
+        is_pinned: n.id === noteId ? !currentlyPinned : false,
+      }))
+    );
+    try {
+      if (!currentlyPinned) {
+        await (supabase.from("client_notes" as any) as any)
+          .update({ is_pinned: false })
+          .eq("client_id", clientId)
+          .eq("is_pinned", true);
+      }
+      await (supabase.from("client_notes" as any) as any)
+        .update({ is_pinned: !currentlyPinned })
+        .eq("id", noteId);
+      queryClient.invalidateQueries({ queryKey });
+    } catch {
+      queryClient.setQueryData(queryKey, prev);
+      toast.error("Nie udało się zmienić przypięcia");
+    }
+  };
+
+  // Sort: pinned first, then by date
+  const sortedNotes = [...notes].sort((a, b) => {
+    if (a.is_pinned && !b.is_pinned) return -1;
+    if (!a.is_pinned && b.is_pinned) return 1;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
   // Auto-resize textarea
   const autoResize = (el: HTMLTextAreaElement) => {
     el.style.height = "auto";
