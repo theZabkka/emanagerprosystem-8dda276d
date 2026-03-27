@@ -35,10 +35,13 @@ export function useDashboardData() {
   const { data: taskStats } = useQuery({
     queryKey: ["task-stats"],
     queryFn: async () => {
-      const { data: tasks } = await supabase.from("tasks").select("status, is_archived").eq("is_archived", false);
+      const { data: tasks } = await supabase.from("tasks").select("status, is_archived, due_date").eq("is_archived", false);
+      const today = new Date().toISOString().split("T")[0];
+      const activeTasks = tasks?.filter((t) => !["done", "closed", "cancelled"].includes(t.status || "")) || [];
+      const overdue = activeTasks.filter((t: any) => t.due_date && t.due_date < today).length;
       const corrections = tasks?.filter((t) => t.status === "corrections").length || 0;
       const clientReview = tasks?.filter((t) => t.status === "client_review").length || 0;
-      return { overdue: 0, corrections, clientReview };
+      return { overdue, corrections, clientReview };
     },
   });
 
@@ -131,12 +134,15 @@ export function useDashboardData() {
 
   useEffect(() => {
     const channel = supabase
-      .channel("dashboard-unassigned-sync")
+      .channel("dashboard-tasks-sync")
       .on("postgres_changes", { event: "*", schema: "public", table: "task_assignments" }, () => {
         queryClient.invalidateQueries({ queryKey: ["dashboard-unassigned-tasks"] });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => {
         queryClient.invalidateQueries({ queryKey: ["dashboard-unassigned-tasks"] });
+        queryClient.invalidateQueries({ queryKey: ["task-stats"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-client-review-tasks"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-correction-tasks"] });
       })
       .subscribe();
 
