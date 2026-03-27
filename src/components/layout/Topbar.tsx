@@ -1,4 +1,4 @@
-import { Search, Moon, Sun, Bell, User, Settings, LogOut, X, Bug } from "lucide-react";
+import { Search, Moon, Sun, Settings, X, Bug } from "lucide-react";
 import { BugReportModal } from "@/components/bugs/BugReportModal";
 import { NotificationCenter } from "@/components/layout/NotificationCenter";
 import { Button } from "@/components/ui/button";
@@ -9,12 +9,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 
 interface TopbarProps {
@@ -166,31 +160,10 @@ export function Topbar({ title = "Pulpit" }: TopbarProps) {
         {/* Notifications */}
         <NotificationCenter />
 
-        {/* Profile Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
-              <Avatar className="h-7 w-7">
-                {profile?.avatar_url && <AvatarImage src={profile.avatar_url} />}
-                <AvatarFallback className="text-[10px] bg-primary text-primary-foreground">{initials}</AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <div className="px-2 py-1.5">
-              <p className="text-sm font-medium truncate">{profile?.full_name || "Użytkownik"}</p>
-              <p className="text-xs text-muted-foreground truncate">{profile?.email}</p>
-            </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate("/settings")} className="gap-2 cursor-pointer">
-              <Settings className="h-4 w-4" /> Ustawienia
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={signOut} className="gap-2 cursor-pointer text-destructive focus:text-destructive">
-              <LogOut className="h-4 w-4" /> Wyloguj
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Settings */}
+        <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" onClick={() => navigate("/settings")} title="Ustawienia">
+          <Settings className="h-4 w-4" />
+        </Button>
       </div>
     </header>
   );
