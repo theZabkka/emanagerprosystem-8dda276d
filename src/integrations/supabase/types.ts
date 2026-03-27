@@ -2047,6 +2047,7 @@ export type Database = {
           id: string
           priority: string
           status: string
+          ticket_number: number
           title: string
         }
         Insert: {
@@ -2059,6 +2060,7 @@ export type Database = {
           id?: string
           priority?: string
           status?: string
+          ticket_number?: number
           title: string
         }
         Update: {
@@ -2071,6 +2073,7 @@ export type Database = {
           id?: string
           priority?: string
           status?: string
+          ticket_number?: number
           title?: string
         }
         Relationships: [
