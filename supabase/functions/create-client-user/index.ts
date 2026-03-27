@@ -20,13 +20,16 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Brak autoryzacji");
 
-    const { data: { user: caller } } = await createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    ).auth.getUser();
+    // Wyciągnięcie czystego tokenu JWT
+    const token = authHeader.replace("Bearer ", "").trim();
 
-    if (!caller) throw new Error("Nie można zweryfikować użytkownika");
+    // Bezpośrednia weryfikacja przez Admin API
+    const { data: { user: caller }, error: verifyErr } = await supabaseAdmin.auth.getUser(token);
+
+    if (verifyErr || !caller) {
+      console.error("Błąd weryfikacji tokenu admina:", verifyErr);
+      throw new Error("Nie można zweryfikować użytkownika lub sesja wygasła.");
+    }
 
     const { data: isStaff } = await supabaseAdmin.rpc("is_staff", { _user_id: caller.id });
     if (!isStaff) throw new Error("Brak uprawnień");
