@@ -32,6 +32,7 @@ import { EditClientDialog } from "@/components/clients/EditClientDialog";
 import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";
 import { ClientNotesTimeline } from "@/components/clients/ClientNotesTimeline";
 import { CLIENT_STATUS_GROUPS, getClientStatusColor, getClientStatusLabel } from "@/constants/clientStatuses";
+import { ClientNotesCard } from "@/components/clients/ClientNotesCard";
 
 const offerStatusLabels: Record<string, { label: string; className: string }> = {
   draft: { label: "Szkic", className: "bg-muted text-muted-foreground" },
@@ -583,7 +584,9 @@ await supabase.from("client_files").delete().eq("id", fileId);
         </div>
 
         {/* ─── Onboarding + Public Status ─────────────────────── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Notes Card */}
+          <ClientNotesCard clientId={id!} onShowAll={() => setActiveTab("notes")} />
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-bold tracking-wider text-foreground">ONBOARDING</CardTitle>
