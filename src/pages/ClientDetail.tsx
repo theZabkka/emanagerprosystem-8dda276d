@@ -472,17 +472,40 @@ await supabase.from("client_files").delete().eq("id", fileId);
                       setOptimisticStatus(val);
                       setUpdatingStatus(true);
                       try {
+                        // KROK 1: Zatrzymaj trwające refetche
+                        await queryClient.cancelQueries({ queryKey: ["client-detail", id] });
+                        await queryClient.cancelQueries({ queryKey: ["clients"] });
+
+                        // KROK 2: Optymistyczny zapis do cache
+                        queryClient.setQueryData(["client-detail", id], (old: any) =>
+                          old ? { ...old, status: val } : old
+                        );
+                        queryClient.setQueryData(["clients"], (old: any[] | undefined) =>
+                          old?.map((c: any) => c.id === client.id ? { ...c, status: val } : c)
+                        );
+
+                        // KROK 3: Twardy zapis w Supabase
                         const { error } = await supabase.from("clients").update({ status: val as any }).eq("id", client.id);
                         if (error) throw error;
-                        queryClient.invalidateQueries({ queryKey: ["client-detail", id] });
-                        queryClient.invalidateQueries({ queryKey: ["clients"] });
+
                         toast.success(`Status zmieniony na: ${val}`);
+
+                        // KROK 4: Rewalidacja po sukcesie
+                        await queryClient.invalidateQueries({ queryKey: ["client-detail", id] });
+                        await queryClient.invalidateQueries({ queryKey: ["clients"] });
                       } catch {
+                        // Rollback cache
+                        queryClient.setQueryData(["client-detail", id], (old: any) =>
+                          old ? { ...old, status: prevStatus } : old
+                        );
+                        queryClient.setQueryData(["clients"], (old: any[] | undefined) =>
+                          old?.map((c: any) => c.id === client.id ? { ...c, status: prevStatus } : c)
+                        );
                         setOptimisticStatus(prevStatus || null);
-                        toast.error("Nie udało się zmienić statusu");
+                        toast.error("Błąd połączenia. Zmiana statusu nieudana.");
                       } finally {
                         setUpdatingStatus(false);
-                        setTimeout(() => setOptimisticStatus(null), 300);
+                        setOptimisticStatus(null);
                       }
                     }}
                   >
