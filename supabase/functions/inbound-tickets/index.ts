@@ -143,24 +143,61 @@ Deno.serve(async (req) => {
     if (existingClient) {
       clientId = existingClient.id;
     } else {
+      console.log(`Nie znaleziono klienta ${senderEmail}. Rozpoczynam generowanie zaproszenia (Auth)...`);
+      let authUserId: string | null = null;
+
+      // 1. Próba wysłania zaproszenia przez system autoryzacji Supabase
+      const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+        senderEmail.toLowerCase().trim()
+      );
+
+      if (authErr) {
+        console.warn("Błąd wysyłania zaproszenia Auth (użytkownik może już istnieć):", authErr.message);
+        // Fallback: próba znalezienia jego ID w systemie Auth
+        const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+        const foundUser = existingUsers?.users?.find(
+          (u: any) => u.email === senderEmail.toLowerCase().trim()
+        );
+        if (foundUser) authUserId = foundUser.id;
+      } else if (authData?.user) {
+        authUserId = authData.user.id;
+        console.log(`Sukces: Wysłano zaproszenie do systemu dla ${senderEmail}`);
+      }
+
+      // 2. Tworzenie klienta-stuba w tabeli clients
       const { data: newClient, error: clientErr } = await supabaseAdmin
         .from("clients")
         .insert({
           name: senderEmail.split("@")[0],
-          email: senderEmail,
+          email: senderEmail.toLowerCase().trim(),
           is_auto_created: true,
         })
         .select("id")
         .single();
 
       if (clientErr || !newClient) {
-        console.error("Failed to create stub client:", clientErr);
+        console.error("Failed to create stub client in DB:", clientErr);
         return new Response(
-          JSON.stringify({ error: "Failed to create client", details: clientErr?.message }),
+          JSON.stringify({ error: "Failed to create client record", details: clientErr?.message }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+
       clientId = newClient.id;
+
+      // 3. Powiązanie profilu auth z klientem (profiles.client_id)
+      if (authUserId) {
+        const { error: profileErr } = await supabaseAdmin
+          .from("profiles")
+          .update({ client_id: clientId, role: "klient" })
+          .eq("id", authUserId);
+
+        if (profileErr) {
+          console.warn("Nie udało się powiązać profilu z klientem:", profileErr.message);
+        } else {
+          console.log(`Profil ${authUserId} powiązany z klientem ${clientId}`);
+        }
+      }
     }
 
     // 6. Routing: odpowiedź na istniejące zgłoszenie lub nowy bilet
