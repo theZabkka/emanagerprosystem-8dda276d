@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Pencil, Trash2, Send } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Send, Pin } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow, format } from "date-fns";
 import { pl } from "date-fns/locale";
@@ -24,6 +24,7 @@ interface ClientNote {
   content: string;
   created_at: string;
   updated_at: string;
+  is_pinned: boolean;
 }
 
 interface ClientNotesTimelineProps {
@@ -90,6 +91,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
       content: newNote.trim(),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      is_pinned: false,
     };
 
     queryClient.setQueryData<ClientNote[]>(queryKey, old => [optimisticNote, ...(old || [])]);
