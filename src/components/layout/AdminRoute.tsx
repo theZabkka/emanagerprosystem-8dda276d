@@ -12,9 +12,9 @@ interface AdminRouteProps {
 
 export function AdminRoute({ children }: AdminRouteProps) {
   const { session, loading } = useAuth();
-  const { currentRole } = useRole();
+  const { currentRole, roleLoading } = useRole();
 
-  if (loading) return <PageLoader />;
+  if (loading || roleLoading) return <PageLoader />;
   if (!session) return <Navigate to="/login" replace />;
   if (!ADMIN_ROLES.includes(currentRole)) return <Navigate to="/dashboard" replace />;
 
