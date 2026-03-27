@@ -515,7 +515,7 @@ await supabase.from("client_files").delete().eq("id", fileId);
             open={showEditClient}
             onOpenChange={setShowEditClient}
             client={client}
-            onUpdated={() => queryClient.invalidateQueries({ queryKey: ["client-detail", id] })}
+            onUpdated={() => { queryClient.invalidateQueries({ queryKey: ["client-detail", id] }); queryClient.invalidateQueries({ queryKey: ["clients"] }); }}
           />
           <CreateTaskDialog
             open={showCreateTask}
