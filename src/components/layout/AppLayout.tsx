@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { useRoutePrefetch } from "@/hooks/useRoutePrefetch";
 import { CoordinatorFreezeOverlay } from "@/components/tasks/CoordinatorFreezeOverlay";
+import { ProfileGatekeeper } from "./ProfileGatekeeper";
 
 interface AppLayoutProps {
   children: ReactNode;
