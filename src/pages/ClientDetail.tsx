@@ -101,6 +101,8 @@ export default function ClientDetail() {
   const [newIdeaDesc, setNewIdeaDesc] = useState("");
   const [newLinkName, setNewLinkName] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState("");
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
 
   // ─── Fetch client ──────────────────────────────────────────────
   const { data: client, isLoading: loadingClient } = useQuery({
@@ -460,8 +462,6 @@ await supabase.from("client_files").delete().eq("id", fileId);
                 <MessageSquare className="h-4 w-4 mr-1" /> SMS
               </Button>
               {(() => {
-                const [updatingStatus, setUpdatingStatus] = React.useState(false);
-                const [optimisticStatus, setOptimisticStatus] = React.useState<string | null>(null);
                 const displayStatus = optimisticStatus || client.status || "Nowy kontakt";
                 return (
                   <Select
