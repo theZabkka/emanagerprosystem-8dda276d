@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -42,21 +42,20 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const queryKey = ["client-notes", clientId];
 
-  // Fetch notes
+  // Fetch notes using raw rpc-style query to bypass missing type
   const { data: notes = [], isLoading } = useQuery({
     queryKey,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("client_notes")
+        .from("client_notes" as any)
         .select("*")
         .eq("client_id", clientId)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data || []) as ClientNote[];
+      return (data || []) as unknown as ClientNote[];
     },
     enabled: !!clientId,
   });
@@ -93,21 +92,18 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
       updated_at: new Date().toISOString(),
     };
 
-    // Optimistic update
     queryClient.setQueryData<ClientNote[]>(queryKey, old => [optimisticNote, ...(old || [])]);
     setNewNote("");
 
     try {
-      const { error } = await supabase.from("client_notes").insert({
+      const { error } = await (supabase.from("client_notes" as any) as any).insert({
         client_id: clientId,
         author_id: user.id,
         content: optimisticNote.content,
       });
       if (error) throw error;
-      // Refetch for real IDs
       queryClient.invalidateQueries({ queryKey });
-    } catch (err) {
-      // Rollback
+    } catch {
       queryClient.setQueryData<ClientNote[]>(queryKey, old =>
         (old || []).filter(n => n.id !== optimisticNote.id)
       );
@@ -128,8 +124,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
     setEditingId(null);
 
     try {
-      const { error } = await supabase
-        .from("client_notes")
+      const { error } = await (supabase.from("client_notes" as any) as any)
         .update({ content: editContent.trim(), updated_at: new Date().toISOString() })
         .eq("id", noteId);
       if (error) throw error;
@@ -149,7 +144,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
     );
 
     try {
-      const { error } = await supabase.from("client_notes").delete().eq("id", noteId);
+      const { error } = await (supabase.from("client_notes" as any) as any).delete().eq("id", noteId);
       if (error) throw error;
       toast.success("Notatka usunięta");
     } catch {
@@ -170,7 +165,6 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
       <Card>
         <CardContent className="p-4 space-y-3">
           <Textarea
-            ref={textareaRef}
             value={newNote}
             onChange={e => {
               setNewNote(e.target.value);
@@ -221,7 +215,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
             const isEditing = editingId === note.id;
             const timeAgo = formatDistanceToNow(new Date(note.created_at), { addSuffix: true, locale: pl });
             const fullDate = format(new Date(note.created_at), "dd.MM.yyyy, HH:mm", { locale: pl });
-            const wasEdited = note.updated_at !== note.created_at && 
+            const wasEdited = note.updated_at !== note.created_at &&
               new Date(note.updated_at).getTime() - new Date(note.created_at).getTime() > 1000;
 
             return (
