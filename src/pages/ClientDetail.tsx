@@ -101,6 +101,8 @@ export default function ClientDetail() {
   const [newIdeaDesc, setNewIdeaDesc] = useState("");
   const [newLinkName, setNewLinkName] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState("");
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
 
   // ─── Fetch client ──────────────────────────────────────────────
   const { data: client, isLoading: loadingClient } = useQuery({
@@ -459,35 +461,53 @@ await supabase.from("client_files").delete().eq("id", fileId);
               <Button size="sm" variant="outline" className="bg-red-500/10 border-red-500/30 text-red-600 hover:bg-red-500/20">
                 <MessageSquare className="h-4 w-4 mr-1" /> SMS
               </Button>
-              <Select
-                value={client.status || "Nowy kontakt"}
-                onValueChange={async (val) => {
-                  await supabase.from("clients").update({ status: val as any }).eq("id", client.id);
-                  queryClient.invalidateQueries({ queryKey: ["client-detail", id] });
-                  toast.success(`Status zmieniony na: ${val}`);
-                }}
-              >
-                <SelectTrigger className="w-auto h-auto border-0 p-0 shadow-none focus:ring-0">
-                  <Badge variant="outline" className={`text-xs font-bold px-3 py-1 cursor-pointer ${getClientStatusColor(client.status)}`}>
-                    {getClientStatusLabel(client.status)}
-                  </Badge>
-                </SelectTrigger>
-                <SelectContent>
-                  {CLIENT_STATUS_GROUPS.map((group) => (
-                    <div key={group.name}>
-                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{group.name}</div>
-                      {group.statuses.map((s) => (
-                        <SelectItem key={s.value} value={s.value}>
-                          <span className="flex items-center gap-2">
-                            <span className={`inline-block w-2 h-2 rounded-full ${s.colorClass.split(" ")[0]}`} />
-                            {s.label}
-                          </span>
-                        </SelectItem>
+              {(() => {
+                const displayStatus = optimisticStatus || client.status || "Nowy kontakt";
+                return (
+                  <Select
+                    value={displayStatus}
+                    onValueChange={async (val) => {
+                      const prevStatus = client.status;
+                      setOptimisticStatus(val);
+                      setUpdatingStatus(true);
+                      try {
+                        const { error } = await supabase.from("clients").update({ status: val as any }).eq("id", client.id);
+                        if (error) throw error;
+                        queryClient.invalidateQueries({ queryKey: ["client-detail", id] });
+                        queryClient.invalidateQueries({ queryKey: ["clients"] });
+                        toast.success(`Status zmieniony na: ${val}`);
+                      } catch {
+                        setOptimisticStatus(prevStatus || null);
+                        toast.error("Nie udało się zmienić statusu");
+                      } finally {
+                        setUpdatingStatus(false);
+                        setTimeout(() => setOptimisticStatus(null), 300);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-auto h-auto border-0 p-0 shadow-none focus:ring-0">
+                      <Badge variant="outline" className={`text-xs font-bold px-3 py-1 cursor-pointer transition-opacity ${updatingStatus ? "opacity-50" : ""} ${getClientStatusColor(displayStatus)}`}>
+                        {getClientStatusLabel(displayStatus)}
+                      </Badge>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CLIENT_STATUS_GROUPS.map((group) => (
+                        <div key={group.name}>
+                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{group.name}</div>
+                          {group.statuses.map((s) => (
+                            <SelectItem key={s.value} value={s.value}>
+                              <span className="flex items-center gap-2">
+                                <span className={`inline-block w-2 h-2 rounded-full ${s.colorClass.split(" ")[0]}`} />
+                                {s.label}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </div>
                       ))}
-                    </div>
-                  ))}
-                </SelectContent>
-              </Select>
+                    </SelectContent>
+                  </Select>
+                );
+              })()}
             </div>
           </div>
 
@@ -495,7 +515,7 @@ await supabase.from("client_files").delete().eq("id", fileId);
             open={showEditClient}
             onOpenChange={setShowEditClient}
             client={client}
-            onUpdated={() => queryClient.invalidateQueries({ queryKey: ["client-detail", id] })}
+            onUpdated={() => { queryClient.invalidateQueries({ queryKey: ["client-detail", id] }); queryClient.invalidateQueries({ queryKey: ["clients"] }); }}
           />
           <CreateTaskDialog
             open={showCreateTask}
