@@ -52,6 +52,7 @@ const ClientTicketDetails = lazy(() => import("./pages/ClientTicketDetails"));
 const AdminBugs = lazy(() => import("./pages/AdminBugs"));
 const ResponseTemplates = lazy(() => import("./pages/ResponseTemplates"));
 const VaultPage = lazy(() => import("./pages/VaultPage"));
+const UpdatePassword = lazy(() => import("./pages/UpdatePassword"));
 
 const queryClient = new QueryClient();
 
@@ -105,6 +106,7 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+            <Route path="/update-password" element={<UpdatePassword />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/my-day" element={<ProtectedRoute><MyDay /></ProtectedRoute>} />
