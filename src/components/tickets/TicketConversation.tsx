@@ -66,22 +66,43 @@ export default function TicketConversation({
   const sendReply = useMutation({
     mutationFn: async () => {
       if (!reply.trim() || !user) return;
-      const senderType = isAdmin ? "admin" : "client";
-      const { error } = await supabase.from("ticket_messages" as any).insert({
-        ticket_id: ticketId,
-        sender_type: senderType,
-        sender_id: user.id,
-        body_html: `<p>${reply.trim().replace(/\n/g, "<br/>")}</p>`,
-        body_text: reply.trim(),
-      });
-      if (error) throw error;
+
+      if (isAdmin) {
+        // Admin replies go through the edge function (sends email + saves to DB atomically)
+        const bodyText = reply.trim();
+        const bodyHtml = `<p>${bodyText.replace(/\n/g, "<br/>")}</p>`;
+
+        const { data, error } = await supabase.functions.invoke("send-ticket-reply", {
+          body: {
+            ticket_id: ticketId,
+            body_html: bodyHtml,
+            body_text: bodyText,
+          },
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+      } else {
+        // Client replies insert directly (no outbound email needed)
+        const { error } = await supabase.from("ticket_messages" as any).insert({
+          ticket_id: ticketId,
+          sender_type: "client",
+          sender_id: user.id,
+          body_html: `<p>${reply.trim().replace(/\n/g, "<br/>")}</p>`,
+          body_text: reply.trim(),
+        });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       setReply("");
       qc.invalidateQueries({ queryKey: ["ticket-messages", ticketId] });
-      toast.success("Odpowiedź wysłana");
+      toast.success(isAdmin ? "Odpowiedź wysłana do klienta" : "Odpowiedź wysłana");
     },
-    onError: () => toast.error("Nie udało się wysłać odpowiedzi"),
+    onError: (err: any) => {
+      console.error("Reply error:", err);
+      toast.error("Nie udało się wysłać wiadomości");
+    },
   });
 
   // Scroll to bottom on new messages
