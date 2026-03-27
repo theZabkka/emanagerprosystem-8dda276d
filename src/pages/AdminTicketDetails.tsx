@@ -10,9 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { PageLoader } from "@/components/layout/PageLoader";
-import TicketComments from "@/components/tickets/TicketComments";
+import TicketConversation from "@/components/tickets/TicketConversation";
 import { toast } from "sonner";
-import { ArrowLeft, Download, Paperclip } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 const STATUSES = ["Nowe", "Otwarte", "W trakcie", "Oczekiwanie na klienta", "Rozwiązane", "Zamknięte"];
 const PRIORITIES = ["Niski", "Średni", "Wysoki"];
@@ -96,34 +96,13 @@ export default function AdminTicketDetails() {
                   <span>{new Date(ticket.created_at).toLocaleString("pl-PL", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {ticket.description && (
-                  <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: ticket.description }} />
-                )}
-
-                {(attachments || []).length > 0 && (
-                  <>
-                    <Separator />
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-medium flex items-center gap-1.5"><Paperclip className="h-4 w-4" /> Załączniki</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {attachments!.map((a: any) => (
-                          <a key={a.id} href={a.file_url} target="_blank" rel="noopener noreferrer">
-                            <Badge variant="outline" className="gap-1 cursor-pointer hover:bg-accent">
-                              <Download className="h-3 w-3" /> {a.file_name}
-                            </Badge>
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <TicketComments ticketId={id!} />
+              <CardContent>
+                <TicketConversation
+                  ticketId={id!}
+                  ticket={ticket}
+                  originalAttachments={attachments}
+                  isAdmin={true}
+                />
               </CardContent>
             </Card>
           </div>
