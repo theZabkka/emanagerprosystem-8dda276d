@@ -1,0 +1,320 @@
+import { useState, useRef, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, Pencil, Trash2, Send } from "lucide-react";
+import { toast } from "sonner";
+import { formatDistanceToNow, format } from "date-fns";
+import { pl } from "date-fns/locale";
+
+interface ClientNote {
+  id: string;
+  client_id: string;
+  author_id: string | null;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ClientNotesTimelineProps {
+  clientId: string;
+}
+
+function getInitials(name: string | null | undefined) {
+  if (!name) return "?";
+  return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+}
+
+export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
+  const { user, profile } = useAuth();
+  const queryClient = useQueryClient();
+  const [newNote, setNewNote] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const queryKey = ["client-notes", clientId];
+
+  // Fetch notes
+  const { data: notes = [], isLoading } = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_notes")
+        .select("*")
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as ClientNote[];
+    },
+    enabled: !!clientId,
+  });
+
+  // Fetch profiles for author names
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["profiles-all"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id, full_name, avatar_url, role");
+      return data || [];
+    },
+  });
+
+  const profileMap = new Map(profiles.map(p => [p.id, p]));
+  const isStaff = profile?.role && ["superadmin", "boss", "koordynator", "admin"].includes(profile.role);
+
+  const canManageNote = (authorId: string | null) => {
+    if (!user) return false;
+    if (authorId === user.id) return true;
+    return !!isStaff;
+  };
+
+  // Add note with optimistic update
+  const handleAddNote = async () => {
+    if (!newNote.trim() || !user) return;
+    setSubmitting(true);
+
+    const optimisticNote: ClientNote = {
+      id: crypto.randomUUID(),
+      client_id: clientId,
+      author_id: user.id,
+      content: newNote.trim(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // Optimistic update
+    queryClient.setQueryData<ClientNote[]>(queryKey, old => [optimisticNote, ...(old || [])]);
+    setNewNote("");
+
+    try {
+      const { error } = await supabase.from("client_notes").insert({
+        client_id: clientId,
+        author_id: user.id,
+        content: optimisticNote.content,
+      });
+      if (error) throw error;
+      // Refetch for real IDs
+      queryClient.invalidateQueries({ queryKey });
+    } catch (err) {
+      // Rollback
+      queryClient.setQueryData<ClientNote[]>(queryKey, old =>
+        (old || []).filter(n => n.id !== optimisticNote.id)
+      );
+      toast.error("Nie udało się dodać notatki");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Update note
+  const handleUpdateNote = async (noteId: string) => {
+    if (!editContent.trim()) return;
+
+    const prev = queryClient.getQueryData<ClientNote[]>(queryKey);
+    queryClient.setQueryData<ClientNote[]>(queryKey, old =>
+      (old || []).map(n => n.id === noteId ? { ...n, content: editContent.trim(), updated_at: new Date().toISOString() } : n)
+    );
+    setEditingId(null);
+
+    try {
+      const { error } = await supabase
+        .from("client_notes")
+        .update({ content: editContent.trim(), updated_at: new Date().toISOString() })
+        .eq("id", noteId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey });
+      toast.success("Notatka zaktualizowana");
+    } catch {
+      queryClient.setQueryData(queryKey, prev);
+      toast.error("Nie udało się zaktualizować notatki");
+    }
+  };
+
+  // Delete note
+  const handleDeleteNote = async (noteId: string) => {
+    const prev = queryClient.getQueryData<ClientNote[]>(queryKey);
+    queryClient.setQueryData<ClientNote[]>(queryKey, old =>
+      (old || []).filter(n => n.id !== noteId)
+    );
+
+    try {
+      const { error } = await supabase.from("client_notes").delete().eq("id", noteId);
+      if (error) throw error;
+      toast.success("Notatka usunięta");
+    } catch {
+      queryClient.setQueryData(queryKey, prev);
+      toast.error("Nie udało się usunąć notatki");
+    }
+  };
+
+  // Auto-resize textarea
+  const autoResize = (el: HTMLTextAreaElement) => {
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 200) + "px";
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Input section */}
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <Textarea
+            ref={textareaRef}
+            value={newNote}
+            onChange={e => {
+              setNewNote(e.target.value);
+              autoResize(e.target);
+            }}
+            placeholder="Dodaj notatkę, podsumowanie spotkania lub ustalenia..."
+            className="min-h-[80px] resize-none"
+            onKeyDown={e => {
+              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                handleAddNote();
+              }
+            }}
+          />
+          <div className="flex justify-between items-center">
+            <span className="text-xs text-muted-foreground">Ctrl+Enter aby wysłać</span>
+            <Button
+              onClick={handleAddNote}
+              disabled={!newNote.trim() || submitting}
+              size="sm"
+            >
+              <Send className="h-4 w-4 mr-1.5" />
+              Dodaj notatkę
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Timeline */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-4 h-24" />
+            </Card>
+          ))}
+        </div>
+      ) : notes.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground text-sm">
+            Brak notatek — dodaj pierwszą notatkę powyżej
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {notes.map(note => {
+            const author = note.author_id ? profileMap.get(note.author_id) : null;
+            const isEditing = editingId === note.id;
+            const timeAgo = formatDistanceToNow(new Date(note.created_at), { addSuffix: true, locale: pl });
+            const fullDate = format(new Date(note.created_at), "dd.MM.yyyy, HH:mm", { locale: pl });
+            const wasEdited = note.updated_at !== note.created_at && 
+              new Date(note.updated_at).getTime() - new Date(note.created_at).getTime() > 1000;
+
+            return (
+              <Card key={note.id} className="group transition-shadow hover:shadow-md">
+                <CardContent className="p-4">
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Avatar className="h-8 w-8 shrink-0">
+                        {author?.avatar_url && <AvatarImage src={author.avatar_url} />}
+                        <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                          {getInitials(author?.full_name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {author?.full_name || "Nieznany użytkownik"}
+                        </p>
+                        <p className="text-xs text-muted-foreground" title={fullDate}>
+                          {timeAgo}
+                          {wasEdited && <span className="ml-1 italic">(edytowano)</span>}
+                        </p>
+                      </div>
+                    </div>
+
+                    {canManageNote(note.author_id) && !isEditing && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => {
+                            setEditingId(note.id);
+                            setEditContent(note.content);
+                          }}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edytuj
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => handleDeleteNote(note.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Usuń
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  {isEditing ? (
+                    <div className="space-y-2 mt-1">
+                      <Textarea
+                        value={editContent}
+                        onChange={e => setEditContent(e.target.value)}
+                        className="min-h-[60px] resize-none"
+                        autoFocus
+                      />
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingId(null)}
+                        >
+                          Anuluj
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleUpdateNote(note.id)}
+                          disabled={!editContent.trim()}
+                        >
+                          Zapisz
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                      {note.content}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
