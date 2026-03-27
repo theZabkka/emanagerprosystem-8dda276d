@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { RoleProvider } from "@/hooks/useRole";
 import { ErrorBoundary } from "@/components/layout/ErrorBoundary";
 import { PageLoader } from "@/components/layout/PageLoader";
+import { AdminRoute } from "@/components/layout/AdminRoute";
 
 // Lazy-loaded pages
 const Login = lazy(() => import("./pages/Login"));
