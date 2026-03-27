@@ -80,6 +80,8 @@ Deno.serve(async (req) => {
     const subject = emailData.subject || "(Brak tematu)";
 
     let description = "(Trwa pobieranie treści...)";
+    let htmlBody = "";
+    let textBody = "";
 
     if (emailId) {
       try {
@@ -97,8 +99,8 @@ Deno.serve(async (req) => {
           const resJson = await bodyRes.json();
           const fullEmailData = resJson.data || resJson;
 
-          const htmlBody = fullEmailData.html || "";
-          const textBody = fullEmailData.text || "";
+          htmlBody = fullEmailData.html || "";
+          textBody = fullEmailData.text || "";
           description = htmlBody || textBody || "(Brak treści wiadomości)";
 
           console.log(`Pomyślnie pobrano treść z API. Długość: ${description.length} znaków.`);
@@ -161,27 +163,70 @@ Deno.serve(async (req) => {
       clientId = newClient.id;
     }
 
-    // 6. Tworzenie zgłoszenia
-    const { data: ticket, error: ticketErr } = await supabaseAdmin
-      .from("tickets")
-      .insert({
-        title: subject,
-        description,
-        client_id: clientId,
-        department: "Zgłoszenia problemów",
-        status: "Nowe",
-        priority: "Średni",
-      })
-      .select("id")
-      .single();
+    // 6. Routing: odpowiedź na istniejące zgłoszenie lub nowy bilet
+    const toField = emailData.to || [];
+    const toAddresses = Array.isArray(toField) ? toField.join(',') : String(toField);
+    const replyMatch = toAddresses.match(/ticket-([a-f0-9]{8})@/i);
+    const shortId = replyMatch ? replyMatch[1].toLowerCase() : null;
 
-    if (ticketErr || !ticket) {
-      console.error("Failed to create ticket:", ticketErr);
-      return new Response(
-        JSON.stringify({ error: "Failed to create ticket", details: ticketErr?.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    let targetTicketId: string | null = null;
+    let targetMessageId: string | null = null;
+
+    if (shortId) {
+      console.log(`Wykryto próbę odpowiedzi. Szukam zgłoszenia z prefixem UUID: ${shortId}`);
+      const { data: existingTicket } = await supabaseAdmin
+        .from("tickets")
+        .select("id")
+        .gte("id", `${shortId}-0000-0000-0000-000000000000`)
+        .lte("id", `${shortId}-ffff-ffff-ffff-ffffffffffff`)
+        .maybeSingle();
+
+      if (existingTicket) {
+        targetTicketId = existingTicket.id;
+        console.log(`Znaleziono zgłoszenie bazowe: ${targetTicketId}. Dopinam odpowiedź.`);
+      } else {
+        console.warn(`Nie znaleziono zgłoszenia dla prefixu ${shortId}. Tworzę nowy bilet.`);
+      }
     }
+
+    if (targetTicketId) {
+      // ODPOWIEDŹ - zapisujemy do ticket_messages
+      const { data: newMessage, error: msgErr } = await supabaseAdmin
+        .from("ticket_messages")
+        .insert({
+          ticket_id: targetTicketId,
+          sender_type: "client",
+          sender_id: clientId,
+          body_html: htmlBody,
+          body_text: textBody,
+        })
+        .select("id")
+        .single();
+
+      if (msgErr) throw msgErr;
+      targetMessageId = newMessage.id;
+
+      await supabaseAdmin.from("tickets").update({ status: "Nowe" }).eq("id", targetTicketId);
+    } else {
+      // NOWE ZGŁOSZENIE
+      const { data: newTicket, error: ticketErr } = await supabaseAdmin
+        .from("tickets")
+        .insert({
+          title: subject,
+          description,
+          client_id: clientId,
+          department: "Zgłoszenia problemów",
+          status: "Nowe",
+          priority: "Średni",
+        })
+        .select("id")
+        .single();
+
+      if (ticketErr) throw ticketErr;
+      targetTicketId = newTicket.id;
+    }
+
+    const ticket = { id: targetTicketId };
 
     // 7. Pobranie załączników przez dedykowany endpoint Inbound Resend
     const attachmentsMetadata = emailData.attachments || [];
@@ -251,6 +296,7 @@ Deno.serve(async (req) => {
 
           await supabaseAdmin.from('ticket_attachments').insert({
             ticket_id: ticket.id,
+            message_id: targetMessageId,
             file_name: att.filename,
             file_url: publicUrlData.publicUrl
           });
