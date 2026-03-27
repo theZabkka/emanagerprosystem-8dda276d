@@ -31,17 +31,7 @@ import CallsList from "@/components/calls/CallsList";
 import { EditClientDialog } from "@/components/clients/EditClientDialog";
 import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";
 import { ClientNotesTimeline } from "@/components/clients/ClientNotesTimeline";
-
-const statusLabels: Record<string, string> = {
-  active: "AKTYWNY", potential: "POTENCJALNY", negotiations: "NEGOCJACJE", project: "PROJEKT", inactive: "NIEAKTYWNY",
-};
-const statusColors: Record<string, string> = {
-  active: "bg-green-600/15 text-green-700 border-green-600/30",
-  potential: "bg-blue-500/15 text-blue-700 border-blue-500/30",
-  negotiations: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30",
-  project: "bg-purple-500/15 text-purple-700 border-purple-500/30",
-  inactive: "bg-muted text-muted-foreground border-border",
-};
+import { CLIENT_STATUS_GROUPS, getClientStatusColor, getClientStatusLabel } from "@/constants/clientStatuses";
 
 const offerStatusLabels: Record<string, { label: string; className: string }> = {
   draft: { label: "Szkic", className: "bg-muted text-muted-foreground" },
@@ -469,9 +459,35 @@ await supabase.from("client_files").delete().eq("id", fileId);
               <Button size="sm" variant="outline" className="bg-red-500/10 border-red-500/30 text-red-600 hover:bg-red-500/20">
                 <MessageSquare className="h-4 w-4 mr-1" /> SMS
               </Button>
-              <Badge variant="outline" className={`text-xs font-bold px-3 py-1 ${statusColors[client.status || "active"]}`}>
-                {statusLabels[client.status || "active"]}
-              </Badge>
+              <Select
+                value={client.status || "Nowy kontakt"}
+                onValueChange={async (val) => {
+                  await supabase.from("clients").update({ status: val as any }).eq("id", client.id);
+                  queryClient.invalidateQueries({ queryKey: ["client-detail", id] });
+                  toast.success(`Status zmieniony na: ${val}`);
+                }}
+              >
+                <SelectTrigger className="w-auto h-auto border-0 p-0 shadow-none focus:ring-0">
+                  <Badge variant="outline" className={`text-xs font-bold px-3 py-1 cursor-pointer ${getClientStatusColor(client.status)}`}>
+                    {getClientStatusLabel(client.status)}
+                  </Badge>
+                </SelectTrigger>
+                <SelectContent>
+                  {CLIENT_STATUS_GROUPS.map((group) => (
+                    <div key={group.name}>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{group.name}</div>
+                      {group.statuses.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          <span className="flex items-center gap-2">
+                            <span className={`inline-block w-2 h-2 rounded-full ${s.colorClass.split(" ")[0]}`} />
+                            {s.label}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </div>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
