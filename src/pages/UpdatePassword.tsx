@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,23 +11,61 @@ export default function UpdatePassword() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [ready, setReady] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const readyRef = useRef(false);
   const navigate = useNavigate();
 
+  const markReady = () => {
+    if (!readyRef.current) {
+      readyRef.current = true;
+      setIsVerifying(false);
+      setError(null);
+    }
+  };
+
   useEffect(() => {
-    // Supabase auto-logs in the user from the recovery link hash
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setReady(true);
+    // Step 3: Global auth listener as fallback
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") && session) {
+        markReady();
       }
     });
 
-    // Also check if session already exists (user already authenticated via recovery token)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true);
-    });
+    const init = async () => {
+      // Step 2: PKCE code exchange
+      const code = new URLSearchParams(window.location.search).get("code");
+      if (code) {
+        try {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (!exchangeError) { markReady(); return; }
+          console.error("[UpdatePassword] Code exchange failed:", exchangeError);
+        } catch (err) {
+          console.error("[UpdatePassword] Code exchange exception:", err);
+        }
+      }
 
-    return () => subscription.unsubscribe();
+      // Step 1: Immediate session check
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) { markReady(); return; }
+
+      // If nothing worked yet, the timeout (Step 4) will handle it
+    };
+
+    init();
+
+    // Step 4: Timeout guard
+    const timeout = setTimeout(() => {
+      if (!readyRef.current) {
+        setIsVerifying(false);
+        setError("Link resetujący jest nieprawidłowy lub wygasł.");
+      }
+    }, 4000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -54,31 +92,24 @@ export default function UpdatePassword() {
             <p className="text-sm text-muted-foreground">Ustaw nowe hasło</p>
           </div>
 
-          {!ready ? (
+          {isVerifying ? (
             <p className="text-sm text-center text-muted-foreground">Weryfikacja tokenu resetowania...</p>
+          ) : error ? (
+            <div className="space-y-4 text-center">
+              <p className="text-sm text-destructive">{error}</p>
+              <Button variant="outline" className="w-full" onClick={() => navigate("/login", { replace: true })}>
+                Wróć do logowania
+              </Button>
+            </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="new-password">Nowe hasło</Label>
-                <Input
-                  id="new-password"
-                  type="password"
-                  placeholder="Min. 6 znaków"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                />
+                <Input id="new-password" type="password" placeholder="Min. 6 znaków" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirm-password">Powtórz nowe hasło</Label>
-                <Input
-                  id="confirm-password"
-                  type="password"
-                  placeholder="Powtórz hasło"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
+                <Input id="confirm-password" type="password" placeholder="Powtórz hasło" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Zmieniam..." : "Zmień hasło"}
