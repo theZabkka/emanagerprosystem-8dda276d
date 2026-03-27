@@ -190,7 +190,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="overflow-hidden">
-        <ScrollArea className="h-full">
+        <div ref={scrollRef} className="h-full overflow-y-auto scrollbar-thin">
           {sections.map((section) => {
             const visibleItems = section.items.filter(item => {
               if ((item as any).roles && !(item as any).roles.includes(currentRole)) return false;
@@ -230,7 +230,7 @@ export function AppSidebar() {
             </SidebarGroup>
             );
           })}
-        </ScrollArea>
+        </div>
       </SidebarContent>
 
       <SidebarFooter>
