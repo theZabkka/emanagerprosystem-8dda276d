@@ -33,7 +33,6 @@ export function AppLayout({ children, title }: AppLayoutProps) {
         </div>
       </div>
       <AIAssistantButton />
-      {!isClient && <ZadarmaWidget sipLogin={profile?.zadarma_sip_login} />}
       <CoordinatorFreezeOverlay />
       <ProfileGatekeeper />
     </SidebarProvider>
