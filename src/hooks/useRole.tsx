@@ -38,7 +38,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const { profile, loading: authLoading } = useAuth();
   const [permissions, setPermissions] = useState<Permission[]>([]);
 
-  const roleLoading = authLoading || !profile;
+  const roleLoading = authLoading || (!!profile === false && authLoading === false ? false : !profile);
   const currentRole: AppRoleName = (profile?.role as AppRoleName) || "specjalista";
   const isClient = currentRole === "klient";
   const clientId = (profile as any)?.client_id || null;
