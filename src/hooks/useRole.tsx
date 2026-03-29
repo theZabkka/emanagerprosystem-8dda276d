@@ -35,10 +35,11 @@ interface RoleContextType {
 const RoleContext = createContext<RoleContextType | null>(null);
 
 export function RoleProvider({ children }: { children: ReactNode }) {
-  const { profile, loading: authLoading } = useAuth();
+  const { session, profile, loading: authLoading } = useAuth();
   const [permissions, setPermissions] = useState<Permission[]>([]);
 
-  const roleLoading = authLoading || (!!profile === false && authLoading === false ? false : !profile);
+  // Only keep loading if auth is loading, or if we have a session but profile hasn't arrived yet
+  const roleLoading = authLoading || (!!session && !profile);
   const currentRole: AppRoleName = (profile?.role as AppRoleName) || "specjalista";
   const isClient = currentRole === "klient";
   const clientId = (profile as any)?.client_id || null;
