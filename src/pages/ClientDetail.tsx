@@ -903,7 +903,7 @@ await supabase.from("client_files").delete().eq("id", fileId);
 
           {/* ─── VoIP Calls Tab ───────────────────────────────── */}
           <TabsContent value="voip" className="mt-4">
-            <CallsList clientId={id} />
+            <ClientCallsTab clientId={id!} />
           </TabsContent>
 
           {/* ─── Files Tab ────────────────────────────────────── */}
