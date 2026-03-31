@@ -28,7 +28,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
-import CallsList from "@/components/calls/CallsList";
+import ClientCallsTab from "@/components/calls/ClientCallsTab";
 import { EditClientDialog } from "@/components/clients/EditClientDialog";
 import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";
 import { ClientNotesTimeline } from "@/components/clients/ClientNotesTimeline";
