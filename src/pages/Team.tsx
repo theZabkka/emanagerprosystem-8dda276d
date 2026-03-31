@@ -7,9 +7,11 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Users, CheckSquare, Clock, AlertTriangle, UserPlus } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Search, Users, CheckSquare, Clock, AlertTriangle, UserPlus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import CreateStaffDialog from "@/components/team/CreateStaffDialog";
+import { toast } from "sonner";
 
 export default function Team() {
   const [search, setSearch] = useState("");
