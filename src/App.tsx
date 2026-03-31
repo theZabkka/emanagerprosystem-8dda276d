@@ -53,6 +53,7 @@ const AdminBugs = lazy(() => import("./pages/AdminBugs"));
 const ResponseTemplates = lazy(() => import("./pages/ResponseTemplates"));
 const VaultPage = lazy(() => import("./pages/VaultPage"));
 const UpdatePassword = lazy(() => import("./pages/UpdatePassword"));
+const Transcriptions = lazy(() => import("./pages/Transcriptions"));
 
 const queryClient = new QueryClient();
 
