@@ -49,6 +49,22 @@ export default function ProjectDetail() {
   const [activeTab, setActiveTab] = useState<"tasks" | "budget" | "brief">("tasks");
   const [editingBrief, setEditingBrief] = useState(false);
   const [editedBrief, setEditedBrief] = useState<BriefQuestion[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleDeleteProject = async () => {
+    if (!id) return;
+    setIsDeleting(true);
+    const { error } = await supabase.from("projects").delete().eq("id", id);
+    if (error) {
+      toast.error("Błąd usuwania: " + error.message);
+      setIsDeleting(false);
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["projects"] });
+    toast.success(`Pomyślnie usunięto projekt "${project?.name}"`);
+    navigate("/projects");
+  };
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["project-detail", id],
