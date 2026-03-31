@@ -341,7 +341,7 @@ const { data: existing } = await supabase.from("client_invoice_data").select("id
   const tabCounts: Record<string, number> = useMemo(() => ({
     tasks: activeTasks.length,
     conversations: (conversations || []).length,
-    voip: 0,
+    voip: callsCount || 0,
     offers: (offers || []).length,
     ideas: (ideas || []).length,
     contracts: (contracts || []).length,
