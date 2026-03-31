@@ -121,7 +121,7 @@ export default function Team() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Osoba</TableHead><TableHead>E-mail</TableHead><TableHead>Rola</TableHead><TableHead>Dział</TableHead><TableHead>Status</TableHead><TableHead className="text-center">Zadania</TableHead><TableHead className="text-center">W trakcie</TableHead><TableHead className="text-center">Zaległe</TableHead>
+                  <TableHead>Osoba</TableHead><TableHead>E-mail</TableHead><TableHead>Rola</TableHead><TableHead>Dział</TableHead><TableHead>Status</TableHead><TableHead className="text-center">Zadania</TableHead><TableHead className="text-center">W trakcie</TableHead><TableHead className="text-center">Zaległe</TableHead><TableHead className="w-[60px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
