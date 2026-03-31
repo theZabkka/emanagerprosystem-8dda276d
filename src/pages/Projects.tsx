@@ -93,6 +93,21 @@ export default function Projects() {
     }
   };
 
+  const handleDeleteProject = async (e: React.MouseEvent, projectId: string, projectName: string) => {
+    e.stopPropagation();
+    setDeletingId(projectId);
+    const { error } = await supabase.from("projects").delete().eq("id", projectId);
+    if (error) {
+      toast.error("Błąd usuwania: " + error.message);
+      setDeletingId(null);
+      return;
+    }
+    toast.success(`Pomyślnie usunięto projekt "${projectName}"`);
+    refetch();
+    queryClient.invalidateQueries({ queryKey: ["archived-projects"] });
+    setDeletingId(null);
+  };
+
   return (
     <AppLayout title="Projekty">
       <div className="space-y-4 max-w-7xl mx-auto">
