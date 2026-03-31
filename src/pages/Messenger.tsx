@@ -500,13 +500,13 @@ export default function Messenger() {
                   <div key={msg.id} className={`group flex gap-3 ${showAvatar ? "mt-4" : "mt-0.5"}`}>
                     {showAvatar ? (
                       <Avatar className="h-8 w-8 mt-0.5">
-                        <AvatarFallback className="bg-primary text-primary-foreground text-xs">{getInitials(senderName)}</AvatarFallback>
+                        <AvatarFallback className={`text-xs ${isMissing ? "bg-muted/60 text-muted-foreground" : "bg-primary text-primary-foreground"}`}>{getInitials(senderName)}</AvatarFallback>
                       </Avatar>
                     ) : <div className="w-8" />}
                     <div className="flex-1 min-w-0">
                       {showAvatar && (
                         <div className="flex items-baseline gap-2 mb-0.5">
-                          <span className="text-sm font-semibold text-foreground">{senderName}</span>
+                          <span className={`text-sm font-semibold ${isMissing ? "text-muted-foreground italic" : "text-foreground"}`}>{senderName}</span>
                           <span className="text-xs text-muted-foreground">{format(new Date(msg.created_at), "HH:mm", { locale: pl })}</span>
                         </div>
                       )}
