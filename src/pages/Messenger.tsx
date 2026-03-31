@@ -492,7 +492,8 @@ export default function Messenger() {
                 const prev = messages[idx - 1];
                 const showAvatar = !prev || prev.sender_id !== msg.sender_id ||
                   new Date(msg.created_at).getTime() - new Date(prev.created_at).getTime() > 300000;
-                const senderName = (msg.profiles as any)?.full_name || "Użytkownik";
+                const senderName = (msg.profiles as any)?.full_name || "Usunięty użytkownik";
+                const isMissing = !(msg.profiles as any)?.full_name;
                 const grouped = groupedReactions(msg.id);
 
                 return (
