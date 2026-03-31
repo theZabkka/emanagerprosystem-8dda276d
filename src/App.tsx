@@ -76,7 +76,7 @@ const stubRoutes = [
   { path: "/routines", title: "Rutyny" },
   { path: "/contracts", title: "Umowy" },
   { path: "/orders", title: "Zlecenia" },
-  { path: "/conversations", title: "Rozmowy" },
+  
   { path: "/micro-interventions", title: "Mikro-interwencje" },
   { path: "/client-inbox", title: "Skrzynka klientów" },
   // tickets now has real pages
