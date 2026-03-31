@@ -69,9 +69,9 @@ export default function TaskListView({ tasks, isLoading }: TaskListViewProps) {
                     {assignee ? (
                       <div className="flex items-center gap-1.5">
                         <Avatar className="h-6 w-6">
-                          <AvatarFallback className="text-[10px] bg-muted">{assignee.profiles?.full_name?.[0] || "?"}</AvatarFallback>
+                          <AvatarFallback className={`text-[10px] ${assignee.profiles?.full_name ? "bg-muted" : "bg-muted/60 text-muted-foreground"}`}>{assignee.profiles?.full_name?.[0] || "?"}</AvatarFallback>
                         </Avatar>
-                        <span className="text-sm">{assignee.profiles?.full_name}</span>
+                        <span className={`text-sm ${assignee.profiles?.full_name ? "" : "text-muted-foreground italic"}`}>{assignee.profiles?.full_name || "Usunięty użytkownik"}</span>
                       </div>
                     ) : <span className="text-sm text-muted-foreground">—</span>}
                   </TableCell>
