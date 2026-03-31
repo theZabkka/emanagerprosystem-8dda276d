@@ -273,6 +273,16 @@ export default function ClientDetail() {
     enabled: !!id,
   });
 
+  // ─── Fetch calls count ────────────────────────────────────────
+  const { data: callsCount } = useQuery({
+    queryKey: ["client-calls-count", id],
+    queryFn: async () => {
+      const { count } = await supabase.from("calls").select("id", { count: "exact", head: true }).eq("client_id", id!);
+      return count || 0;
+    },
+    enabled: !!id,
+  });
+
   const [invoiceForm, setInvoiceForm] = useState({ company_name: "", nip: "", street: "", postal_code: "", city: "" });
 
   const openInvoiceEdit = () => {
