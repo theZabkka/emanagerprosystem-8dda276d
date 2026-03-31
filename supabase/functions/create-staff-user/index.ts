@@ -18,17 +18,30 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Verify caller is staff (admin/superadmin)
+    // Pobranie nagłówka autoryzacji
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Brak autoryzacji");
+    if (!authHeader) throw new Error("Brak nagłówka Authorization");
 
-    const { data: { user: caller } } = await createClient(
+    // Stateless Auth Client - KRYTYCZNE DLA DENO EDGE FUNCTIONS
+    const supabaseAuthClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    ).auth.getUser();
+      {
+        global: { headers: { Authorization: authHeader } },
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+        },
+      }
+    );
 
-    if (!caller) throw new Error("Nie można zweryfikować użytkownika");
+    const { data: { user: caller }, error: verifyErr } = await supabaseAuthClient.auth.getUser();
+
+    if (verifyErr || !caller) {
+      console.error("Błąd weryfikacji tokenu wywołującego:", verifyErr);
+      throw new Error(`Sesja wygasła lub jest nieprawidłowa: ${verifyErr?.message || "Brak sesji"}`);
+    }
 
     // Check caller's profile role
     const { data: callerProfile } = await supabaseAdmin
