@@ -167,9 +167,32 @@ export default function Projects() {
                         <TableCell className="text-sm text-muted-foreground">{new Date(p.created_at).toLocaleDateString("pl-PL")}</TableCell>
                         {canArchive && (
                           <TableCell>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={(e) => handleArchive(e, p.id, p.name)} title="Archiwizuj">
-                              <Archive className="h-4 w-4" />
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-warning" onClick={(e) => handleArchive(e, p.id, p.name)} title="Archiwizuj">
+                                <Archive className="h-4 w-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={(e) => e.stopPropagation()} title="Usuń">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Trwałe usunięcie projektu</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Czy na pewno chcesz trwale usunąć projekt <strong>"{p.name}"</strong> wraz ze wszystkimi zadaniami? Tej operacji nie można cofnąć.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                                    <AlertDialogAction onClick={(e) => handleDeleteProject(e, p.id, p.name)} disabled={deletingId === p.id} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                      {deletingId === p.id ? "Usuwanie..." : "Tak, usuń"}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
                           </TableCell>
                         )}
                       </TableRow>
