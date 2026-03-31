@@ -115,7 +115,7 @@ export function StatusTimeline({ statusHistory, currentStatus, taskId }: StatusT
   });
 
   const getPersonName = (h: StatusHistoryEntry) => {
-    return h.profiles?.full_name || "?";
+    return h.profiles?.full_name || "Usunięty użytkownik";
   };
 
   const getInitials = (name: string) =>

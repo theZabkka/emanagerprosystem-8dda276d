@@ -261,13 +261,13 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
                     <div className="flex items-center gap-2.5 min-w-0">
                       <Avatar className="h-8 w-8 shrink-0">
                         {author?.avatar_url && <AvatarImage src={author.avatar_url} />}
-                        <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                        <AvatarFallback className={`text-xs ${author?.full_name ? "bg-primary/10 text-primary" : "bg-muted/60 text-muted-foreground"}`}>
                           {getInitials(author?.full_name)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">
-                          {author?.full_name || "Nieznany użytkownik"}
+                        <p className={`text-sm font-medium truncate ${author?.full_name ? "" : "text-muted-foreground italic"}`}>
+                          {author?.full_name || "Usunięty użytkownik"}
                         </p>
                         <p className="text-xs text-muted-foreground" title={fullDate}>
                           {timeAgo}

@@ -1127,15 +1127,16 @@ await supabase.from("client_files").delete().eq("id", fileId);
                 <CardContent className="p-4">
                   <div className="space-y-0">
                     {(activityHistory || []).map((entry: any, i: number) => {
-                      const authorName = (entry as any).profiles?.full_name || getProfileName(entry.user_id);
+                      const authorName = (entry as any).profiles?.full_name || getProfileName(entry.user_id) || "Usunięty użytkownik";
+                      const isMissing = !(entry as any).profiles?.full_name && !getProfileName(entry.user_id);
                       return (
                         <div key={entry.id || i} className="flex items-start gap-3 py-3 border-b border-border last:border-0">
                           <Avatar className="h-7 w-7 mt-0.5">
-                            <AvatarFallback className="text-[10px] bg-primary/10 text-primary">{getInitials(authorName)}</AvatarFallback>
+                            <AvatarFallback className={`text-[10px] ${isMissing ? "bg-muted/60 text-muted-foreground" : "bg-primary/10 text-primary"}`}>{getInitials(authorName)}</AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm text-foreground">
-                              <span className="font-semibold">{authorName}</span>{" "}
+                              <span className={`font-semibold ${isMissing ? "text-muted-foreground italic" : ""}`}>{authorName}</span>{" "}
                               <span className="text-muted-foreground">{entry.action}</span>{" "}
                               <span className="font-medium">{entry.entity_name}</span>
                             </p>

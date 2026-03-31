@@ -492,20 +492,21 @@ export default function Messenger() {
                 const prev = messages[idx - 1];
                 const showAvatar = !prev || prev.sender_id !== msg.sender_id ||
                   new Date(msg.created_at).getTime() - new Date(prev.created_at).getTime() > 300000;
-                const senderName = (msg.profiles as any)?.full_name || "Użytkownik";
+                const senderName = (msg.profiles as any)?.full_name || "Usunięty użytkownik";
+                const isMissing = !(msg.profiles as any)?.full_name;
                 const grouped = groupedReactions(msg.id);
 
                 return (
                   <div key={msg.id} className={`group flex gap-3 ${showAvatar ? "mt-4" : "mt-0.5"}`}>
                     {showAvatar ? (
                       <Avatar className="h-8 w-8 mt-0.5">
-                        <AvatarFallback className="bg-primary text-primary-foreground text-xs">{getInitials(senderName)}</AvatarFallback>
+                        <AvatarFallback className={`text-xs ${isMissing ? "bg-muted/60 text-muted-foreground" : "bg-primary text-primary-foreground"}`}>{getInitials(senderName)}</AvatarFallback>
                       </Avatar>
                     ) : <div className="w-8" />}
                     <div className="flex-1 min-w-0">
                       {showAvatar && (
                         <div className="flex items-baseline gap-2 mb-0.5">
-                          <span className="text-sm font-semibold text-foreground">{senderName}</span>
+                          <span className={`text-sm font-semibold ${isMissing ? "text-muted-foreground italic" : "text-foreground"}`}>{senderName}</span>
                           <span className="text-xs text-muted-foreground">{format(new Date(msg.created_at), "HH:mm", { locale: pl })}</span>
                         </div>
                       )}

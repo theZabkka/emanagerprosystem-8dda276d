@@ -61,16 +61,19 @@ export default function TicketComments({ ticketId }: TicketCommentsProps) {
         <div className="space-y-3 max-h-96 overflow-y-auto">
           {(comments || []).map((c: any) => {
             const profile = c.profiles;
-            const initials = (profile?.full_name || "?").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+            const displayName = profile?.full_name || "Usunięty użytkownik";
+            const initials = profile?.full_name
+              ? profile.full_name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
+              : "?";
             return (
               <div key={c.id} className="flex gap-3">
                 <Avatar className="h-8 w-8 shrink-0">
                   {profile?.avatar_url && <AvatarImage src={profile.avatar_url} />}
-                  <AvatarFallback className="text-xs bg-muted">{initials}</AvatarFallback>
+                  <AvatarFallback className={`text-xs ${profile ? "bg-muted" : "bg-muted/60 text-muted-foreground"}`}>{initials}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-sm font-medium text-foreground">{profile?.full_name || "Użytkownik"}</span>
+                    <span className={`text-sm font-medium ${profile ? "text-foreground" : "text-muted-foreground italic"}`}>{displayName}</span>
                     <span className="text-xs text-muted-foreground">
                       {new Date(c.created_at).toLocaleString("pl-PL", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                     </span>

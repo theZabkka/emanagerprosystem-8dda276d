@@ -39,13 +39,13 @@ export function ActivityFeed({ activities, isLoading }: ActivityFeedProps) {
             {activities.map((act) => (
               <div key={act.id} className="flex items-start gap-3">
                 <Avatar className="h-7 w-7 mt-0.5">
-                  <AvatarFallback className="text-[10px] bg-muted">
+                  <AvatarFallback className={`text-[10px] ${act.profiles?.full_name ? "bg-muted" : "bg-muted/60 text-muted-foreground"}`}>
                     {(act.profiles?.full_name || "?")[0]}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm">
-                    <span className="font-medium">{act.profiles?.full_name}</span>{" "}
+                    <span className={`font-medium ${act.profiles?.full_name ? "" : "text-muted-foreground italic"}`}>{act.profiles?.full_name || "Usunięty użytkownik"}</span>{" "}
                     <span className="text-muted-foreground">{act.action}</span>{" "}
                     <span className="font-medium">{act.entity_name}</span>
                   </p>
