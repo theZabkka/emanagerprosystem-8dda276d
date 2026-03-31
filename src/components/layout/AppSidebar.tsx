@@ -54,7 +54,7 @@ const sections = [
       { title: "Zlecenia", url: "/orders", icon: Briefcase },
       { title: "Lejek sprzedaży", url: "/crm", icon: TrendingUp },
       { title: "Pomysły klientów", url: "/staff-ideas", icon: Lightbulb },
-      { title: "Rozmowy", url: "/conversations", icon: MessageCircle },
+      { title: "Transkrypcje", url: "/transcriptions", icon: MessageCircle },
       { title: "Mikro-interwencje", url: "/micro-interventions", icon: Zap },
     ],
   },

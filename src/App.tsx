@@ -53,6 +53,7 @@ const AdminBugs = lazy(() => import("./pages/AdminBugs"));
 const ResponseTemplates = lazy(() => import("./pages/ResponseTemplates"));
 const VaultPage = lazy(() => import("./pages/VaultPage"));
 const UpdatePassword = lazy(() => import("./pages/UpdatePassword"));
+const Transcriptions = lazy(() => import("./pages/Transcriptions"));
 
 const queryClient = new QueryClient();
 
@@ -75,7 +76,7 @@ const stubRoutes = [
   { path: "/routines", title: "Rutyny" },
   { path: "/contracts", title: "Umowy" },
   { path: "/orders", title: "Zlecenia" },
-  { path: "/conversations", title: "Rozmowy" },
+  
   { path: "/micro-interventions", title: "Mikro-interwencje" },
   { path: "/client-inbox", title: "Skrzynka klientów" },
   // tickets now has real pages
@@ -146,6 +147,7 @@ const App = () => (
             <Route path="/admin/bugs" element={<ProtectedRoute><AdminBugs /></ProtectedRoute>} />
             <Route path="/admin/templates" element={<AdminRoute><ResponseTemplates /></AdminRoute>} />
             <Route path="/vault" element={<ProtectedRoute><VaultPage /></ProtectedRoute>} />
+            <Route path="/transcriptions" element={<ProtectedRoute><Transcriptions /></ProtectedRoute>} />
             {stubRoutes.map((r) => (
               <Route key={r.path} path={r.path} element={<ProtectedRoute><StubPage title={r.title} /></ProtectedRoute>} />
             ))}
