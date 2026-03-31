@@ -147,6 +147,7 @@ const App = () => (
             <Route path="/admin/bugs" element={<ProtectedRoute><AdminBugs /></ProtectedRoute>} />
             <Route path="/admin/templates" element={<AdminRoute><ResponseTemplates /></AdminRoute>} />
             <Route path="/vault" element={<ProtectedRoute><VaultPage /></ProtectedRoute>} />
+            <Route path="/transcriptions" element={<ProtectedRoute><Transcriptions /></ProtectedRoute>} />
             {stubRoutes.map((r) => (
               <Route key={r.path} path={r.path} element={<ProtectedRoute><StubPage title={r.title} /></ProtectedRoute>} />
             ))}
