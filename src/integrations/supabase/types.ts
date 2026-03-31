@@ -135,10 +135,9 @@ export type Database = {
         Row: {
           ai_summary: string | null
           called_at: string | null
-          callee_number: string | null
-          caller_number: string | null
           client_id: string | null
           created_at: string | null
+          details: string | null
           direction: string
           duration: number | null
           error_note: string | null
@@ -148,16 +147,16 @@ export type Database = {
           status: string
           suggestions: string | null
           task_id: string | null
+          title: string | null
           transcription: string | null
           zadarma_call_id: string | null
         }
         Insert: {
           ai_summary?: string | null
           called_at?: string | null
-          callee_number?: string | null
-          caller_number?: string | null
           client_id?: string | null
           created_at?: string | null
+          details?: string | null
           direction?: string
           duration?: number | null
           error_note?: string | null
@@ -167,16 +166,16 @@ export type Database = {
           status?: string
           suggestions?: string | null
           task_id?: string | null
+          title?: string | null
           transcription?: string | null
           zadarma_call_id?: string | null
         }
         Update: {
           ai_summary?: string | null
           called_at?: string | null
-          callee_number?: string | null
-          caller_number?: string | null
           client_id?: string | null
           created_at?: string | null
+          details?: string | null
           direction?: string
           duration?: number | null
           error_note?: string | null
@@ -186,6 +185,7 @@ export type Database = {
           status?: string
           suggestions?: string | null
           task_id?: string | null
+          title?: string | null
           transcription?: string | null
           zadarma_call_id?: string | null
         }
