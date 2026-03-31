@@ -51,21 +51,30 @@ export default function CreateStaffDialog({ open, onOpenChange, onCreated }: Cre
     if (!form.password || form.password.length < 6) { toast.error("Hasło musi mieć min. 6 znaków"); return; }
     if (!form.role) { toast.error("Wybierz rolę"); return; }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email.trim())) { toast.error("Podaj poprawny adres e-mail"); return; }
+
     setLoading(true);
     try {
+      const payload = {
+        email: form.email.trim(),
+        password: form.password,
+        full_name: form.full_name.trim(),
+        role: form.role,
+        department: form.department || null,
+        phone: form.phone || null,
+        position: form.position || null,
+      };
+
       const { data, error } = await supabase.functions.invoke("create-staff-user", {
-        body: {
-          email: form.email.trim(),
-          password: form.password,
-          full_name: form.full_name.trim(),
-          role: form.role,
-          department: form.department || null,
-          phone: form.phone || null,
-          position: form.position || null,
-        },
+        body: payload,
       });
 
-      if (error) throw error;
+      // Edge Function returns 4xx — decode the real message
+      if (error) {
+        const msg = (data as any)?.error || error.message || "Nieznany błąd serwera";
+        throw new Error(msg);
+      }
       if (!data?.success) throw new Error(data?.error || "Nieznany błąd");
 
       toast.success(`Pracownik ${form.full_name} został dodany`);
