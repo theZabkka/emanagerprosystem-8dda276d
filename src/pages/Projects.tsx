@@ -142,7 +142,7 @@ export default function Projects() {
                     <TableHead>Status</TableHead>
                     <TableHead>Manager</TableHead>
                     <TableHead>Utworzono</TableHead>
-                    {canArchive && <TableHead className="w-[80px]"></TableHead>}
+                    {canArchive && <TableHead className="w-[120px]">Akcje</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
