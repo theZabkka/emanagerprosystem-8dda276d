@@ -350,7 +350,7 @@ const { data: existing } = await supabase.from("client_invoice_data").select("id
     social: (socialAccounts || []).length,
     billing: invoiceData ? 1 : 0,
     history: (activityHistory || []).length,
-  }), [activeTasks, conversations, offers, ideas, contracts, orders, files, socialAccounts, invoiceData, activityHistory]);
+  }), [activeTasks, conversations, callsCount, offers, ideas, contracts, orders, files, socialAccounts, invoiceData, activityHistory]);
 
   // ─── Filtered tasks ───────────────────────────────────────────
   const filteredTasks = useMemo(() => {
