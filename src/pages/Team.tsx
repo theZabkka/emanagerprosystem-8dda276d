@@ -7,9 +7,11 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Users, CheckSquare, Clock, AlertTriangle, UserPlus } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Search, Users, CheckSquare, Clock, AlertTriangle, UserPlus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import CreateStaffDialog from "@/components/team/CreateStaffDialog";
+import { toast } from "sonner";
 
 export default function Team() {
   const [search, setSearch] = useState("");
@@ -70,6 +72,22 @@ export default function Team() {
     return tasks.filter(t => (taskIds.includes(t.id) || t.created_by === userId) && t.due_date && new Date(t.due_date) < new Date()).length;
   };
 
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteStaff = async (person: any) => {
+    setDeletingId(person.id);
+    const { error } = await supabase.from("profiles").delete().eq("id", person.id);
+    if (error) {
+      toast.error("Błąd usuwania: " + error.message);
+      setDeletingId(null);
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["team-members"] });
+    queryClient.invalidateQueries({ queryKey: ["staff-members"] });
+    toast.success(`Pomyślnie usunięto pracownika "${person.full_name}"`);
+    setDeletingId(null);
+  };
+
   return (
     <AppLayout title="Zespół">
       <div className="space-y-6">
@@ -103,7 +121,7 @@ export default function Team() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Osoba</TableHead><TableHead>E-mail</TableHead><TableHead>Rola</TableHead><TableHead>Dział</TableHead><TableHead>Status</TableHead><TableHead className="text-center">Zadania</TableHead><TableHead className="text-center">W trakcie</TableHead><TableHead className="text-center">Zaległe</TableHead>
+                  <TableHead>Osoba</TableHead><TableHead>E-mail</TableHead><TableHead>Rola</TableHead><TableHead>Dział</TableHead><TableHead>Status</TableHead><TableHead className="text-center">Zadania</TableHead><TableHead className="text-center">W trakcie</TableHead><TableHead className="text-center">Zaległe</TableHead><TableHead className="w-[60px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -117,9 +135,32 @@ export default function Team() {
                     <TableCell className="text-center font-medium">{getUserTaskCount(p.id)}</TableCell>
                     <TableCell className="text-center font-medium">{getUserInProgress(p.id)}</TableCell>
                     <TableCell className="text-center">{getUserOverdue(p.id) > 0 ? <span className="text-destructive font-bold">{getUserOverdue(p.id)}</span> : <span className="text-muted-foreground">0</span>}</TableCell>
+                    <TableCell>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Trwałe usunięcie pracownika</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Czy na pewno chcesz trwale usunąć pracownika <strong>"{p.full_name}"</strong>? Przypisania do zadań zostaną usunięte, ale same zadania pozostaną. Tej operacji nie można cofnąć.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteStaff(p)} disabled={deletingId === p.id} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                              {deletingId === p.id ? "Usuwanie..." : "Tak, usuń"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </TableCell>
                   </TableRow>
                 ))}
-                {filtered.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Brak wyników</TableCell></TableRow>}
+                {filtered.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Brak wyników</TableCell></TableRow>}
               </TableBody>
             </Table>
           </CardContent>

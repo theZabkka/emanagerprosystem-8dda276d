@@ -7,7 +7,8 @@ import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Plus, Archive, Search, RotateCcw } from "lucide-react";
+import { Plus, Archive, Search, RotateCcw, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import CreateProjectDialog from "@/components/projects/CreateProjectDialog";
@@ -26,6 +27,7 @@ export default function Projects() {
   const [activeTab, setActiveTab] = useState("active");
   const [archiveSearch, setArchiveSearch] = useState("");
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const { currentRole } = useRole();
   const canArchive = ["superadmin", "boss", "koordynator"].includes(currentRole);
 
@@ -91,6 +93,21 @@ export default function Projects() {
     }
   };
 
+  const handleDeleteProject = async (e: React.MouseEvent, projectId: string, projectName: string) => {
+    e.stopPropagation();
+    setDeletingId(projectId);
+    const { error } = await supabase.from("projects").delete().eq("id", projectId);
+    if (error) {
+      toast.error("Błąd usuwania: " + error.message);
+      setDeletingId(null);
+      return;
+    }
+    toast.success(`Pomyślnie usunięto projekt "${projectName}"`);
+    refetch();
+    queryClient.invalidateQueries({ queryKey: ["archived-projects"] });
+    setDeletingId(null);
+  };
+
   return (
     <AppLayout title="Projekty">
       <div className="space-y-4 max-w-7xl mx-auto">
@@ -125,7 +142,7 @@ export default function Projects() {
                     <TableHead>Status</TableHead>
                     <TableHead>Manager</TableHead>
                     <TableHead>Utworzono</TableHead>
-                    {canArchive && <TableHead className="w-[80px]"></TableHead>}
+                    {canArchive && <TableHead className="w-[120px]">Akcje</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -150,9 +167,32 @@ export default function Projects() {
                         <TableCell className="text-sm text-muted-foreground">{new Date(p.created_at).toLocaleDateString("pl-PL")}</TableCell>
                         {canArchive && (
                           <TableCell>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={(e) => handleArchive(e, p.id, p.name)} title="Archiwizuj">
-                              <Archive className="h-4 w-4" />
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-warning" onClick={(e) => handleArchive(e, p.id, p.name)} title="Archiwizuj">
+                                <Archive className="h-4 w-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={(e) => e.stopPropagation()} title="Usuń">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Trwałe usunięcie projektu</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Czy na pewno chcesz trwale usunąć projekt <strong>"{p.name}"</strong> wraz ze wszystkimi zadaniami? Tej operacji nie można cofnąć.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                                    <AlertDialogAction onClick={(e) => handleDeleteProject(e, p.id, p.name)} disabled={deletingId === p.id} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                      {deletingId === p.id ? "Usuwanie..." : "Tak, usuń"}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
                           </TableCell>
                         )}
                       </TableRow>

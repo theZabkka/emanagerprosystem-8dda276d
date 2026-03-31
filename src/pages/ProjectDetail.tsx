@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, ListChecks, Briefcase, FileText, Sparkles, CheckCircle2, Circle, Pencil, Save, X, Archive, Lock } from "lucide-react";
+import { ArrowLeft, ListChecks, Briefcase, FileText, Sparkles, CheckCircle2, Circle, Pencil, Save, X, Archive, Lock, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -47,6 +49,22 @@ export default function ProjectDetail() {
   const [activeTab, setActiveTab] = useState<"tasks" | "budget" | "brief">("tasks");
   const [editingBrief, setEditingBrief] = useState(false);
   const [editedBrief, setEditedBrief] = useState<BriefQuestion[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleDeleteProject = async () => {
+    if (!id) return;
+    setIsDeleting(true);
+    const { error } = await supabase.from("projects").delete().eq("id", id);
+    if (error) {
+      toast.error("Błąd usuwania: " + error.message);
+      setIsDeleting(false);
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["projects"] });
+    toast.success(`Pomyślnie usunięto projekt "${project?.name}"`);
+    navigate("/projects");
+  };
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["project-detail", id],
@@ -178,6 +196,32 @@ export default function ProjectDetail() {
               Brief: {hasBrief ? "Wypełniony ✓" : "Brak ✗"}
             </Badge>
           </div>
+
+          {!isClient && (
+            <div className="flex items-center gap-2 mt-2">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1.5">
+                    <Trash2 className="h-4 w-4" /> Usuń projekt
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Trwałe usunięcie projektu</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Czy na pewno chcesz trwale usunąć projekt <strong>"{project.name}"</strong> wraz ze wszystkimi zadaniami? Tej operacji nie można cofnąć.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteProject} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      {isDeleting ? "Usuwanie..." : "Tak, usuń"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
 
           <p className="text-sm text-muted-foreground">
             {(project as any).clients?.name || "—"} · Kierownik: {(project as any).profiles?.full_name || "—"}
