@@ -143,8 +143,10 @@ export type Database = {
           duration: number | null
           error_note: string | null
           id: string
+          pbx_call_id: string
           recording_url: string | null
           status: string
+          suggestions: string | null
           task_id: string | null
           transcription: string | null
           zadarma_call_id: string | null
@@ -160,8 +162,10 @@ export type Database = {
           duration?: number | null
           error_note?: string | null
           id?: string
+          pbx_call_id: string
           recording_url?: string | null
           status?: string
+          suggestions?: string | null
           task_id?: string | null
           transcription?: string | null
           zadarma_call_id?: string | null
@@ -177,8 +181,10 @@ export type Database = {
           duration?: number | null
           error_note?: string | null
           id?: string
+          pbx_call_id?: string
           recording_url?: string | null
           status?: string
+          suggestions?: string | null
           task_id?: string | null
           transcription?: string | null
           zadarma_call_id?: string | null
