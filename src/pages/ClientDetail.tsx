@@ -28,7 +28,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
-import CallsList from "@/components/calls/CallsList";
+import ClientCallsTab from "@/components/calls/ClientCallsTab";
 import { EditClientDialog } from "@/components/clients/EditClientDialog";
 import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";
 import { ClientNotesTimeline } from "@/components/clients/ClientNotesTimeline";
@@ -273,6 +273,16 @@ export default function ClientDetail() {
     enabled: !!id,
   });
 
+  // ─── Fetch calls count ────────────────────────────────────────
+  const { data: callsCount } = useQuery({
+    queryKey: ["client-calls-count", id],
+    queryFn: async () => {
+      const { count } = await supabase.from("calls").select("id", { count: "exact", head: true }).eq("client_id", id!);
+      return count || 0;
+    },
+    enabled: !!id,
+  });
+
   const [invoiceForm, setInvoiceForm] = useState({ company_name: "", nip: "", street: "", postal_code: "", city: "" });
 
   const openInvoiceEdit = () => {
@@ -331,7 +341,7 @@ const { data: existing } = await supabase.from("client_invoice_data").select("id
   const tabCounts: Record<string, number> = useMemo(() => ({
     tasks: activeTasks.length,
     conversations: (conversations || []).length,
-    voip: 0,
+    voip: callsCount || 0,
     offers: (offers || []).length,
     ideas: (ideas || []).length,
     contracts: (contracts || []).length,
@@ -340,7 +350,7 @@ const { data: existing } = await supabase.from("client_invoice_data").select("id
     social: (socialAccounts || []).length,
     billing: invoiceData ? 1 : 0,
     history: (activityHistory || []).length,
-  }), [activeTasks, conversations, offers, ideas, contracts, orders, files, socialAccounts, invoiceData, activityHistory]);
+  }), [activeTasks, conversations, callsCount, offers, ideas, contracts, orders, files, socialAccounts, invoiceData, activityHistory]);
 
   // ─── Filtered tasks ───────────────────────────────────────────
   const filteredTasks = useMemo(() => {
@@ -903,7 +913,7 @@ await supabase.from("client_files").delete().eq("id", fileId);
 
           {/* ─── VoIP Calls Tab ───────────────────────────────── */}
           <TabsContent value="voip" className="mt-4">
-            <CallsList clientId={id} />
+            <ClientCallsTab clientId={id!} />
           </TabsContent>
 
           {/* ─── Files Tab ────────────────────────────────────── */}
