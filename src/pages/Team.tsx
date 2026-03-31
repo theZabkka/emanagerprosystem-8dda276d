@@ -135,6 +135,29 @@ export default function Team() {
                     <TableCell className="text-center font-medium">{getUserTaskCount(p.id)}</TableCell>
                     <TableCell className="text-center font-medium">{getUserInProgress(p.id)}</TableCell>
                     <TableCell className="text-center">{getUserOverdue(p.id) > 0 ? <span className="text-destructive font-bold">{getUserOverdue(p.id)}</span> : <span className="text-muted-foreground">0</span>}</TableCell>
+                    <TableCell>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Trwałe usunięcie pracownika</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Czy na pewno chcesz trwale usunąć pracownika <strong>"{p.full_name}"</strong>? Przypisania do zadań zostaną usunięte, ale same zadania pozostaną. Tej operacji nie można cofnąć.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteStaff(p)} disabled={deletingId === p.id} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                              {deletingId === p.id ? "Usuwanie..." : "Tak, usuń"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {filtered.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Brak wyników</TableCell></TableRow>}
