@@ -478,6 +478,27 @@ await supabase.from("client_files").delete().eq("id", fileId);
               <Button size="sm" variant="outline" className="bg-red-500/10 border-red-500/30 text-red-600 hover:bg-red-500/20">
                 <MessageSquare className="h-4 w-4 mr-1" /> SMS
               </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                    <Trash2 className="h-4 w-4 mr-1" /> Usuń
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Trwałe usunięcie klienta</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Czy na pewno chcesz trwale usunąć klienta <strong>"{client.name}"</strong>? Zostaną usunięte wszystkie powiązane dane (projekty, notatki, oferty, umowy). Tej operacji nie można cofnąć.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteClient} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      {isDeleting ? "Usuwanie..." : "Tak, usuń"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
               {(() => {
                 const displayStatus = client.status || "Nowy kontakt";
                 return (
