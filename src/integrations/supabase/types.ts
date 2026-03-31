@@ -816,7 +816,7 @@ export type Database = {
           requires_client_reply: boolean | null
           task_id: string
           type: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           client_reply?: string | null
@@ -826,7 +826,7 @@ export type Database = {
           requires_client_reply?: boolean | null
           task_id: string
           type?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           client_reply?: string | null
@@ -836,7 +836,7 @@ export type Database = {
           requires_client_reply?: boolean | null
           task_id?: string
           type?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -882,21 +882,21 @@ export type Database = {
           created_at: string | null
           deal_id: string
           id: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           content: string
           created_at?: string | null
           deal_id: string
           id?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           content?: string
           created_at?: string | null
           deal_id?: string
           id?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -1192,7 +1192,7 @@ export type Database = {
           content: string
           created_at: string | null
           id: string
-          sender_id: string
+          sender_id: string | null
         }
         Insert: {
           attachment_name?: string | null
@@ -1202,7 +1202,7 @@ export type Database = {
           content: string
           created_at?: string | null
           id?: string
-          sender_id: string
+          sender_id?: string | null
         }
         Update: {
           attachment_name?: string | null
@@ -1212,7 +1212,7 @@ export type Database = {
           content?: string
           created_at?: string | null
           id?: string
-          sender_id?: string
+          sender_id?: string | null
         }
         Relationships: [
           {
@@ -2110,7 +2110,7 @@ export type Database = {
           id: string
           phase: string | null
           task_id: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -2119,7 +2119,7 @@ export type Database = {
           id?: string
           phase?: string | null
           task_id: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -2128,7 +2128,7 @@ export type Database = {
           id?: string
           phase?: string | null
           task_id?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
