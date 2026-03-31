@@ -27,6 +27,7 @@ export default function Projects() {
   const [activeTab, setActiveTab] = useState("active");
   const [archiveSearch, setArchiveSearch] = useState("");
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const { currentRole } = useRole();
   const canArchive = ["superadmin", "boss", "koordynator"].includes(currentRole);
 
