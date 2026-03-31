@@ -72,6 +72,22 @@ export default function Team() {
     return tasks.filter(t => (taskIds.includes(t.id) || t.created_by === userId) && t.due_date && new Date(t.due_date) < new Date()).length;
   };
 
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteStaff = async (person: any) => {
+    setDeletingId(person.id);
+    const { error } = await supabase.from("profiles").delete().eq("id", person.id);
+    if (error) {
+      toast.error("Błąd usuwania: " + error.message);
+      setDeletingId(null);
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["team-members"] });
+    queryClient.invalidateQueries({ queryKey: ["staff-members"] });
+    toast.success(`Pomyślnie usunięto pracownika "${person.full_name}"`);
+    setDeletingId(null);
+  };
+
   return (
     <AppLayout title="Zespół">
       <div className="space-y-6">
