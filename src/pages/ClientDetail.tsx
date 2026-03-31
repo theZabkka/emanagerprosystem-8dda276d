@@ -104,6 +104,22 @@ export default function ClientDetail() {
   const [newLinkName, setNewLinkName] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const navigate = useNavigate();
+
+  const handleDeleteClient = async () => {
+    if (!id) return;
+    setIsDeleting(true);
+    const { error } = await supabase.from("clients").delete().eq("id", id);
+    if (error) {
+      toast.error("Błąd usuwania klienta: " + error.message);
+      setIsDeleting(false);
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["clients"] });
+    toast.success(`Pomyślnie usunięto klienta "${client?.name}"`);
+    navigate("/clients");
+  };
 
   // ─── Fetch client ──────────────────────────────────────────────
   const { data: client, isLoading: loadingClient } = useQuery({
