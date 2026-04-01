@@ -89,7 +89,7 @@ export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("tasks");
+  const [activeTab, setActiveTab] = useState("overview");
   const [copied, setCopied] = useState(false);
   const [taskSearch, setTaskSearch] = useState("");
   const [taskStatusFilter, setTaskStatusFilter] = useState("all");
