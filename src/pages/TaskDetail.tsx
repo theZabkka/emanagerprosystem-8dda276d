@@ -363,6 +363,7 @@ export default function TaskDetail() {
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     queryClient.invalidateQueries({ queryKey: ["task-corrections", id] });
     queryClient.invalidateQueries({ queryKey: ["status-history", id] });
+    refreshAfterVerification();
     setClientReviewOpen(false);
     setCorrectionText("");
     setCorrectionSeverity("normal");
