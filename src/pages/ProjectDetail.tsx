@@ -9,11 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, ListChecks, Briefcase, FileText, Sparkles, CheckCircle2, Circle, Pencil, Save, X, Archive, Lock, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
+import { ArrowLeft, ListChecks, Briefcase, FileText, Sparkles, CheckCircle2, Circle, Pencil, Save, X, Archive, Lock, Trash2, Plus, Search } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";
 
 const statusLabels: Record<string, string> = {
   active: "AKTYWNY", completed: "UKOŃCZONY", paused: "WSTRZYMANY", planning: "PLANOWANIE",
