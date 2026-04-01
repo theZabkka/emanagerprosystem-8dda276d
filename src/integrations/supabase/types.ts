@@ -2475,6 +2475,7 @@ export type Database = {
         Args: { _project_id?: string; _user_id?: string }
         Returns: Json
       }
+      hard_delete_task: { Args: { p_task_id: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -7,7 +7,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { Clock, UserPlus, Archive, GripVertical, Plus } from "lucide-react";
+import { Clock, UserPlus, Archive, GripVertical, Plus, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
@@ -15,6 +16,7 @@ import { toast } from "sonner";
 import { ChecklistBlockModal, ResponsibilityModal } from "./WorkflowModals";
 import { RejectionModal } from "./RejectionModal";
 import { useAuth } from "@/hooks/useAuth";
+import { useRole } from "@/hooks/useRole";
 import { compareRanks, generateMidpointRank, generateRankAfter, generateRankBefore } from "@/lib/lexoRank";
 import { sortTasks } from "@/lib/taskSorting";
 import type { SortField, SortDirection } from "@/components/tasks/TaskFilters";
@@ -48,6 +50,7 @@ interface TaskKanbanBoardProps {
   clients: any[];
   onStatusChange: (taskId: string, newStatus: string) => void;
   onArchive?: (taskId: string) => void;
+  onHardDelete?: (taskId: string) => void;
   onRefresh?: () => void;
   onLexoRankUpdate?: (taskId: string, newRank: string) => void;
   onQuickAdd?: (status: string) => void;
@@ -56,10 +59,12 @@ interface TaskKanbanBoardProps {
 }
 
 export default function TaskKanbanBoard({
-  tasks, profiles, assignments, clients, onStatusChange, onArchive, onRefresh,
+  tasks, profiles, assignments, clients, onStatusChange, onArchive, onHardDelete, onRefresh,
   onLexoRankUpdate, onQuickAdd, sortField = "manual", sortDirection = "asc",
 }: TaskKanbanBoardProps) {
   const { user } = useAuth();
+  const { currentRole } = useRole();
+  const isSuperAdmin = currentRole === "superadmin";
   const isManualSort = sortField === "manual";
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
   const [responsibilityOpen, setResponsibilityOpen] = useState(false);
@@ -396,6 +401,8 @@ export default function TaskKanbanBoard({
                                   allProfiles={allProfiles || []}
                                   onAssign={handleAssign}
                                   onArchive={onArchive}
+                                  onHardDelete={onHardDelete}
+                                  isSuperAdmin={isSuperAdmin}
                                 />
                               )}
                             </Draggable>
@@ -431,11 +438,14 @@ interface KanbanCardProps {
   allProfiles: any[];
   onAssign: (taskId: string, userId: string) => void;
   onArchive?: (taskId: string) => void;
+  onHardDelete?: (taskId: string) => void;
+  isSuperAdmin?: boolean;
 }
 
 const KanbanCard = React.memo(function KanbanCard({
   task, provided, isDragging, columnKey, getAssignee, getAllAssignees, getClient,
   getInitials, getAvatarColor, getWaitingTime, allProfiles, onAssign, onArchive,
+  onHardDelete, isSuperAdmin,
 }: KanbanCardProps) {
   const taskAssignees = getAllAssignees(task.id);
   const client = getClient(task.client_id);
@@ -529,15 +539,50 @@ const KanbanCard = React.memo(function KanbanCard({
               <Clock className="h-2 w-2" />{(task.logged_time / 60).toFixed(1)}h
             </span>
           )}
-          {columnKey === "closed" && onArchive && (
-            <Button
-              size="sm" variant="ghost"
-              className="h-5 text-[8px] gap-0.5 text-muted-foreground hover:text-primary px-1"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onArchive(task.id); }}
-            >
-              <Archive className="h-2 w-2" />Archiwizuj
-            </Button>
+          {(columnKey === "closed" && (onArchive || (isSuperAdmin && onHardDelete))) && (
+            <div className="flex flex-col items-end gap-1">
+              {onArchive && (
+                <Button
+                  size="sm" variant="ghost"
+                  className="h-5 text-[8px] gap-0.5 text-muted-foreground hover:text-primary px-1"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); onArchive(task.id); }}
+                >
+                  <Archive className="h-2 w-2" />Archiwizuj
+                </Button>
+              )}
+              {isSuperAdmin && onHardDelete && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      size="sm" variant="ghost"
+                      className="h-5 text-[8px] gap-0.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 px-1"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    >
+                      <Trash2 className="h-2 w-2" />Usuń
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-destructive">Trwałe usunięcie zadania</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Uwaga: Czy na pewno chcesz trwale usunąć to zadanie? Ta akcja jest bezpowrotna. Z bazy znikną również wszystkie komentarze, logi oraz dane analityczne powiązane z tym zadaniem. Zamiast tego zalecamy użycie archiwizacji.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={(e) => { e.stopPropagation(); onHardDelete(task.id); }}
+                      >
+                        Tak, usuń trwale
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
           )}
         </div>
       </div>
