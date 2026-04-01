@@ -515,6 +515,52 @@ export default function ProjectDetail() {
             </Card>
           </div>
         )}
+
+        {/* Create Task Dialog */}
+        <CreateTaskDialog
+          open={showCreateTask}
+          onOpenChange={setShowCreateTask}
+          onCreated={() => queryClient.invalidateQueries({ queryKey: ["project-tasks", id] })}
+          defaultProjectId={id}
+          defaultClientId={project?.client_id || undefined}
+        />
+
+        {/* Assign Existing Task Dialog */}
+        <Dialog open={showAssignExisting} onOpenChange={setShowAssignExisting}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Przypisz istniejące zadanie</DialogTitle>
+              <DialogDescription>
+                Wyszukaj zadanie bez projektu {project?.client_id ? `dla klienta ${(project as any).clients?.name || ""}` : ""} i przypisz je do tego projektu.
+              </DialogDescription>
+            </DialogHeader>
+            <Command className="border rounded-lg">
+              <CommandInput placeholder="Szukaj zadania..." />
+              <CommandList className="max-h-64">
+                <CommandEmpty>Brak dostępnych zadań do przypisania</CommandEmpty>
+                <CommandGroup>
+                  {(unassignedTasks || []).map((t: any) => (
+                    <CommandItem
+                      key={t.id}
+                      value={t.title}
+                      onSelect={() => assignTaskToProject(t.id)}
+                      disabled={assigningTaskId === t.id}
+                      className="flex items-center gap-2"
+                    >
+                      <Circle className="h-3 w-3 shrink-0 text-muted-foreground" />
+                      <span className="flex-1 truncate text-sm">{t.title}</span>
+                      {t.priority && (
+                        <Badge variant="outline" className={`text-[9px] shrink-0 ${priorityColors[t.priority] || ""}`}>
+                          {priorityLabels[t.priority] || t.priority}
+                        </Badge>
+                      )}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );
