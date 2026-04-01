@@ -33,7 +33,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
       <AIAssistantButton />
       <CoordinatorFreezeOverlay />
       <ProfileGatekeeper />
-      <ZadarmaWidget />
+      
     </SidebarProvider>
   );
 }
