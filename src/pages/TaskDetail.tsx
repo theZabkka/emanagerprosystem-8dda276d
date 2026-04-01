@@ -574,7 +574,20 @@ export default function TaskDetail() {
     toast.success(newClientId ? "Klient przypisany" : "Powiązanie z klientem usunięte");
   }
 
-  async function handlePriorityChange(newPriority: string) {
+  const saveTitle = useCallback(async () => {
+    if (!task || isSavingTitle) return;
+    const trimmed = titleValue.trim();
+    if (!trimmed || trimmed === task.title) { setIsEditingTitle(false); return; }
+    setIsSavingTitle(true);
+    const { error } = await supabase.from("tasks").update({ title: trimmed, updated_at: new Date().toISOString() } as any).eq("id", task.id);
+    setIsSavingTitle(false);
+    if (error) { toast.error("Błąd zapisu tytułu"); return; }
+    queryClient.invalidateQueries({ queryKey: ["task", id] });
+    setIsEditingTitle(false);
+    toast.success("Tytuł zaktualizowany");
+  }, [task, titleValue, isSavingTitle, queryClient, id]);
+
+
     if (!task || newPriority === task.priority) return;
     const { error } = await supabase.from("tasks").update({ priority: newPriority as any, updated_at: new Date().toISOString() } as any).eq("id", task.id);
     if (error) { toast.error("Błąd aktualizacji priorytetu"); return; }
