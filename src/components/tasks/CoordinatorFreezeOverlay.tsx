@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
-import { AlertTriangle, Clock, ExternalLink, User } from "lucide-react";
+import { AlertTriangle, Clock, ExternalLink, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -15,6 +15,16 @@ export function CoordinatorFreezeOverlay() {
   const { currentRole } = useRole();
   const navigate = useNavigate();
   const [frozenTasks, setFrozenTasks] = useState<any[]>([]);
+  const [dismissed, setDismissed] = useState(false);
+
+  const handleGoToTask = useCallback((taskId: string) => {
+    setDismissed(true);
+    navigate(`/tasks/${taskId}`);
+  }, [navigate]);
+
+  const handleDismiss = useCallback(() => {
+    setDismissed(true);
+  }, []);
 
   // Fetch tasks currently in review with their status_entered_at from history
   const { data: reviewTasks } = useQuery({
@@ -66,13 +76,21 @@ export function CoordinatorFreezeOverlay() {
     setFrozenTasks(overdue);
   }, [reviewTasks]);
 
-  // No frozen tasks → nothing to show
-  if (frozenTasks.length === 0) return null;
+  // Reset dismiss when frozen tasks change (new task enters freeze)
+  useEffect(() => {
+    if (frozenTasks.length > 0) {
+      setDismissed(false);
+    }
+  }, [frozenTasks.length]);
+
+  // No frozen tasks or dismissed → nothing to show
+  if (frozenTasks.length === 0 || dismissed) return null;
+
+  // clients never see this
+  if (currentRole === "klient") return null;
 
   // superadmin and boss: show non-blocking banner only
   const isExempt = currentRole === "superadmin" || currentRole === "boss";
-  // clients never see this
-  if (currentRole === "klient") return null;
 
   function formatElapsed(enteredAt: string) {
     const mins = Math.floor((Date.now() - new Date(enteredAt).getTime()) / 60000);
@@ -101,17 +119,22 @@ export function CoordinatorFreezeOverlay() {
     return (
       <div className="fixed bottom-4 right-4 z-50 max-w-md w-full animate-in slide-in-from-bottom-4">
         <div className="bg-card border-2 border-warning/50 rounded-xl shadow-lg p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-warning" />
-            <p className="text-sm font-semibold">
-              {frozenTasks.length} {frozenTasks.length === 1 ? "zadanie oczekuje" : "zadań oczekuje"} na weryfikację
-            </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              <p className="text-sm font-semibold">
+                {frozenTasks.length} {frozenTasks.length === 1 ? "zadanie oczekuje" : "zadań oczekuje"} na weryfikację
+              </p>
+            </div>
+            <button onClick={handleDismiss} className="p-1 rounded-md hover:bg-muted transition-colors">
+              <X className="h-4 w-4 text-muted-foreground" />
+            </button>
           </div>
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {frozenTasks.map((t: any) => (
               <button
                 key={t.id}
-                onClick={() => navigate(`/tasks/${t.id}`)}
+                onClick={() => handleGoToTask(t.id)}
                 className="w-full flex items-center justify-between gap-2 rounded-lg border p-2 hover:bg-muted/50 transition-colors text-left"
               >
                 <div className="min-w-0 flex-1">
@@ -133,7 +156,15 @@ export function CoordinatorFreezeOverlay() {
   // Blocking overlay for koordynator, specjalista, praktykant
   return (
     <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full bg-card border-2 border-destructive rounded-2xl shadow-2xl p-8 space-y-6 max-h-[90vh] overflow-y-auto">
+      <div className="relative max-w-2xl w-full bg-card border-2 border-destructive rounded-2xl shadow-2xl p-8 space-y-6 max-h-[90vh] overflow-y-auto">
+        {/* Close button */}
+        <button
+          onClick={handleDismiss}
+          className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-muted transition-colors"
+        >
+          <X className="h-5 w-5 text-muted-foreground" />
+        </button>
+
         <div className="text-center space-y-4">
           <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
             <AlertTriangle className="h-8 w-8 text-destructive" />
@@ -192,7 +223,7 @@ export function CoordinatorFreezeOverlay() {
               )}
 
               <Button
-                onClick={() => navigate(`/tasks?taskId=${t.id}`)}
+                onClick={() => handleGoToTask(t.id)}
                 className="w-full gap-2"
                 size="sm"
               >
@@ -203,9 +234,14 @@ export function CoordinatorFreezeOverlay() {
           ))}
         </div>
 
-        <p className="text-xs text-muted-foreground text-center">
-          Blokada zniknie automatycznie, gdy wszystkie zaległe zadania zostaną zweryfikowane lub zmienią status.
-        </p>
+        <div className="flex flex-col items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={handleDismiss} className="text-muted-foreground">
+            Zamknij / Przypomnij później
+          </Button>
+          <p className="text-xs text-muted-foreground text-center">
+            Blokada pojawi się ponownie przy kolejnym odświeżeniu lub po pojawieniu się nowych zaległych zadań.
+          </p>
+        </div>
       </div>
     </div>
   );
