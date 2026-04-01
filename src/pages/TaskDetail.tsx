@@ -938,7 +938,7 @@ export default function TaskDetail() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {!isClient && (
+              {!isClient && !isPreviewMode && (
               <div className="flex items-center gap-3">
                 <Progress value={(briefFilledCount / briefFields.length) * 100} className="h-2 flex-1" />
                 <span className={`text-xs font-semibold ${briefFilledCount === 0 ? "text-destructive" : briefFilledCount < briefFields.length ? "text-amber-600" : "text-green-600"}`}>
