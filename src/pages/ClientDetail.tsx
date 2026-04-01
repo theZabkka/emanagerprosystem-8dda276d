@@ -34,6 +34,7 @@ import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";
 import { ClientNotesTimeline } from "@/components/clients/ClientNotesTimeline";
 import { CLIENT_STATUS_GROUPS, getClientStatusColor, getClientStatusLabel } from "@/constants/clientStatuses";
 import { ClientNotesCard } from "@/components/clients/ClientNotesCard";
+import { ClientContactsTab } from "@/components/clients/ClientContactsTab";
 
 const offerStatusLabels: Record<string, { label: string; className: string }> = {
   draft: { label: "Szkic", className: "bg-muted text-muted-foreground" },
