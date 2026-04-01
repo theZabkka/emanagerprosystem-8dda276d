@@ -274,25 +274,23 @@ export default function Settings() {
 
   const handlePasswordChange = async () => {
     if (!currentPassword) { toast.error("Wprowadź obecne hasło"); return; }
-    if (newPassword.length < 6) { toast.error("Nowe hasło musi mieć min. 6 znaków"); return; }
+    if (newPassword.length < 8) { toast.error("Nowe hasło musi mieć min. 8 znaków"); return; }
     if (newPassword !== confirmPassword) { toast.error("Hasła nie są identyczne"); return; }
     setChangingPassword(true);
     try {
-      // Re-authenticate with current password
+      // Step A: Verify old password via background sign-in
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (!currentUser?.email) { toast.error("Nie można pobrać danych użytkownika"); setChangingPassword(false); return; }
-      const { error: authError } = await supabase.auth.signInWithPassword({ email: currentUser.email, password: currentPassword });
-      if (authError) { toast.error("Obecne hasło jest nieprawidłowe"); setChangingPassword(false); return; }
-      // Update password
+      const { error: verifyErr } = await supabase.auth.signInWithPassword({ email: currentUser.email, password: currentPassword });
+      if (verifyErr) { toast.error("Stare hasło jest nieprawidłowe"); setChangingPassword(false); return; }
+      // Step B: Update password
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) { toast.error("Błąd zmiany hasła: " + error.message); setChangingPassword(false); return; }
-      toast.success("Hasło zostało zmienione. Zaloguj się ponownie nowym hasłem.");
+      toast.success("Hasło zostało zmienione.");
       setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
-      // Sign out and redirect
-      await supabase.auth.signOut();
-      window.location.href = "/login";
-    } catch (e) {
+    } catch {
       toast.error("Wystąpił nieoczekiwany błąd");
+    } finally {
       setChangingPassword(false);
     }
   };
