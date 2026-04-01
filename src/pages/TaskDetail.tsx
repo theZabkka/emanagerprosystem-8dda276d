@@ -36,6 +36,7 @@ import { StatusTimeline } from "@/components/tasks/StatusTimeline";
 import { DescriptionCard } from "@/components/tasks/DescriptionCard";
 import { statusLabels, statusColors, TERMINAL_STATUSES } from "@/lib/statusConfig";
 import { useTimerStore } from "@/hooks/useTimerStore";
+import { useVerificationLock } from "@/hooks/useVerificationLock";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -106,6 +107,7 @@ export default function TaskDetail() {
   const [titleValue, setTitleValue] = useState("");
   const [isSavingTitle, setIsSavingTitle] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const { refreshAfterVerification } = useVerificationLock();
 
   // ─── Queries ─────────────────────────────────────────────────────
   const { data: task, isLoading } = useQuery({
@@ -278,6 +280,7 @@ export default function TaskDetail() {
     if (error) { toast.error(error.message); return; }
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     queryClient.invalidateQueries({ queryKey: ["status-history", id] });
+    refreshAfterVerification();
     toast.success(`Status zmieniony na ${statusLabels[newStatus]}`);
   }
 
@@ -341,6 +344,7 @@ export default function TaskDetail() {
     if (error) { toast.error(error.message); return; }
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     queryClient.invalidateQueries({ queryKey: ["status-history", id] });
+    refreshAfterVerification();
     toast.success("Zadanie zaakceptowane!");
   }
 
@@ -359,6 +363,7 @@ export default function TaskDetail() {
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     queryClient.invalidateQueries({ queryKey: ["task-corrections", id] });
     queryClient.invalidateQueries({ queryKey: ["status-history", id] });
+    refreshAfterVerification();
     setClientReviewOpen(false);
     setCorrectionText("");
     setCorrectionSeverity("normal");
@@ -389,6 +394,7 @@ export default function TaskDetail() {
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     queryClient.invalidateQueries({ queryKey: ["comments", id] });
     queryClient.invalidateQueries({ queryKey: ["status-history", id] });
+    refreshAfterVerification();
     setRejectReviewOpen(false);
     setRejectReviewText("");
     toast.success("Zadanie odrzucone — przeniesiono do POPRAWEK");
