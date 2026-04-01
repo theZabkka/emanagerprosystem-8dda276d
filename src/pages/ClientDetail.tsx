@@ -722,7 +722,81 @@ await supabase.from("client_files").delete().eq("id", fileId);
                 </div>
               </TabsContent>
 
-          {/* ─── Tasks Tab ────────────────────────────────────── */}
+              {/* ─── Profile Tab ──────────────────────────────── */}
+              <TabsContent value="profile" className="mt-0 space-y-6">
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground mb-4">Edytuj dane klienta</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Nazwa firmy</Label>
+                      <Input value={client.name} readOnly className="bg-muted" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>E-mail</Label>
+                      <Input value={client.email || ""} readOnly className="bg-muted" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Telefon</Label>
+                      <Input value={client.phone || ""} readOnly className="bg-muted" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Osoba kontaktowa</Label>
+                      <Input value={client.contact_person || ""} readOnly className="bg-muted" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>NIP</Label>
+                      <Input value={client.nip || ""} readOnly className="bg-muted" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Miasto</Label>
+                      <Input value={client.city || ""} readOnly className="bg-muted" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Adres</Label>
+                      <Input value={client.address || ""} readOnly className="bg-muted" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Kod pocztowy</Label>
+                      <Input value={client.postal_code || ""} readOnly className="bg-muted" />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <Button onClick={() => setShowEditClient(true)}>
+                      <Pencil className="h-4 w-4 mr-1" /> Edytuj dane
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Danger Zone */}
+                <div className="border border-destructive/30 bg-destructive/5 rounded-md p-4 space-y-3 mt-8">
+                  <h3 className="text-sm font-bold text-destructive">Strefa niebezpieczna</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Usunięcie klienta jest operacją nieodwracalną. Wszystkie powiązane dane (zadania, pliki, notatki) zostaną trwale usunięte.
+                  </p>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="destructive">
+                        <Trash2 className="h-4 w-4 mr-1" /> Usuń klienta
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Trwałe usunięcie klienta</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Czy na pewno chcesz trwale usunąć klienta <strong>"{client.name}"</strong>? Zostaną usunięte wszystkie powiązane dane. Tej operacji nie można cofnąć.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteClient} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          {isDeleting ? "Usuwanie..." : "Tak, usuń"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </TabsContent>
+
           <TabsContent value="tasks" className="mt-0 space-y-4">
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
               <div className="flex gap-2 flex-1">
