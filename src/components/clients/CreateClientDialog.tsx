@@ -215,7 +215,7 @@ export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClie
             <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Informacje o kontakcie</h3>
             <div className="space-y-2">
               <Label>Imię <span className="text-destructive">*</span></Label>
-              <Input value={form.first_name} onChange={(e) => updateField("first_name", e.target.value)} />
+              <Input ref={firstNameRef} value={form.first_name} onChange={(e) => updateField("first_name", e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Nazwisko <span className="text-destructive">*</span></Label>
