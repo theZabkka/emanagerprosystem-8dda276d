@@ -76,13 +76,21 @@ export function CoordinatorFreezeOverlay() {
     setFrozenTasks(overdue);
   }, [reviewTasks]);
 
-  // No frozen tasks → nothing to show
-  if (frozenTasks.length === 0) return null;
+  // Reset dismiss when frozen tasks change (new task enters freeze)
+  useEffect(() => {
+    if (frozenTasks.length > 0) {
+      setDismissed(false);
+    }
+  }, [frozenTasks.length]);
+
+  // No frozen tasks or dismissed → nothing to show
+  if (frozenTasks.length === 0 || dismissed) return null;
+
+  // clients never see this
+  if (currentRole === "klient") return null;
 
   // superadmin and boss: show non-blocking banner only
   const isExempt = currentRole === "superadmin" || currentRole === "boss";
-  // clients never see this
-  if (currentRole === "klient") return null;
 
   function formatElapsed(enteredAt: string) {
     const mins = Math.floor((Date.now() - new Date(enteredAt).getTime()) / 60000);
