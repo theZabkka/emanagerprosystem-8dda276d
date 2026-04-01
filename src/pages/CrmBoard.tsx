@@ -1,26 +1,31 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
-import { Plus, Archive, Search, MoreHorizontal, GripVertical, Pencil, Trash2 } from "lucide-react";
+import { Plus, Archive, Search, MoreHorizontal, GripVertical, Pencil, Trash2, Tag, Building2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { compareRanks, generateRankBefore, generateRankAfter, generateMidpointRank } from "@/lib/lexoRank";
 import {
-  useCrmColumns, useCrmDeals, useCrmLabels,
+  useCrmColumns, useCrmDeals, useCrmLabels, useCrmLabelsForDeals,
   useCrmRealtime, useCrmMutations,
   type CrmColumn, type CrmDeal,
 } from "@/hooks/useCrmData";
+import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { CrmDealCard } from "@/components/crm/CrmDealCard";
 import { CrmDealDetailPanel } from "@/components/crm/CrmDealDetailPanel";
 import { CrmArchiveDrawer } from "@/components/crm/CrmArchiveDrawer";
+import { CrmLabelManager } from "@/components/crm/CrmLabelManager";
 
 export default function CrmBoard() {
   useCrmRealtime();
@@ -28,6 +33,7 @@ export default function CrmBoard() {
   const { data: columns = [] } = useCrmColumns();
   const { data: deals = [] } = useCrmDeals(false);
   const { data: allLabels = [] } = useCrmLabels();
+  const { data: staff = [] } = useStaffMembers();
   const mutations = useCrmMutations();
 
   const [search, setSearch] = useState("");
@@ -35,14 +41,29 @@ export default function CrmBoard() {
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [createColumnOpen, setCreateColumnOpen] = useState(false);
+  const [labelManagerOpen, setLabelManagerOpen] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
   const [editingColumnName, setEditingColumnName] = useState("");
+  const [creating, setCreating] = useState(false);
 
-  // New deal form (no priority)
-  const [newDeal, setNewDeal] = useState({ title: "", column_id: "", due_date: "" });
+  // Clients list
+  const { data: clients = [] } = useQuery({
+    queryKey: ["clients-list-crm"],
+    queryFn: async () => {
+      const { data } = await supabase.from("clients").select("id, name").order("name");
+      return data || [];
+    },
+  });
 
-  // All labels for each deal
+  // New deal form
+  const [newDeal, setNewDeal] = useState({
+    title: "", column_id: "", due_date: "", due_time: "",
+    description: "", assigned_to: "", client_id: "",
+  });
+  const [selectedCreateLabels, setSelectedCreateLabels] = useState<string[]>([]);
+
+  // Labels for all deals
   const { data: allDealLabelsMap } = useCrmLabelsForDeals(deals.map(d => d.id));
 
   // Filtered deals
@@ -61,6 +82,41 @@ export default function CrmBoard() {
     });
     return map;
   }, [columns, filteredDeals]);
+
+  // Click-and-drag horizontal scroll
+  const boardRef = useRef<HTMLDivElement>(null);
+  const dragScrollState = useRef({ isDown: false, startX: 0, scrollLeft: 0, moved: false });
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    const board = boardRef.current;
+    if (!board) return;
+    // Only activate on the board background, not on cards
+    if ((e.target as HTMLElement).closest('[data-rfd-draggable-id]')) return;
+    dragScrollState.current = {
+      isDown: true,
+      startX: e.pageX - board.offsetLeft,
+      scrollLeft: board.scrollLeft,
+      moved: false,
+    };
+    board.style.cursor = "grabbing";
+  }, []);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    const state = dragScrollState.current;
+    if (!state.isDown) return;
+    const board = boardRef.current;
+    if (!board) return;
+    e.preventDefault();
+    const x = e.pageX - board.offsetLeft;
+    const walk = (x - state.startX) * 1.5;
+    if (Math.abs(walk) > 5) state.moved = true;
+    board.scrollLeft = state.scrollLeft - walk;
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    dragScrollState.current.isDown = false;
+    if (boardRef.current) boardRef.current.style.cursor = "grab";
+  }, []);
 
   // DnD handler
   const handleDragEnd = useCallback(
@@ -123,9 +179,8 @@ export default function CrmBoard() {
       );
       mutations.updateDealRank.mutate({ id: draggableId, lexo_rank: newRank, column_id: isSameColumn ? undefined : destColumnId });
 
-      // Log stage change to crm_stage_logs when column changes
+      // Log stage change
       if (!isSameColumn) {
-        // Close previous stage log
         supabase
           .from("crm_stage_logs" as any)
           .update({ exited_at: new Date().toISOString() } as any)
@@ -133,14 +188,9 @@ export default function CrmBoard() {
           .eq("column_id", srcColumnId)
           .is("exited_at", null)
           .then(() => {
-            // Insert new stage log
-            supabase
-              .from("crm_stage_logs" as any)
-              .insert({ deal_id: draggableId, column_id: destColumnId } as any)
-              .then();
+            supabase.from("crm_stage_logs" as any).insert({ deal_id: draggableId, column_id: destColumnId } as any).then();
           });
 
-        // Check if destination column is won/lost → set closed_at
         const destCol = columns.find((c) => c.id === destColumnId);
         if (destCol) {
           const colNameLower = destCol.name.toLowerCase();
@@ -150,7 +200,6 @@ export default function CrmBoard() {
           if (isClosedStage) {
             supabase.from("crm_deals" as any).update({ closed_at: new Date().toISOString() } as any).eq("id", draggableId).then();
           } else {
-            // Returning to active stage → clear closed_at
             supabase.from("crm_deals" as any).update({ closed_at: null } as any).eq("id", draggableId).then();
           }
         }
@@ -159,26 +208,62 @@ export default function CrmBoard() {
     [columns, dealsByColumn, qc, mutations]
   );
 
-  const handleCreateDeal = () => {
+  const handleCreateDeal = async () => {
     if (!newDeal.title.trim() || !newDeal.column_id) {
       toast.error("Podaj tytuł i wybierz kolumnę");
       return;
     }
-    const colDeals = deals.filter((d) => d.column_id === newDeal.column_id);
-    const lastRank = colDeals.length > 0 ? colDeals[colDeals.length - 1].lexo_rank : null;
-    const rank = lastRank ? generateRankAfter(lastRank) : generateMidpointRank(null, null);
+    setCreating(true);
+    try {
+      const colDeals = deals.filter((d) => d.column_id === newDeal.column_id);
+      const lastRank = colDeals.length > 0 ? colDeals[colDeals.length - 1].lexo_rank : null;
+      const rank = lastRank ? generateRankAfter(lastRank) : generateMidpointRank(null, null);
 
-    mutations.createDeal.mutate({
-      title: newDeal.title,
-      column_id: newDeal.column_id,
-      priority: "medium",
-      due_date: newDeal.due_date || undefined,
-      lexo_rank: rank,
-      reminder_active: true,
-    });
-    setCreateOpen(false);
-    setNewDeal({ title: "", column_id: "", due_date: "" });
-    toast.success("Karta dodana");
+      const dueDateCombined = newDeal.due_date
+        ? newDeal.due_time
+          ? `${newDeal.due_date}T${newDeal.due_time}:00`
+          : `${newDeal.due_date}T23:59:00`
+        : undefined;
+
+      // Insert deal
+      const { data: insertedData, error } = await supabase
+        .from("crm_deals" as any)
+        .insert({
+          title: newDeal.title.trim(),
+          column_id: newDeal.column_id,
+          priority: "medium",
+          due_date: dueDateCombined || null,
+          description: newDeal.description.trim() || null,
+          assigned_to: newDeal.assigned_to || null,
+          client_id: newDeal.client_id || null,
+          lexo_rank: rank,
+          reminder_active: true,
+        } as any)
+        .select("id")
+        .single();
+
+      if (error) throw error;
+
+      // Attach labels
+      if (selectedCreateLabels.length > 0 && insertedData) {
+        const labelInserts = selectedCreateLabels.map((lid) => ({
+          deal_id: (insertedData as any).id,
+          label_id: lid,
+        }));
+        await supabase.from("crm_deal_labels" as any).insert(labelInserts as any);
+      }
+
+      qc.invalidateQueries({ queryKey: ["crm-deals"] });
+      qc.invalidateQueries({ queryKey: ["crm-all-deal-labels"] });
+      setCreateOpen(false);
+      setNewDeal({ title: "", column_id: "", due_date: "", due_time: "", description: "", assigned_to: "", client_id: "" });
+      setSelectedCreateLabels([]);
+      toast.success("Karta dodana");
+    } catch (err: any) {
+      toast.error("Błąd tworzenia karty: " + (err.message || "Nieznany błąd"));
+    } finally {
+      setCreating(false);
+    }
   };
 
   const handleCreateColumn = () => {
@@ -198,6 +283,12 @@ export default function CrmBoard() {
     toast.success("Nazwa zmieniona");
   };
 
+  // Refresh selected deal when deals change
+  const refreshedSelectedDeal = useMemo(() => {
+    if (!selectedDeal) return null;
+    return deals.find((d) => d.id === selectedDeal.id) || selectedDeal;
+  }, [deals, selectedDeal]);
+
   return (
     <AppLayout title="Lejek sprzedaży">
       <div className="flex flex-col h-[calc(100vh-4rem)]">
@@ -207,6 +298,9 @@ export default function CrmBoard() {
           <div className="flex items-center gap-2">
             <Button onClick={() => setCreateOpen(true)} className="bg-primary text-primary-foreground hover:bg-primary/90">
               <Plus className="h-4 w-4 mr-1" /> Nowa karta
+            </Button>
+            <Button variant="outline" onClick={() => setLabelManagerOpen(true)}>
+              <Tag className="h-4 w-4 mr-1" /> Etykiety
             </Button>
             <Button variant="outline" onClick={() => setArchiveOpen(true)}>
               <Archive className="h-4 w-4 mr-1" /> Archiwum
@@ -230,8 +324,15 @@ export default function CrmBoard() {
           </Button>
         </div>
 
-        {/* Kanban board */}
-        <div className="flex-1 overflow-x-auto overflow-y-hidden">
+        {/* Kanban board with click-and-drag scroll */}
+        <div
+          ref={boardRef}
+          className="flex-1 overflow-x-auto overflow-y-hidden cursor-grab select-none"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        >
           <DragDropContext onDragEnd={handleDragEnd}>
             <Droppable droppableId="board" type="COLUMN" direction="horizontal">
               {(boardProvided) => (
@@ -354,7 +455,7 @@ export default function CrmBoard() {
 
       {/* Detail panel */}
       <CrmDealDetailPanel
-        deal={selectedDeal}
+        deal={refreshedSelectedDeal}
         open={!!selectedDeal}
         onClose={() => setSelectedDeal(null)}
       />
@@ -362,17 +463,25 @@ export default function CrmBoard() {
       {/* Archive drawer */}
       <CrmArchiveDrawer open={archiveOpen} onClose={() => setArchiveOpen(false)} />
 
-      {/* Create deal dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      {/* Label manager dialog */}
+      <Dialog open={labelManagerOpen} onOpenChange={setLabelManagerOpen}>
         <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Zarządzanie etykietami</DialogTitle></DialogHeader>
+          <CrmLabelManager />
+        </DialogContent>
+      </Dialog>
+
+      {/* Create deal dialog - expanded */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Nowa karta</DialogTitle></DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
             <div className="space-y-2">
               <Label>Tytuł *</Label>
               <Input value={newDeal.title} onChange={(e) => setNewDeal({ ...newDeal, title: e.target.value })} placeholder="Nazwa karty" />
             </div>
             <div className="space-y-2">
-              <Label>Kolumna *</Label>
+              <Label>Kolumna / etap *</Label>
               <Select value={newDeal.column_id} onValueChange={(v) => setNewDeal({ ...newDeal, column_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Wybierz kolumnę..." /></SelectTrigger>
                 <SelectContent>
@@ -381,10 +490,76 @@ export default function CrmBoard() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Termin</Label>
-              <Input type="date" value={newDeal.due_date} onChange={(e) => setNewDeal({ ...newDeal, due_date: e.target.value })} />
+              <Label>Opis</Label>
+              <Textarea
+                value={newDeal.description}
+                onChange={(e) => setNewDeal({ ...newDeal, description: e.target.value })}
+                placeholder="Opis karty..."
+                rows={3}
+              />
             </div>
-            <Button onClick={handleCreateDeal} className="w-full">Dodaj kartę</Button>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Data terminu</Label>
+                <Input type="date" value={newDeal.due_date} onChange={(e) => setNewDeal({ ...newDeal, due_date: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Godzina</Label>
+                <Input type="time" value={newDeal.due_time} onChange={(e) => setNewDeal({ ...newDeal, due_time: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Przypisana osoba</Label>
+              <Select value={newDeal.assigned_to} onValueChange={(v) => setNewDeal({ ...newDeal, assigned_to: v === "_none" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="Wybierz..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">Brak</SelectItem>
+                  {staff.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.full_name || "Bez nazwy"}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Klient</Label>
+              <Select value={newDeal.client_id} onValueChange={(v) => setNewDeal({ ...newDeal, client_id: v === "_none" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="Wybierz klienta..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">Brak</SelectItem>
+                  {clients.map((c: any) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Etykiety</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {allLabels.map((l) => (
+                  <Badge
+                    key={l.id}
+                    className={cn(
+                      "text-[10px] cursor-pointer transition-all",
+                      selectedCreateLabels.includes(l.id)
+                        ? "text-white ring-2 ring-foreground/30"
+                        : "opacity-50 hover:opacity-80"
+                    )}
+                    style={{ backgroundColor: l.color }}
+                    onClick={() => {
+                      setSelectedCreateLabels((prev) =>
+                        prev.includes(l.id) ? prev.filter((id) => id !== l.id) : [...prev, l.id]
+                      );
+                    }}
+                  >
+                    {l.name} {selectedCreateLabels.includes(l.id) && "✓"}
+                  </Badge>
+                ))}
+                {allLabels.length === 0 && <span className="text-xs text-muted-foreground">Brak etykiet</span>}
+              </div>
+            </div>
+            <Button onClick={handleCreateDeal} className="w-full" disabled={creating}>
+              {creating ? "Tworzenie..." : "Dodaj kartę"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -405,28 +580,4 @@ export default function CrmBoard() {
       </Dialog>
     </AppLayout>
   );
-}
-
-// Need Select imports
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-// Helper hook: fetch labels for all visible deals in a single pass
-function useCrmLabelsForDeals(dealIds: string[]) {
-  return useQuery({
-    queryKey: ["crm-all-deal-labels", dealIds.join(",")],
-    enabled: dealIds.length > 0,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("crm_deal_labels" as any)
-        .select("deal_id, crm_labels(id, name, color)")
-        .in("deal_id", dealIds);
-      if (error) throw error;
-      const map: Record<string, Array<{ id: string; name: string; color: string }>> = {};
-      (data as any[]).forEach((row: any) => {
-        if (!map[row.deal_id]) map[row.deal_id] = [];
-        if (row.crm_labels) map[row.deal_id].push(row.crm_labels);
-      });
-      return map;
-    },
-  });
 }
