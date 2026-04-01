@@ -78,6 +78,7 @@ export default function AdminTicketForm() {
           description,
           client_id: clientId,
           created_by: profile?.id || null,
+          contact_id: profile?.is_contact ? profile?.id : null,
           priority,
           assigned_to: assignedTo,
         } as any)

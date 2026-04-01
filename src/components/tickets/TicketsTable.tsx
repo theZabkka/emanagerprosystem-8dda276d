@@ -21,14 +21,16 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 interface TicketsTableProps {
   isAdmin: boolean;
   clientId?: string | null;
+  isPrimaryContact?: boolean;
+  contactId?: string | null;
 }
 
-export default function TicketsTable({ isAdmin, clientId }: TicketsTableProps) {
+export default function TicketsTable({ isAdmin, clientId, isPrimaryContact, contactId }: TicketsTableProps) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["tickets", isAdmin, clientId, page],
+    queryKey: ["tickets", isAdmin, clientId, isPrimaryContact, contactId, page],
     queryFn: async () => {
       let query = supabase
         .from("tickets")
@@ -38,6 +40,10 @@ export default function TicketsTable({ isAdmin, clientId }: TicketsTableProps) {
 
       if (!isAdmin && clientId) {
         query = query.eq("client_id", clientId);
+        // Data isolation: non-primary contacts see only their own tickets
+        if (!isPrimaryContact && contactId) {
+          query = query.eq("contact_id", contactId);
+        }
       }
 
       const { data, error, count } = await query;

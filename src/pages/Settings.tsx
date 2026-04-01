@@ -351,9 +351,6 @@ export default function Settings() {
                       <SettingRow label="Rola">
                         <Badge variant="outline">{currentRole.toUpperCase()}</Badge>
                       </SettingRow>
-                      <SettingRow label="Departament">
-                        <span className="text-sm text-foreground">{profile?.department || "—"}</span>
-                      </SettingRow>
                     </>
                   )}
                 </>
