@@ -1080,6 +1080,7 @@ export type Database = {
           id: string
           is_primary: boolean
           last_name: string
+          permissions: Json
           phone: string | null
           position: string | null
         }
@@ -1091,6 +1092,7 @@ export type Database = {
           id?: string
           is_primary?: boolean
           last_name?: string
+          permissions?: Json
           phone?: string | null
           position?: string | null
         }
@@ -1102,6 +1104,7 @@ export type Database = {
           id?: string
           is_primary?: boolean
           last_name?: string
+          permissions?: Json
           phone?: string | null
           position?: string | null
         }

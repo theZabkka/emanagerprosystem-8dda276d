@@ -16,11 +16,9 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Pobranie nagłówka autoryzacji
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Brak nagłówka Authorization");
 
-    // Stateless Auth Client - KRYTYCZNE DLA DENO EDGE FUNCTIONS
     const supabaseAuthClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
@@ -54,7 +52,7 @@ Deno.serve(async (req) => {
       throw new Error("Wymagane pola: email, hasło, imię, nazwisko, firma");
     }
 
-    // 1. Create client record
+    // 1. Create client (company) record
     const { data: client, error: clientErr } = await supabaseAdmin
       .from("clients")
       .insert({
@@ -67,6 +65,7 @@ Deno.serve(async (req) => {
         address: address || null,
         postal_code: postal_code || null,
         voivodeship: voivodeship || null,
+        contact_person: `${first_name} ${last_name}`,
         status: "active",
       })
       .select("id")
@@ -74,7 +73,33 @@ Deno.serve(async (req) => {
 
     if (clientErr) throw new Error(`Błąd tworzenia klienta: ${clientErr.message}`);
 
-    // 2. Create auth user
+    // 2. Create primary contact in customer_contacts
+    const allPermissions = {
+      invoices: true,
+      estimates: true,
+      contracts: true,
+      support: true,
+      projects: true,
+    };
+
+    const { error: contactErr } = await supabaseAdmin
+      .from("customer_contacts")
+      .insert({
+        customer_id: client.id,
+        first_name: first_name,
+        last_name: last_name,
+        email: email,
+        phone: phone || null,
+        position: position || null,
+        is_primary: true,
+        permissions: allPermissions,
+      });
+
+    if (contactErr) {
+      console.error("Primary contact insert error:", contactErr.message);
+    }
+
+    // 3. Create auth user
     const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -83,14 +108,13 @@ Deno.serve(async (req) => {
     });
 
     if (authErr) {
-      // Cleanup client
       await supabaseAdmin.from("clients").delete().eq("id", client.id);
       throw new Error(`Błąd tworzenia użytkownika: ${authErr.message}`);
     }
 
     const userId = authData.user.id;
 
-    // 3. Update profile with extra fields
+    // 4. Update profile with extra fields
     const { error: profileErr } = await supabaseAdmin
       .from("profiles")
       .update({
@@ -107,7 +131,7 @@ Deno.serve(async (req) => {
       console.error("Profile update error:", profileErr.message);
     }
 
-    // 4. Add user_roles entry
+    // 5. Add user_roles entry
     const { error: roleErr } = await supabaseAdmin
       .from("user_roles")
       .insert({ user_id: userId, role: "user" });

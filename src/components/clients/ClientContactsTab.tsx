@@ -6,11 +6,37 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Plus, Pencil, Trash2, Shield } from "lucide-react";
 import { toast } from "sonner";
+
+interface ContactPermissions {
+  invoices: boolean;
+  estimates: boolean;
+  contracts: boolean;
+  support: boolean;
+  projects: boolean;
+}
+
+const DEFAULT_PERMISSIONS: ContactPermissions = {
+  invoices: true,
+  estimates: true,
+  contracts: true,
+  support: true,
+  projects: true,
+};
+
+const PERMISSION_LABELS: Record<keyof ContactPermissions, string> = {
+  invoices: "Faktury",
+  estimates: "Wyceny",
+  contracts: "Umowy",
+  support: "Zgłoszenia",
+  projects: "Projekty",
+};
 
 interface ContactForm {
   first_name: string;
@@ -19,6 +45,7 @@ interface ContactForm {
   position: string;
   phone: string;
   is_primary: boolean;
+  permissions: ContactPermissions;
 }
 
 const emptyForm: ContactForm = {
@@ -28,6 +55,7 @@ const emptyForm: ContactForm = {
   position: "",
   phone: "",
   is_primary: false,
+  permissions: { ...DEFAULT_PERMISSIONS },
 };
 
 export function ClientContactsTab({ clientId }: { clientId: string }) {
@@ -57,6 +85,7 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
   };
 
   const openEdit = (contact: any) => {
+    const perms = contact.permissions || DEFAULT_PERMISSIONS;
     setEditingId(contact.id);
     setForm({
       first_name: contact.first_name || "",
@@ -65,6 +94,13 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
       position: contact.position || "",
       phone: contact.phone || "",
       is_primary: contact.is_primary || false,
+      permissions: {
+        invoices: perms.invoices ?? true,
+        estimates: perms.estimates ?? true,
+        contracts: perms.contracts ?? true,
+        support: perms.support ?? true,
+        projects: perms.projects ?? true,
+      },
     });
     setShowDialog(true);
   };
@@ -75,15 +111,33 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
       return;
     }
 
+    // If setting as primary, unset others first
+    if (form.is_primary) {
+      await (supabase.from("customer_contacts" as any) as any)
+        .update({ is_primary: false })
+        .eq("customer_id", clientId)
+        .eq("is_primary", true);
+    }
+
+    const payload = {
+      first_name: form.first_name,
+      last_name: form.last_name,
+      email: form.email,
+      position: form.position,
+      phone: form.phone,
+      is_primary: form.is_primary,
+      permissions: form.permissions,
+    };
+
     if (editingId) {
       const { error } = await (supabase.from("customer_contacts" as any) as any)
-        .update({ ...form })
+        .update(payload)
         .eq("id", editingId);
       if (error) { toast.error(error.message); return; }
       toast.success("Kontakt zaktualizowany");
     } else {
       const { error } = await (supabase.from("customer_contacts" as any) as any)
-        .insert({ customer_id: clientId, ...form });
+        .insert({ customer_id: clientId, ...payload });
       if (error) { toast.error(error.message); return; }
       toast.success("Kontakt dodany");
     }
@@ -99,6 +153,13 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
     if (error) { toast.error(error.message); return; }
     toast.success("Kontakt usunięty");
     queryClient.invalidateQueries({ queryKey: ["customer-contacts", clientId] });
+  };
+
+  const updatePermission = (key: keyof ContactPermissions, value: boolean) => {
+    setForm(prev => ({
+      ...prev,
+      permissions: { ...prev.permissions, [key]: value },
+    }));
   };
 
   if (isLoading) {
@@ -129,33 +190,50 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
                   <TableHead>Email</TableHead>
                   <TableHead>Stanowisko</TableHead>
                   <TableHead>Telefon</TableHead>
+                  <TableHead>Uprawnienia</TableHead>
                   <TableHead className="w-24">Akcje</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {contacts.map((c: any) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-medium">
-                      {c.first_name} {c.last_name}
-                      {c.is_primary && (
-                        <Badge variant="secondary" className="ml-2 text-xs">Główny</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{c.email || "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{c.position || "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{c.phone || "—"}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(c)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(c.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {contacts.map((c: any) => {
+                  const perms = c.permissions || {};
+                  const activePerms = Object.entries(PERMISSION_LABELS)
+                    .filter(([key]) => perms[key])
+                    .map(([, label]) => label);
+
+                  return (
+                    <TableRow key={c.id}>
+                      <TableCell className="font-medium">
+                        {c.first_name} {c.last_name}
+                        {c.is_primary && (
+                          <Badge variant="secondary" className="ml-2 text-xs">Główny</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{c.email || "—"}</TableCell>
+                      <TableCell className="text-muted-foreground">{c.position || "—"}</TableCell>
+                      <TableCell className="text-muted-foreground">{c.phone || "—"}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {activePerms.length > 0 ? activePerms.map(p => (
+                            <Badge key={p} variant="outline" className="text-xs">{p}</Badge>
+                          )) : (
+                            <span className="text-xs text-muted-foreground">Brak</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(c)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(c.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </CardContent>
@@ -196,6 +274,27 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
                 onCheckedChange={(v) => setForm({ ...form, is_primary: !!v })}
               />
               <Label className="cursor-pointer">Główny kontakt</Label>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-muted-foreground" />
+                <Label className="font-semibold text-sm">Uprawnienia</Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Określ, do jakich modułów ten kontakt ma dostęp.
+              </p>
+              {(Object.keys(PERMISSION_LABELS) as Array<keyof ContactPermissions>).map((key) => (
+                <div key={key} className="flex items-center justify-between">
+                  <Label className="text-sm cursor-pointer">{PERMISSION_LABELS[key]}</Label>
+                  <Switch
+                    checked={form.permissions[key]}
+                    onCheckedChange={(v) => updatePermission(key, v)}
+                  />
+                </div>
+              ))}
             </div>
           </div>
           <DialogFooter>
