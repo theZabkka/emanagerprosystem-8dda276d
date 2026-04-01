@@ -366,138 +366,27 @@ export default function TaskKanbanBoard({
                         {...provided.droppableProps}
                         className={`flex-1 overflow-y-auto px-2 pb-2 space-y-1.5 transition-colors ${snapshot.isDraggingOver ? "bg-destructive/5" : ""}`}
                       >
-                          {columnTasks.map((task: any, index: number) => {
-                            const assignee = getAssignee(task.id);
-                            const taskAssignees = getAllAssignees(task.id);
-                            const client = getClient(task.client_id);
-                            const priority = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
-                            const waitingTime = (col.key === "client_review" || col.key === "corrections" || col.key === "review")
-                              ? getWaitingTime(task.updated_at || task.created_at) : null;
-
-                            const isUnassigned = taskAssignees.length === 0;
-
-                            return (
-                              <Draggable key={task.id} draggableId={task.id} index={index}>
-                                {(provided, snapshot) => (
-                                  <div
-                                    ref={provided.innerRef}
-                                    {...provided.draggableProps}
-                                    {...provided.dragHandleProps}
-                                    className={`rounded-lg border shadow-sm transition-shadow ${isUnassigned ? "bg-destructive/15 border-destructive/50 ring-2 ring-destructive/30" : (task as any).is_misunderstood ? "bg-amber-500/10 border-amber-500/30 ring-2 ring-amber-500/30" : "bg-card"} ${task.not_understood && !(task as any).is_misunderstood ? "ring-2 ring-amber-500/50 border-amber-500/30" : ""} ${task.correction_severity === "critical" ? "ring-2 ring-destructive/50" : ""} ${snapshot.isDragging ? "shadow-lg ring-2 ring-destructive/20" : "hover:shadow-md"}`}
-                                  >
-                                    <Link to={`/tasks/${task.id}`} className="block px-2 pt-1.5 pb-1">
-                                      {/* Row 1: Title (left) + Priority+Date (right) */}
-                                      <div className="flex items-start gap-1.5">
-                                        <div className="flex-1 min-w-0">
-                                          <p className="text-[11px] font-bold text-foreground leading-tight break-words">{task.title}</p>
-                                          {client && (
-                                            <div className="flex items-center gap-1 mt-0.5">
-                                              <p className="text-[9px] text-muted-foreground truncate">{client.name}</p>
-                                              {client.has_retainer && (
-                                                <Badge className="text-[7px] h-3 px-1 bg-amber-500/90 text-white border-0 shrink-0">
-                                                  STAŁA OPIEKA
-                                                </Badge>
-                                              )}
-                                            </div>
-                                          )}
-                                        </div>
-                                        <div className="flex flex-col items-end gap-0.5 flex-shrink-0 pt-px">
-                                          <Badge
-                                            variant="outline"
-                                            className={`text-[8px] h-3.5 px-1 font-bold border ${priority.border} ${priority.bg} ${priority.text} rounded whitespace-nowrap`}
-                                          >
-                                            {priority.label}
-                                          </Badge>
-                                          {task.due_date && (
-                                            <span className={`text-[9px] font-semibold whitespace-nowrap ${new Date(task.due_date) < new Date() ? "text-destructive" : "text-muted-foreground"}`}>
-                                              {new Date(task.due_date).toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit" })}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-
-                                      {/* Flags row */}
-                                      {((task as any).is_misunderstood || task.not_understood || task.correction_severity) && (
-                                        <div className="flex items-center gap-1 mt-0.5">
-                                          {(task as any).is_misunderstood && (
-                                            <Badge className="text-[7px] h-3 px-0.5 bg-amber-500 text-white">⚠️ Niezrozumiałe</Badge>
-                                          )}
-                                          {task.not_understood && !(task as any).is_misunderstood && (
-                                            <Badge className="text-[7px] h-3 px-0.5 bg-warning text-warning-foreground">❓</Badge>
-                                          )}
-                                          {task.correction_severity && (
-                                            <Badge className={`text-[7px] h-3 px-0.5 ${task.correction_severity === "critical" ? "bg-destructive text-destructive-foreground" : "bg-warning/15 text-warning border-warning/30"}`}>
-                                              {task.correction_severity === "critical" ? "KRYT" : "POPR"}
-                                            </Badge>
-                                          )}
-                                        </div>
-                                      )}
-
-                                      {waitingTime && (
-                                        <div className="flex items-center gap-0.5 text-[8px] text-destructive-foreground font-semibold mt-1 bg-destructive rounded px-1 py-0.5 w-fit">
-                                          <Clock className="h-2 w-2" />
-                                          {waitingTime}
-                                        </div>
-                                      )}
-                                    </Link>
-
-                                    {/* Bottom row: Avatars + actions */}
-                                    <div className="px-2 pb-1.5 flex items-center justify-between">
-                                      <div className="flex items-center gap-0.5">
-                                        {taskAssignees.length > 0 ? (
-                                          taskAssignees.map((person: any) => (
-                                            <TooltipProvider key={person.id} delayDuration={200}>
-                                              <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                  <Avatar className="h-4 w-4 -ml-0.5 first:ml-0 ring-1 ring-background">
-                                                    <AvatarFallback className={`text-[7px] text-white font-bold ${getAvatarColor(person.id)}`}>
-                                                      {getInitials(person.full_name || "?")}
-                                                    </AvatarFallback>
-                                                  </Avatar>
-                                                </TooltipTrigger>
-                                                <TooltipContent side="top" className="text-xs">
-                                                  {person.full_name}{person.assignRole !== "primary" ? ` (${person.assignRole})` : ""}
-                                                </TooltipContent>
-                                              </Tooltip>
-                                            </TooltipProvider>
-                                          ))
-                                        ) : null}
-                                        <AssignPopover
-                                          taskId={task.id}
-                                          assignee={taskAssignees.length > 0 ? taskAssignees[0] : null}
-                                          allProfiles={allProfiles || []}
-                                          getInitials={getInitials}
-                                          getAvatarColor={getAvatarColor}
-                                          onAssign={handleAssign}
-                                          showAvatarInTrigger={false}
-                                        />
-                                      </div>
-                                      <div className="flex items-center gap-1">
-                                        {task.estimated_time > 0 && task.logged_time > 0 && (
-                                          <span className="flex items-center gap-0.5 text-[9px] text-muted-foreground">
-                                            <Clock className="h-2 w-2" />
-                                            {(task.logged_time / 60).toFixed(1)}h
-                                          </span>
-                                        )}
-                                        {col.key === "closed" && onArchive && (
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="h-5 text-[8px] gap-0.5 text-muted-foreground hover:text-primary px-1"
-                                            onPointerDown={(e) => e.stopPropagation()}
-                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onArchive(task.id); }}
-                                          >
-                                            <Archive className="h-2 w-2" />
-                                            Archiwizuj
-                                          </Button>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                 )}
-                               </Draggable>
-                            );
-                          })}
+                          {columnTasks.map((task: any, index: number) => (
+                            <Draggable key={task.id} draggableId={task.id} index={index}>
+                              {(provided, snapshot) => (
+                                <KanbanCard
+                                  task={task}
+                                  provided={provided}
+                                  isDragging={snapshot.isDragging}
+                                  columnKey={col.key}
+                                  getAssignee={getAssignee}
+                                  getAllAssignees={getAllAssignees}
+                                  getClient={getClient}
+                                  getInitials={getInitials}
+                                  getAvatarColor={getAvatarColor}
+                                  getWaitingTime={getWaitingTime}
+                                  allProfiles={allProfiles || []}
+                                  onAssign={handleAssign}
+                                  onArchive={onArchive}
+                                />
+                              )}
+                            </Draggable>
+                          ))}
                           {provided.placeholder}
                           {isEmpty && (
                             <p className="text-xs text-muted-foreground text-center py-8">Pusto</p>
