@@ -603,7 +603,6 @@ export default function TaskDetail() {
   }, [task]);
 
   const totalLogged = timeLogs?.reduce((sum: number, l: any) => sum + l.duration, 0) || 0;
-  const totalLogged = timeLogs?.reduce((sum: number, l: any) => sum + l.duration, 0) || 0;
   const isOverdue = task?.due_date && new Date(task.due_date) < new Date() && task.status !== "done" && task.status !== "cancelled";
   const hasNoAssignment = !assignments || assignments.length === 0;
 
