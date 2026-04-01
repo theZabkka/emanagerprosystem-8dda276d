@@ -143,10 +143,20 @@ export default function ClientDetail() {
   const { data: projects } = useQuery({
     queryKey: ["client-projects", id],
     queryFn: async () => {
-      const { data } = await supabase.from("projects").select("*").eq("client_id", id!).eq("is_archived", false);
+      const { data } = await supabase.from("projects").select("*, profiles:manager_id(full_name)").eq("client_id", id!).eq("is_archived", false).order("created_at", { ascending: false });
       return data || [];
     },
     enabled: !!id,
+  });
+
+  // ─── Fetch tickets (lazy) ────────────────────────────────────
+  const { data: clientTickets } = useQuery({
+    queryKey: ["client-tickets-tab", id],
+    queryFn: async () => {
+      const { data } = await supabase.from("tickets").select("id, title, status, priority, created_at, ticket_number").eq("client_id", id!).order("created_at", { ascending: false });
+      return data || [];
+    },
+    enabled: !!id && activeTab === "tickets-tab",
   });
 
   // ─── Fetch tasks ──────────────────────────────────────────────
