@@ -323,7 +323,19 @@ export default function ProjectDetail() {
 
         {/* Tab content: Tasks */}
         {activeTab === "tasks" && (
-          <div className="space-y-2">
+          <div className="space-y-3">
+            {/* Task management buttons */}
+            {!isClient && !isArchived && (
+              <div className="flex gap-2">
+                <Button size="sm" className="gap-1.5" onClick={() => setShowCreateTask(true)}>
+                  <Plus className="h-3.5 w-3.5" /> Utwórz nowe zadanie
+                </Button>
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowAssignExisting(true)}>
+                  <Search className="h-3.5 w-3.5" /> Przypisz istniejące
+                </Button>
+              </div>
+            )}
+            <div className="space-y-2">
             {(() => {
               const displayTasks = isClient
                 ? (tasks || []).filter((t: any) => t.status === "client_review")
