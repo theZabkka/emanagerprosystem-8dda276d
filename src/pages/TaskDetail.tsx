@@ -56,6 +56,18 @@ const briefFields = [
   { key: "brief_inspiration", label: "Wzorzec / inspiracja" },
 ];
 
+const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
+function linkifyText(text: string): React.ReactNode[] {
+  const parts = text.split(URL_REGEX);
+  return parts.map((part, i) =>
+    URL_REGEX.test(part) ? (
+      <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
+
 // ─── Demo state store (mutable for demo interactivity) ────────────
 export default function TaskDetail() {
   const { id } = useParams<{ id: string }>();
