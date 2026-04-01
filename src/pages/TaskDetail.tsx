@@ -735,11 +735,9 @@ export default function TaskDetail() {
 
         {/* Action buttons row */}
         <div className="flex flex-wrap items-center gap-2">
-          {!isClient && !isPreviewMode ? (
+          {!isClient && !isPreviewMode && (
             <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsPreviewMode(true)}><Eye className="h-3 w-3" />Zobacz jako klient</Button>
-          ) : !isClient && isPreviewMode ? (
-            <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsPreviewMode(false)}><Eye className="h-3 w-3" />Wróć do widoku pełnego</Button>
-          ) : null}
+          )}
           {!isClient && !isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><FileText className="h-3 w-3" />Zastosuj szablon</Button>}
           {!isClient && !isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><Zap className="h-3 w-3" />Uruchom automatyzację</Button>}
           {!isClient && !isPreviewMode && (task.status === "in_progress" || task.status === "todo") && !(task as any).is_misunderstood && (
