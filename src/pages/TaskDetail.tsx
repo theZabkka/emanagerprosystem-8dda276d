@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import {
   ChevronRight, Plus, Send, Clock, Play, FileText, Link as LinkIcon,
-  CheckCircle2, MessageCircle, History, AlertTriangle, Eye, Zap,
+  CheckCircle2, MessageCircle, History, AlertTriangle, Eye, Zap, ShieldCheck,
   Upload, Timer, UserPlus, Edit3, Bug, Lock, X, Trash2, HelpCircle, ArrowLeft, CalendarIcon, Building2
 } from "lucide-react";
 import { NotUnderstoodModal, ChecklistBlockModal, ResponsibilityModal } from "@/components/tasks/WorkflowModals";
@@ -723,7 +723,19 @@ export default function TaskDetail() {
             <ChevronRight className="h-3 w-3 shrink-0" />
             <span className="text-foreground/60 truncate max-w-[300px]">{task.title}</span>
           </div>
-        )}
+          )}
+          {!isClient && !isPreviewMode && task.status === "review" && (
+            <Button
+              size="sm"
+              className="text-xs gap-1.5 bg-amber-500 hover:bg-amber-600 text-white"
+              onClick={() => {
+                setPendingStatus("client_review");
+                setResponsibilityOpen(true);
+              }}
+            >
+              <ShieldCheck className="h-3 w-3" />Do akceptacji klienta
+            </Button>
+          )}
 
         {/* Action buttons row */}
         <div className="flex flex-wrap items-center gap-2">
@@ -1531,8 +1543,9 @@ export default function TaskDetail() {
       <ResponsibilityModal
         open={responsibilityOpen}
         onOpenChange={setResponsibilityOpen}
-        onConfirm={() => {
-          if (pendingStatus) {
+        onConfirm={async () => {
+          if (pendingStatus && task) {
+            await supabase.from("tasks").update({ accepted_responsibility_by: user?.id } as any).eq("id", task.id);
             executeStatusChange(pendingStatus);
             setPendingStatus(null);
           }
