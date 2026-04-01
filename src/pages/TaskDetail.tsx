@@ -392,6 +392,7 @@ export default function TaskDetail() {
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     queryClient.invalidateQueries({ queryKey: ["comments", id] });
     queryClient.invalidateQueries({ queryKey: ["status-history", id] });
+    refreshAfterVerification();
     setRejectReviewOpen(false);
     setRejectReviewText("");
     toast.success("Zadanie odrzucone — przeniesiono do POPRAWEK");
