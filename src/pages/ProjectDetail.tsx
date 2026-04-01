@@ -53,6 +53,9 @@ export default function ProjectDetail() {
   const [editingBrief, setEditingBrief] = useState(false);
   const [editedBrief, setEditedBrief] = useState<BriefQuestion[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showCreateTask, setShowCreateTask] = useState(false);
+  const [showAssignExisting, setShowAssignExisting] = useState(false);
+  const [assigningTaskId, setAssigningTaskId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const handleDeleteProject = async () => {
