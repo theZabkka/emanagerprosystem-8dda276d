@@ -34,6 +34,7 @@ import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";
 import { ClientNotesTimeline } from "@/components/clients/ClientNotesTimeline";
 import { CLIENT_STATUS_GROUPS, getClientStatusColor, getClientStatusLabel } from "@/constants/clientStatuses";
 import { ClientNotesCard } from "@/components/clients/ClientNotesCard";
+import { ClientContactsTab } from "@/components/clients/ClientContactsTab";
 
 const offerStatusLabels: Record<string, { label: string; className: string }> = {
   draft: { label: "Szkic", className: "bg-muted text-muted-foreground" },
@@ -56,6 +57,7 @@ const convTypeIcons: Record<string, { icon: typeof Phone; label: string }> = {
 
 const CLIENT_TABS = [
   { key: "tasks", label: "Zadania" },
+  { key: "contacts", label: "Kontakty" },
   { key: "notes", label: "Notatki" },
   { key: "conversations", label: "Rozmowy" },
   { key: "voip", label: "Rozmowy VoIP" },
@@ -283,6 +285,16 @@ export default function ClientDetail() {
     enabled: !!id,
   });
 
+  // ─── Fetch contacts count ─────────────────────────────────────
+  const { data: contactsCount } = useQuery({
+    queryKey: ["customer-contacts-count", id],
+    queryFn: async () => {
+      const { count } = await supabase.from("customer_contacts" as any).select("id", { count: "exact", head: true }).eq("customer_id", id!);
+      return count || 0;
+    },
+    enabled: !!id,
+  });
+
   const [invoiceForm, setInvoiceForm] = useState({ company_name: "", nip: "", street: "", postal_code: "", city: "" });
 
   const openInvoiceEdit = () => {
@@ -340,6 +352,7 @@ const { data: existing } = await supabase.from("client_invoice_data").select("id
   // ─── Tab counts ───────────────────────────────────────────────
   const tabCounts: Record<string, number> = useMemo(() => ({
     tasks: activeTasks.length,
+    contacts: contactsCount || 0,
     conversations: (conversations || []).length,
     voip: callsCount || 0,
     offers: (offers || []).length,
@@ -350,7 +363,7 @@ const { data: existing } = await supabase.from("client_invoice_data").select("id
     social: (socialAccounts || []).length,
     billing: invoiceData ? 1 : 0,
     history: (activityHistory || []).length,
-  }), [activeTasks, conversations, callsCount, offers, ideas, contracts, orders, files, socialAccounts, invoiceData, activityHistory]);
+  }), [activeTasks, contactsCount, conversations, callsCount, offers, ideas, contracts, orders, files, socialAccounts, invoiceData, activityHistory]);
 
   // ─── Filtered tasks ───────────────────────────────────────────
   const filteredTasks = useMemo(() => {
@@ -784,6 +797,11 @@ await supabase.from("client_files").delete().eq("id", fileId);
                 </div>
               ))
             )}
+          </TabsContent>
+
+          {/* ─── Contacts Tab ──────────────────────────────────── */}
+          <TabsContent value="contacts" className="mt-4">
+            <ClientContactsTab clientId={id!} />
           </TabsContent>
 
           {/* ─── Notes Tab ─────────────────────────────────────── */}
