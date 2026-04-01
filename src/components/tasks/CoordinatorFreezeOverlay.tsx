@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
@@ -14,10 +14,7 @@ export function CoordinatorFreezeOverlay() {
   const { user } = useAuth();
   const { currentRole } = useRole();
   const navigate = useNavigate();
-  const location = useLocation();
-  const [searchParams] = useSearchParams();
   const [frozenTasks, setFrozenTasks] = useState<any[]>([]);
-  const [dismissed, setDismissed] = useState(false);
 
   // Fetch tasks currently in review with their status_entered_at from history
   const { data: reviewTasks } = useQuery({
@@ -68,17 +65,6 @@ export function CoordinatorFreezeOverlay() {
     });
     setFrozenTasks(overdue);
   }, [reviewTasks]);
-
-  // Detect if user is currently viewing one of the frozen tasks
-  const taskIdFromSearch = searchParams.get("taskId");
-  const taskIdFromPath = location.pathname.match(/^\/tasks\/([a-f0-9-]+)/)?.[1];
-  const currentTaskId = taskIdFromSearch || taskIdFromPath;
-  const isOnFrozenTask = frozenTasks.some((t) => t.id === currentTaskId);
-
-  // Reset dismissed state when frozen tasks change
-  useEffect(() => {
-    setDismissed(false);
-  }, [frozenTasks.map((t) => t.id).join(",")]);
 
   // No frozen tasks → nothing to show
   if (frozenTasks.length === 0) return null;
@@ -144,9 +130,6 @@ export function CoordinatorFreezeOverlay() {
     );
   }
 
-  // Hide overlay when user is viewing a frozen task or dismissed it
-  if (isOnFrozenTask || dismissed) return null;
-
   // Blocking overlay for koordynator, specjalista, praktykant
   return (
     <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex items-center justify-center p-4">
@@ -209,10 +192,7 @@ export function CoordinatorFreezeOverlay() {
               )}
 
               <Button
-                onClick={() => {
-                  setDismissed(true);
-                  navigate(`/tasks?taskId=${t.id}`);
-                }}
+                onClick={() => navigate(`/tasks?taskId=${t.id}`)}
                 className="w-full gap-2"
                 size="sm"
               >
