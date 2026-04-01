@@ -753,6 +753,43 @@ export default function TaskDetail() {
               <CheckCircle2 className="h-3 w-3" />Przekaż do weryfikacji
             </Button>
           )}
+          {!isClient && !isPreviewMode && task.status === "review" && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="text-xs gap-1.5 border-blue-500/50 text-blue-600 hover:bg-blue-500/10">
+                  <Send className="h-3 w-3" />Wyślij do klienta
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Przekazanie do akceptacji klienta</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Czy na pewno chcesz przekazać to zadanie klientowi? Klikając potwierdzenie, bierzesz pełną odpowiedzialność za jakość, poprawność i kompletność wykonanej pracy. Klient uzyska podgląd tego zadania.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                  <AlertDialogAction onClick={async () => {
+                    try {
+                      const { error } = await supabase.rpc("change_task_status", {
+                        _task_id: task.id,
+                        _new_status: "client_review",
+                        _changed_by: user?.id,
+                        _note: "Przekazano do akceptacji klienta (quick action)",
+                      });
+                      if (error) throw error;
+                      toast.success("Zadanie przekazane klientowi");
+                      queryClient.invalidateQueries({ queryKey: ["task"] });
+                    } catch (err: any) {
+                      toast.error("Błąd: " + (err.message || "Nie udało się zmienić statusu"));
+                    }
+                  }}>
+                    Potwierdzam i wysyłam
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
           {!isClient && !isPreviewMode && <Button size="sm" className="text-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={() => setIsChatOpen(true)}><MessageCircle className="h-3 w-3" />Czat zadania</Button>}
         </div>
 
