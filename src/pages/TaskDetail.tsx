@@ -1537,6 +1537,28 @@ export default function TaskDetail() {
         </DialogContent>
       </Dialog>
 
+      {/* Danger Zone — SuperAdmin only */}
+      {currentRole === "superadmin" && !isClient && !isPreviewMode && (
+        <Card className="border-destructive/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-destructive flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" /> Strefa zagrożenia
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Trwale usuń zadanie</p>
+                <p className="text-xs text-muted-foreground">Ta akcja jest nieodwracalna. Wszystkie powiązane dane zostaną usunięte.</p>
+              </div>
+              <Button variant="destructive" size="sm" onClick={() => setHardDeleteOpen(true)}>
+                <Trash2 className="h-3 w-3 mr-1" /> Usuń trwale
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Workflow Modals */}
       <NotUnderstoodModal
         open={notUnderstoodOpen}
