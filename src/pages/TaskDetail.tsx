@@ -109,6 +109,9 @@ export default function TaskDetail() {
   const [isSavingTitle, setIsSavingTitle] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const { refreshAfterVerification } = useVerificationLock();
+  const [hardDeleteOpen, setHardDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const navigate = useNavigate();
 
   // ─── Queries ─────────────────────────────────────────────────────
   const { data: task, isLoading } = useQuery({
