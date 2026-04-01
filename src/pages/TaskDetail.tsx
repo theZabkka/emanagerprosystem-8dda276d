@@ -107,6 +107,7 @@ export default function TaskDetail() {
   const [titleValue, setTitleValue] = useState("");
   const [isSavingTitle, setIsSavingTitle] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const { refreshAfterVerification } = useVerificationLock();
 
   // ─── Queries ─────────────────────────────────────────────────────
   const { data: task, isLoading } = useQuery({
