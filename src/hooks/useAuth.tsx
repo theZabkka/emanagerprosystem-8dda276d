@@ -4,6 +4,15 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+export interface ContactPermissions {
+  support?: boolean;
+  invoices?: boolean;
+  projects?: boolean;
+  contracts?: boolean;
+  estimates?: boolean;
+  [key: string]: boolean | undefined;
+}
+
 interface ProfileData {
   id: string;
   email: string;
@@ -18,6 +27,8 @@ interface ProfileData {
   contact_phone?: string | null;
   contact_position?: string | null;
   is_contact?: boolean;
+  is_primary_contact?: boolean;
+  contact_permissions?: ContactPermissions;
 }
 
 interface AuthContextType {
