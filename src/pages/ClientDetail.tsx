@@ -22,7 +22,8 @@ import {
   ArrowLeft, Phone, MessageSquare, DollarSign, ListTodo, AlertTriangle, PhoneCall,
   Copy, Check, CheckCircle2, Circle, Search, Plus, LayoutGrid, List, Timer,
   FileText, Link as LinkIcon, ThumbsUp, Mail, Users, Upload, Trash2, Download,
-  Pencil, Calendar, ExternalLink,
+  Pencil, Calendar, ExternalLink, StickyNote, Lightbulb, FileSignature, ShoppingCart,
+  Share2, Receipt, History, Contact,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
