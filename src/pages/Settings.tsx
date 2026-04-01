@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Eye, Bell, Briefcase, Users, Shield, Bot, Settings2, Clock, LayoutList, RotateCcw, Phone, Tag, User, Lock } from "lucide-react";
+import { Eye, Bell, Briefcase, Users, Shield, Bot, Settings2, Clock, LayoutList, RotateCcw, Phone, Tag, User, Lock, Pencil, X, Save } from "lucide-react";
 import { useRole, STAFF_ROLES } from "@/hooks/useRole";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { SipLoginManager } from "@/components/settings/SipLoginManager";
