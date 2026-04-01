@@ -60,6 +60,8 @@ const CLIENT_TABS = [
   { key: "overview", label: "Podsumowanie", icon: LayoutGrid },
   { key: "profile", label: "Profil", icon: Pencil },
   { key: "tasks", label: "Zadania", icon: ListTodo },
+  { key: "projects-tab", label: "Projekty", icon: FileSignature },
+  { key: "tickets-tab", label: "Zgłoszenia", icon: Mail },
   { key: "contacts", label: "Kontakty", icon: Contact },
   { key: "notes", label: "Notatki", icon: StickyNote },
   { key: "conversations", label: "Rozmowy", icon: MessageSquare },
