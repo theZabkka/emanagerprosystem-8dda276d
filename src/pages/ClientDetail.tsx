@@ -574,115 +574,13 @@ await supabase.from("client_files").delete().eq("id", fileId);
 
             {/* ═══════ LEFT SIDEBAR ═══════ */}
             <div className="flex flex-col w-full md:w-64 shrink-0 space-y-4">
-              {/* Client info card */}
+              {/* Client info card - clean */}
               <Card>
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-lg font-extrabold text-foreground truncate flex-1">{client.name}</h1>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => setShowEditClient(true)}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+                <CardContent className="p-4 space-y-1">
+                  <h1 className="text-2xl font-bold text-foreground truncate">{client.name}</h1>
                   {client.email && (
-                    <p className="text-xs text-muted-foreground truncate">{client.email}</p>
+                    <p className="text-sm text-muted-foreground truncate">{client.email}</p>
                   )}
-                  {client.contact_person && (
-                    <p className="text-xs text-muted-foreground">{client.contact_person}</p>
-                  )}
-
-                  {/* Status badge */}
-                  {(() => {
-                    const displayStatus = client.status || "Nowy kontakt";
-                    return (
-                      <Select
-                        key={`${client.status ?? ""}-${(client as any).updated_at ?? ""}`}
-                        value={displayStatus}
-                        onValueChange={async (newStatus) => {
-                          if (updatingStatus) return;
-                          const clientId = client.id;
-                          const clientQueryKey = ["client", clientId] as const;
-                          const previousClient = queryClient.getQueryData<any>(clientQueryKey);
-                          const previousClients = queryClient.getQueryData<any[]>(["clients"]);
-                          setUpdatingStatus(true);
-                          try {
-                            await queryClient.cancelQueries({ queryKey: ["clients"] });
-                            await queryClient.cancelQueries({ queryKey: clientQueryKey });
-                            queryClient.setQueryData(clientQueryKey, (old: any) => old ? { ...old, status: newStatus } : old);
-                            queryClient.setQueryData(["clients"], (old: any[] | undefined) => old?.map((c: any) => (c.id === clientId ? { ...c, status: newStatus } : c)));
-                            const { data, error } = await supabase.from("clients").update({ status: newStatus as any }).eq("id", clientId).select();
-                            const updatedClient = data?.[0];
-                            if (error || !updatedClient || updatedClient.status !== newStatus) {
-                              if (previousClient !== undefined) queryClient.setQueryData(clientQueryKey, previousClient);
-                              if (previousClients !== undefined) queryClient.setQueryData(["clients"], previousClients);
-                              toast.error(error?.message || "Błąd zapisu statusu klienta.");
-                              return;
-                            }
-                            await queryClient.removeQueries({ queryKey: ["clients"] });
-                            await queryClient.removeQueries({ queryKey: ["client"] });
-                            toast.success(`Status zmieniony na: ${newStatus}`);
-                          } catch (err: any) {
-                            if (previousClient !== undefined) queryClient.setQueryData(clientQueryKey, previousClient);
-                            if (previousClients !== undefined) queryClient.setQueryData(["clients"], previousClients);
-                            toast.error(err?.message || "Błąd połączenia.");
-                          } finally {
-                            setUpdatingStatus(false);
-                          }
-                        }}
-                      >
-                        <SelectTrigger onPointerDown={(e) => e.stopPropagation()} className="w-full h-auto border-0 p-0 shadow-none focus:ring-0">
-                          <Badge variant="outline" className={`text-xs font-bold px-3 py-1 cursor-pointer w-full justify-center transition-opacity ${updatingStatus ? "opacity-50" : ""} ${getClientStatusColor(displayStatus)}`}>
-                            {getClientStatusLabel(displayStatus)}
-                          </Badge>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {CLIENT_STATUS_GROUPS.map((group) => (
-                            <div key={group.name}>
-                              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{group.name}</div>
-                              {group.statuses.map((s) => (
-                                <SelectItem key={s.value} value={s.value}>
-                                  <span className="flex items-center gap-2">
-                                    <span className={`inline-block w-2 h-2 rounded-full ${s.colorClass.split(" ")[0]}`} />
-                                    {s.label}
-                                  </span>
-                                </SelectItem>
-                              ))}
-                            </div>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    );
-                  })()}
-
-                  {/* Quick action buttons */}
-                  <div className="flex gap-1.5 pt-1">
-                    <Button size="sm" variant="outline" className="flex-1 text-xs h-8">
-                      <Phone className="h-3.5 w-3.5 mr-1" /> Zadzwoń
-                    </Button>
-                    <Button size="sm" variant="outline" className="flex-1 text-xs h-8">
-                      <MessageSquare className="h-3.5 w-3.5 mr-1" /> SMS
-                    </Button>
-                  </div>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button size="sm" variant="outline" className="w-full text-xs h-8 text-destructive border-destructive/30 hover:bg-destructive/10">
-                        <Trash2 className="h-3.5 w-3.5 mr-1" /> Usuń klienta
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Trwałe usunięcie klienta</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Czy na pewno chcesz trwale usunąć klienta <strong>"{client.name}"</strong>? Zostaną usunięte wszystkie powiązane dane. Tej operacji nie można cofnąć.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteClient} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                          {isDeleting ? "Usuwanie..." : "Tak, usuń"}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
                 </CardContent>
               </Card>
 
