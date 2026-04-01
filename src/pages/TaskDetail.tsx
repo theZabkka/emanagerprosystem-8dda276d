@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -108,6 +109,9 @@ export default function TaskDetail() {
   const [isSavingTitle, setIsSavingTitle] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const { refreshAfterVerification } = useVerificationLock();
+  const [hardDeleteOpen, setHardDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const navigate = useNavigate();
 
   // ─── Queries ─────────────────────────────────────────────────────
   const { data: task, isLoading } = useQuery({
@@ -1533,6 +1537,28 @@ export default function TaskDetail() {
         </DialogContent>
       </Dialog>
 
+      {/* Danger Zone — SuperAdmin only */}
+      {currentRole === "superadmin" && !isClient && !isPreviewMode && (
+        <Card className="border-destructive/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-destructive flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" /> Strefa zagrożenia
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Trwale usuń zadanie</p>
+                <p className="text-xs text-muted-foreground">Ta akcja jest nieodwracalna. Wszystkie powiązane dane zostaną usunięte.</p>
+              </div>
+              <Button variant="destructive" size="sm" onClick={() => setHardDeleteOpen(true)}>
+                <Trash2 className="h-3 w-3 mr-1" /> Usuń trwale
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Workflow Modals */}
       <NotUnderstoodModal
         open={notUnderstoodOpen}
@@ -1558,6 +1584,42 @@ export default function TaskDetail() {
         onOpenChange={setRejectReviewOpen}
         onConfirm={handleRejectFromReview}
       />
+
+      {/* Hard Delete Confirmation */}
+      <AlertDialog open={hardDeleteOpen} onOpenChange={setHardDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">Trwałe usunięcie zadania</AlertDialogTitle>
+            <AlertDialogDescription>
+              Uwaga: Czy na pewno chcesz trwale usunąć to zadanie? Ta akcja jest bezpowrotna. Z bazy znikną również wszystkie komentarze, logi oraz dane analityczne powiązane z tym zadaniem. Zamiast tego zalecamy użycie archiwizacji.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Anuluj</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!id) return;
+                setIsDeleting(true);
+                const { error } = await supabase.rpc("hard_delete_task", { p_task_id: id });
+                setIsDeleting(false);
+                if (error) {
+                  toast.error("Błąd usuwania: " + error.message);
+                  return;
+                }
+                setHardDeleteOpen(false);
+                toast.success("Zadanie zostało trwale usunięte");
+                queryClient.invalidateQueries({ queryKey: ["tasks"] });
+                navigate("/tasks");
+              }}
+            >
+              {isDeleting ? "Usuwanie..." : "Tak, usuń trwale"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Task Chat Sheet */}
       <Sheet open={isChatOpen} onOpenChange={setIsChatOpen}>
