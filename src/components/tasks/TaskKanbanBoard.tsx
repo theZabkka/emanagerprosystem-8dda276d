@@ -59,9 +59,11 @@ interface TaskKanbanBoardProps {
 }
 
 export default function TaskKanbanBoard({
-  tasks, profiles, assignments, clients, onStatusChange, onArchive, onRefresh,
+  tasks, profiles, assignments, clients, onStatusChange, onArchive, onHardDelete, onRefresh,
   onLexoRankUpdate, onQuickAdd, sortField = "manual", sortDirection = "asc",
 }: TaskKanbanBoardProps) {
+  const { user } = useAuth();
+  const { currentRole } = useRole();
   const { user } = useAuth();
   const isManualSort = sortField === "manual";
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
