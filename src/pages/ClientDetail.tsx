@@ -480,10 +480,82 @@ await supabase.from("client_files").delete().eq("id", fileId);
   return (
     <AppLayout title={client.name}>
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
-        {/* Back link */}
-        <Link to="/clients" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
-          <ArrowLeft className="h-4 w-4" /> Wróć do klientów
-        </Link>
+        {/* Top bar with back link + actions */}
+        <div className="flex items-center gap-3 mb-4">
+          <Link to="/clients" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" /> Wróć do klientów
+          </Link>
+          <div className="ml-auto flex gap-3 items-center">
+            {/* Status dropdown */}
+            {(() => {
+              const displayStatus = client.status || "Nowy kontakt";
+              return (
+                <Select
+                  key={`${client.status ?? ""}-${(client as any).updated_at ?? ""}`}
+                  value={displayStatus}
+                  onValueChange={async (newStatus) => {
+                    if (updatingStatus) return;
+                    const clientId = client.id;
+                    const clientQueryKey = ["client", clientId] as const;
+                    const previousClient = queryClient.getQueryData<any>(clientQueryKey);
+                    const previousClients = queryClient.getQueryData<any[]>(["clients"]);
+                    setUpdatingStatus(true);
+                    try {
+                      await queryClient.cancelQueries({ queryKey: ["clients"] });
+                      await queryClient.cancelQueries({ queryKey: clientQueryKey });
+                      queryClient.setQueryData(clientQueryKey, (old: any) => old ? { ...old, status: newStatus } : old);
+                      queryClient.setQueryData(["clients"], (old: any[] | undefined) => old?.map((c: any) => (c.id === clientId ? { ...c, status: newStatus } : c)));
+                      const { data, error } = await supabase.from("clients").update({ status: newStatus as any }).eq("id", clientId).select();
+                      const updatedClient = data?.[0];
+                      if (error || !updatedClient || updatedClient.status !== newStatus) {
+                        if (previousClient !== undefined) queryClient.setQueryData(clientQueryKey, previousClient);
+                        if (previousClients !== undefined) queryClient.setQueryData(["clients"], previousClients);
+                        toast.error(error?.message || "Błąd zapisu statusu klienta.");
+                        return;
+                      }
+                      await queryClient.removeQueries({ queryKey: ["clients"] });
+                      await queryClient.removeQueries({ queryKey: ["client"] });
+                      toast.success(`Status zmieniony na: ${newStatus}`);
+                    } catch (err: any) {
+                      if (previousClient !== undefined) queryClient.setQueryData(clientQueryKey, previousClient);
+                      if (previousClients !== undefined) queryClient.setQueryData(["clients"], previousClients);
+                      toast.error(err?.message || "Błąd połączenia.");
+                    } finally {
+                      setUpdatingStatus(false);
+                    }
+                  }}
+                >
+                  <SelectTrigger onPointerDown={(e) => e.stopPropagation()} className="w-auto h-9 border-border">
+                    <Badge variant="outline" className={`text-xs font-bold px-3 py-1 cursor-pointer transition-opacity ${updatingStatus ? "opacity-50" : ""} ${getClientStatusColor(displayStatus)}`}>
+                      {getClientStatusLabel(displayStatus)}
+                    </Badge>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CLIENT_STATUS_GROUPS.map((group) => (
+                      <div key={group.name}>
+                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{group.name}</div>
+                        {group.statuses.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            <span className="flex items-center gap-2">
+                              <span className={`inline-block w-2 h-2 rounded-full ${s.colorClass.split(" ")[0]}`} />
+                              {s.label}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </div>
+                    ))}
+                  </SelectContent>
+                </Select>
+              );
+            })()}
+            <Button size="sm" variant="outline">
+              <Phone className="h-4 w-4 mr-1" /> Zadzwoń
+            </Button>
+            <Button size="sm" variant="outline">
+              <MessageSquare className="h-4 w-4 mr-1" /> SMS
+            </Button>
+          </div>
+        </div>
 
         <EditClientDialog
           open={showEditClient}
