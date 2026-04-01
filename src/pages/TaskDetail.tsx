@@ -102,6 +102,14 @@ export default function TaskDetail() {
     enabled: !!id,
   });
 
+  const { data: allClients } = useQuery({
+    queryKey: ["all-clients-picker"],
+    queryFn: async () => {
+      const { data } = await supabase.from("clients").select("id, name").order("name");
+      return data || [];
+    },
+  });
+
   const { data: assignments } = useQuery({
     queryKey: ["task-assignments", id],
     queryFn: async () => {
