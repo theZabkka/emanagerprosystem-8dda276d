@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
-import { useAuth } from "./useAuth";
+import { useAuth, ContactPermissions } from "./useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
 export type AppRoleName = "superadmin" | "boss" | "koordynator" | "specjalista" | "praktykant" | "klient";
@@ -30,6 +30,9 @@ interface RoleContextType {
   setPermissions: React.Dispatch<React.SetStateAction<Permission[]>>;
   canViewModule: (moduleName: string) => boolean;
   refreshPermissions: () => void;
+  isPrimaryContact: boolean;
+  contactPermissions: ContactPermissions;
+  hasContactPermission: (key: string) => boolean;
 }
 
 const RoleContext = createContext<RoleContextType | null>(null);
@@ -43,6 +46,14 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const currentRole: AppRoleName = (profile?.role as AppRoleName) || "specjalista";
   const isClient = currentRole === "klient";
   const clientId = (profile as any)?.client_id || null;
+  const isPrimaryContact = profile?.is_primary_contact ?? false;
+  const contactPermissions: ContactPermissions = profile?.contact_permissions ?? {};
+
+  const hasContactPermission = useCallback((key: string) => {
+    if (!isClient) return true;
+    if (isPrimaryContact) return true;
+    return contactPermissions[key] === true;
+  }, [isClient, isPrimaryContact, contactPermissions]);
 
   const fetchPermissions = useCallback(async () => {
     const { data } = await supabase.from("role_permissions").select("role_name, module_name, can_view");
@@ -61,6 +72,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   return (
     <RoleContext.Provider value={{
       currentRole, roleLoading, isClient, clientId, permissions, setPermissions, canViewModule, refreshPermissions: fetchPermissions,
+      isPrimaryContact, contactPermissions, hasContactPermission,
     }}>
       {children}
     </RoleContext.Provider>
