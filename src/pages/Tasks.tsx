@@ -210,7 +210,12 @@ export default function Tasks() {
           sortDirection={sortDirection} onSortDirectionToggle={() => setSortDirection(d => d === "asc" ? "desc" : "asc")}
         />
 
-        <CreateTaskDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} onCreated={() => refetch()} />
+        <CreateTaskDialog
+          open={isCreateOpen}
+          onOpenChange={(v) => { setIsCreateOpen(v); if (!v) setQuickAddStatus(undefined); }}
+          onCreated={() => refetch()}
+          defaultStatus={quickAddStatus}
+        />
 
         {isLoading ? (
           viewMode === "kanban" ? <KanbanSkeleton /> : <TableSkeleton columns={5} rows={8} />
