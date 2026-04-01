@@ -2096,7 +2096,6 @@ export type Database = {
         Row: {
           assigned_to: string | null
           client_id: string
-          contact_id: string | null
           created_at: string
           created_by: string | null
           department: string
@@ -2110,7 +2109,6 @@ export type Database = {
         Insert: {
           assigned_to?: string | null
           client_id: string
-          contact_id?: string | null
           created_at?: string
           created_by?: string | null
           department?: string
@@ -2124,7 +2122,6 @@ export type Database = {
         Update: {
           assigned_to?: string | null
           client_id?: string
-          contact_id?: string | null
           created_at?: string
           created_by?: string | null
           department?: string
@@ -2148,13 +2145,6 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tickets_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "customer_contacts"
             referencedColumns: ["id"]
           },
         ]

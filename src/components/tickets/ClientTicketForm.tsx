@@ -59,7 +59,6 @@ export default function ClientTicketForm() {
           description,
           client_id: clientId,
           created_by: profile?.id || null,
-          contact_id: profile?.id || null,
           priority: "Średni",
         } as any)
         .select("id")
