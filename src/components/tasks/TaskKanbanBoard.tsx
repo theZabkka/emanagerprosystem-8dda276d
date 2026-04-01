@@ -539,9 +539,9 @@ const KanbanCard = React.memo(function KanbanCard({
               <Clock className="h-2 w-2" />{(task.logged_time / 60).toFixed(1)}h
             </span>
           )}
-          {columnKey === "closed" && (onArchive || (isSuperAdmin && onHardDelete)) && (
+          {((columnKey === "closed" && onArchive) || (isSuperAdmin && onHardDelete)) && (
             <div className="flex flex-col items-end gap-1">
-              {onArchive && (
+              {columnKey === "closed" && onArchive && (
                 <Button
                   size="sm" variant="ghost"
                   className="h-5 text-[8px] gap-0.5 text-muted-foreground hover:text-primary px-1"
