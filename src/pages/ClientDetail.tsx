@@ -57,6 +57,7 @@ const convTypeIcons: Record<string, { icon: typeof Phone; label: string }> = {
 
 const CLIENT_TABS = [
   { key: "tasks", label: "Zadania" },
+  { key: "contacts", label: "Kontakty" },
   { key: "notes", label: "Notatki" },
   { key: "conversations", label: "Rozmowy" },
   { key: "voip", label: "Rozmowy VoIP" },
