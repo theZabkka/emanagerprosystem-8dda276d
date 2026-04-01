@@ -812,17 +812,17 @@ await supabase.from("client_files").delete().eq("id", fileId);
           </TabsContent>
 
           {/* ─── Contacts Tab ──────────────────────────────────── */}
-          <TabsContent value="contacts" className="mt-4">
+          <TabsContent value="contacts" className="mt-0">
             <ClientContactsTab clientId={id!} />
           </TabsContent>
 
           {/* ─── Notes Tab ─────────────────────────────────────── */}
-          <TabsContent value="notes" className="mt-4">
+          <TabsContent value="notes" className="mt-0">
             <ClientNotesTimeline clientId={id!} />
           </TabsContent>
 
           {/* ─── Offers Tab ───────────────────────────────────── */}
-          <TabsContent value="offers" className="mt-4">
+          <TabsContent value="offers" className="mt-0">
             <Card>
               <CardContent className="p-0">
                 {(offers || []).length === 0 ? (
@@ -865,7 +865,7 @@ await supabase.from("client_files").delete().eq("id", fileId);
           </TabsContent>
 
           {/* ─── Ideas Tab ────────────────────────────────────── */}
-          <TabsContent value="ideas" className="mt-4 space-y-4">
+          <TabsContent value="ideas" className="mt-0 space-y-4">
             <div className="flex justify-end">
               <Button size="sm" onClick={() => setShowIdeaDialog(true)}><Plus className="h-4 w-4 mr-1" /> Zgłoś pomysł</Button>
             </div>
@@ -903,7 +903,7 @@ await supabase.from("client_files").delete().eq("id", fileId);
           </TabsContent>
 
           {/* ─── Conversations Tab ────────────────────────────── */}
-          <TabsContent value="conversations" className="mt-4">
+          <TabsContent value="conversations" className="mt-0">
             {(conversations || []).length === 0 ? (
               <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Brak rozmów</CardContent></Card>
             ) : (
@@ -942,12 +942,12 @@ await supabase.from("client_files").delete().eq("id", fileId);
           </TabsContent>
 
           {/* ─── VoIP Calls Tab ───────────────────────────────── */}
-          <TabsContent value="voip" className="mt-4">
+          <TabsContent value="voip" className="mt-0">
             <ClientCallsTab clientId={id!} />
           </TabsContent>
 
           {/* ─── Files Tab ────────────────────────────────────── */}
-          <TabsContent value="files" className="mt-4 space-y-4">
+          <TabsContent value="files" className="mt-0 space-y-4">
             <div className="flex gap-2 justify-end">
               <Button size="sm" variant="outline" onClick={() => setShowLinkDialog(true)}>
                 <LinkIcon className="h-4 w-4 mr-1" /> Dodaj link
@@ -1014,7 +1014,7 @@ await supabase.from("client_files").delete().eq("id", fileId);
           </TabsContent>
 
           {/* ─── Billing Tab ──────────────────────────────────── */}
-          <TabsContent value="billing" className="mt-4">
+          <TabsContent value="billing" className="mt-0">
             <Card className="max-w-lg">
               <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <CardTitle className="text-sm font-bold tracking-wider">DANE DO FAKTURY</CardTitle>
@@ -1035,7 +1035,7 @@ await supabase.from("client_files").delete().eq("id", fileId);
           </TabsContent>
 
           {/* ─── Contracts Tab ────────────────────────────────── */}
-          <TabsContent value="contracts" className="mt-4">
+          <TabsContent value="contracts" className="mt-0">
             <Card>
               <CardContent className="p-0">
                 {(contracts || []).length === 0 ? (
@@ -1081,7 +1081,7 @@ await supabase.from("client_files").delete().eq("id", fileId);
           </TabsContent>
 
           {/* ─── Orders Tab ───────────────────────────────────── */}
-          <TabsContent value="orders" className="mt-4">
+          <TabsContent value="orders" className="mt-0">
             <Card>
               <CardContent className="p-0">
                 {(orders || []).length === 0 ? (
@@ -1124,7 +1124,7 @@ await supabase.from("client_files").delete().eq("id", fileId);
           </TabsContent>
 
           {/* ─── Social Media Tab ─────────────────────────────── */}
-          <TabsContent value="social" className="mt-4">
+          <TabsContent value="social" className="mt-0">
             {(socialAccounts || []).length === 0 ? (
               <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Brak kont social media</CardContent></Card>
             ) : (
@@ -1159,7 +1159,7 @@ await supabase.from("client_files").delete().eq("id", fileId);
           </TabsContent>
 
           {/* ─── History Tab ──────────────────────────────────── */}
-          <TabsContent value="history" className="mt-4">
+          <TabsContent value="history" className="mt-0">
             {(activityHistory || []).length === 0 ? (
               <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Brak historii aktywności</CardContent></Card>
             ) : (
