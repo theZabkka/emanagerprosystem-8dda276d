@@ -57,6 +57,7 @@ const convTypeIcons: Record<string, { icon: typeof Phone; label: string }> = {
 };
 
 const CLIENT_TABS = [
+  { key: "overview", label: "Podsumowanie", icon: LayoutGrid },
   { key: "tasks", label: "Zadania", icon: ListTodo },
   { key: "contacts", label: "Kontakty", icon: Contact },
   { key: "notes", label: "Notatki", icon: StickyNote },
@@ -88,7 +89,7 @@ export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("tasks");
+  const [activeTab, setActiveTab] = useState("overview");
   const [copied, setCopied] = useState(false);
   const [taskSearch, setTaskSearch] = useState("");
   const [taskStatusFilter, setTaskStatusFilter] = useState("all");
@@ -477,289 +478,278 @@ await supabase.from("client_files").delete().eq("id", fileId);
 
   return (
     <AppLayout title={client.name}>
-      <div className="space-y-6 max-w-7xl mx-auto">
-        {/* ─── Header ─────────────────────────────────────────── */}
-        <div>
-          <Link to="/clients" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3">
-            <ArrowLeft className="h-4 w-4" /> Wróć do klientów
-          </Link>
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-extrabold text-foreground">{client.name}</h1>
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => setShowEditClient(true)}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              </div>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {client.contact_person || "—"} · {client.email || "—"}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" className="bg-green-600/10 border-green-600/30 text-green-700 hover:bg-green-600/20">
-                <Phone className="h-4 w-4 mr-1" /> Zadzwoń
-              </Button>
-              <Button size="sm" variant="outline" className="bg-red-500/10 border-red-500/30 text-red-600 hover:bg-red-500/20">
-                <MessageSquare className="h-4 w-4 mr-1" /> SMS
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10">
-                    <Trash2 className="h-4 w-4 mr-1" /> Usuń
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Trwałe usunięcie klienta</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Czy na pewno chcesz trwale usunąć klienta <strong>"{client.name}"</strong>? Zostaną usunięte wszystkie powiązane dane (projekty, notatki, oferty, umowy). Tej operacji nie można cofnąć.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteClient} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                      {isDeleting ? "Usuwanie..." : "Tak, usuń"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-              {(() => {
-                const displayStatus = client.status || "Nowy kontakt";
-                return (
-                  <Select
-                    key={`${client.status ?? ""}-${(client as any).updated_at ?? ""}`}
-                    value={displayStatus}
-                    onValueChange={async (newStatus) => {
-                      if (updatingStatus) return;
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
+        {/* Back link */}
+        <Link to="/clients" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
+          <ArrowLeft className="h-4 w-4" /> Wróć do klientów
+        </Link>
 
-                      const clientId = client.id;
-                      const clientQueryKey = ["client", clientId] as const;
-                      const previousClient = queryClient.getQueryData<any>(clientQueryKey);
-                      const previousClients = queryClient.getQueryData<any[]>(["clients"]);
+        <EditClientDialog
+          open={showEditClient}
+          onOpenChange={setShowEditClient}
+          client={client}
+          onUpdated={() => { queryClient.invalidateQueries({ queryKey: ["client", id] }); queryClient.invalidateQueries({ queryKey: ["clients"] }); }}
+        />
+        <CreateTaskDialog
+          open={showCreateTask}
+          onOpenChange={setShowCreateTask}
+          onCreated={() => queryClient.invalidateQueries({ queryKey: ["client-tasks", id] })}
+        />
 
-                      setUpdatingStatus(true);
-
-                      try {
-                        // KROK 1: Stopujemy aktywne pobrania
-                        await queryClient.cancelQueries({ queryKey: ["clients"] });
-                        await queryClient.cancelQueries({ queryKey: clientQueryKey });
-
-                        // KROK 2: Optymistyczna aktualizacja tylko przez cache React Query
-                        queryClient.setQueryData(clientQueryKey, (old: any) =>
-                          old ? { ...old, status: newStatus } : old
-                        );
-                        queryClient.setQueryData(["clients"], (old: any[] | undefined) =>
-                          old?.map((c: any) => (c.id === clientId ? { ...c, status: newStatus } : c))
-                        );
-
-                        // KROK 4: Twarda weryfikacja zapisu
-                        const { data, error } = await supabase
-                          .from("clients")
-                          .update({ status: newStatus as any })
-                          .eq("id", clientId)
-                          .select();
-
-                        const updatedClient = data?.[0];
-                        if (error || !updatedClient || updatedClient.status !== newStatus) {
-                          // Rollback cache
-                          if (previousClient !== undefined) queryClient.setQueryData(clientQueryKey, previousClient);
-                          if (previousClients !== undefined) queryClient.setQueryData(["clients"], previousClients);
-
-                          console.error("Szczegóły błędu zapisu:", error);
-                          toast.error(error?.message || "Błąd zapisu statusu klienta. Zmiana została cofnięta.");
-                          return;
-                        }
-
-                        // KROK 3: Twarde czyszczenie cache klientów
-                        await queryClient.removeQueries({ queryKey: ["clients"] });
-                        await queryClient.removeQueries({ queryKey: ["client"] });
-                        toast.success(`Status zmieniony na: ${newStatus}`);
-                      } catch (err: any) {
-                        if (previousClient !== undefined) queryClient.setQueryData(clientQueryKey, previousClient);
-                        if (previousClients !== undefined) queryClient.setQueryData(["clients"], previousClients);
-                        console.error("Błąd połączenia przy zmianie statusu:", err);
-                        toast.error(err?.message || "Błąd połączenia. Zmiana statusu nieudana.");
-                      } finally {
-                        setUpdatingStatus(false);
-                      }
-                    }}
-                  >
-                    <SelectTrigger onPointerDown={(e) => e.stopPropagation()} className="w-auto h-auto border-0 p-0 shadow-none focus:ring-0">
-                      <Badge variant="outline" className={`text-xs font-bold px-3 py-1 cursor-pointer transition-opacity ${updatingStatus ? "opacity-50" : ""} ${getClientStatusColor(displayStatus)}`}>
-                        {getClientStatusLabel(displayStatus)}
-                      </Badge>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CLIENT_STATUS_GROUPS.map((group) => (
-                        <div key={group.name}>
-                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{group.name}</div>
-                          {group.statuses.map((s) => (
-                            <SelectItem key={s.value} value={s.value}>
-                              <span className="flex items-center gap-2">
-                                <span className={`inline-block w-2 h-2 rounded-full ${s.colorClass.split(" ")[0]}`} />
-                                {s.label}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </div>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                );
-              })()}
-            </div>
-          </div>
-
-          <EditClientDialog
-            open={showEditClient}
-            onOpenChange={setShowEditClient}
-            client={client}
-            onUpdated={() => { queryClient.invalidateQueries({ queryKey: ["client", id] }); queryClient.invalidateQueries({ queryKey: ["clients"] }); }}
-          />
-          <CreateTaskDialog
-            open={showCreateTask}
-            onOpenChange={setShowCreateTask}
-            onCreated={() => queryClient.invalidateQueries({ queryKey: ["client-tasks", id] })}
-          />
-        </div>
-
-        {/* ─── KPI Cards ──────────────────────────────────────── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">Wartość miesięczna</p>
-                  <p className="text-2xl font-extrabold text-foreground mt-1">
-                    {(client.monthly_value || 0).toLocaleString("pl-PL")} zł
-                  </p>
-                </div>
-                <div className="h-10 w-10 rounded-lg bg-green-600/10 flex items-center justify-center">
-                  <DollarSign className="h-5 w-5 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">Aktywne zadania</p>
-                  <p className="text-2xl font-extrabold text-foreground mt-1">{activeTasks.length}</p>
-                </div>
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <ListTodo className="h-5 w-5 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">Otwarte zgłoszenia</p>
-                  <p className="text-2xl font-extrabold text-foreground mt-1">{openBugs.length}</p>
-                </div>
-                <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">Rozmowy</p>
-                  <p className="text-2xl font-extrabold text-foreground mt-1">{(conversations || []).length}</p>
-                </div>
-                <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                  <PhoneCall className="h-5 w-5 text-blue-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* ─── Onboarding + Public Status ─────────────────────── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Notes Card */}
-          <ClientNotesCard clientId={id!} onShowAll={() => setActiveTab("notes")} />
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-bold tracking-wider text-foreground">ONBOARDING</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between text-xs mb-1.5">
-                  <span className="font-medium text-muted-foreground">{onboardingCompleted}/{onboardingTotal} kroków</span>
-                  <span className="font-bold text-primary">{Math.round(onboardingPercent)}%</span>
-                </div>
-                <Progress value={onboardingPercent} className="h-2 [&>div]:bg-primary" />
-              </div>
-              {onboardingTotal === 0 ? (
-                <p className="text-xs text-muted-foreground">Brak kroków onboardingu</p>
-              ) : (
-                <ul className="space-y-2">
-                  {onboardingSteps.map((step: any, i: number) => (
-                    <li key={i} className="flex items-center gap-2">
-                      {step.completed ? <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" /> : <Circle className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />}
-                      <span className={`text-sm ${step.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>{step.name}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-bold tracking-wider text-foreground">PUBLICZNA STRONA STATUSU</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-xs text-muted-foreground">Udostępnij klientowi link do publicznej strony z postępem prac.</p>
-              {publicUrl ? (
-                <div className="flex gap-2">
-                  <Input value={publicUrl} readOnly className="text-xs bg-muted font-mono" />
-                  <Button size="sm" onClick={handleCopy} className="flex-shrink-0">
-                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    <span className="ml-1">{copied ? "Skopiowano" : "Kopiuj"}</span>
-                  </Button>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground italic">Brak tokenu — link nie został jeszcze wygenerowany.</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* ─── Tabs Navigation (Vertical Sidebar Layout) ─────── */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex flex-col md:flex-row gap-6 w-full items-start">
-            {/* Left sidebar menu */}
-            <TabsList className="flex flex-col h-auto w-full md:w-64 shrink-0 bg-transparent p-0 space-y-1 rounded-none border-none">
-              {CLIENT_TABS.map(tab => {
-                const count = tabCounts[tab.key] || 0;
-                const TabIcon = tab.icon;
-                return (
-                  <TabsTrigger
-                    key={tab.key}
-                    value={tab.key}
-                    className="w-full justify-start gap-3 px-4 py-3 text-left text-sm font-medium rounded-md transition-colors text-muted-foreground hover:bg-muted/60 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-none"
-                  >
-                    <TabIcon className="h-4 w-4 shrink-0" />
-                    <span className="flex-1 truncate">{tab.label}</span>
-                    {count > 0 && (
-                      <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-                        {count}
-                      </span>
-                    )}
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
 
-            {/* Right content area */}
-            <div className="flex-1 w-full min-w-0">
+            {/* ═══════ LEFT SIDEBAR ═══════ */}
+            <div className="flex flex-col w-full md:w-64 shrink-0 space-y-4">
+              {/* Client info card */}
+              <Card>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-lg font-extrabold text-foreground truncate flex-1">{client.name}</h1>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => setShowEditClient(true)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  {client.email && (
+                    <p className="text-xs text-muted-foreground truncate">{client.email}</p>
+                  )}
+                  {client.contact_person && (
+                    <p className="text-xs text-muted-foreground">{client.contact_person}</p>
+                  )}
+
+                  {/* Status badge */}
+                  {(() => {
+                    const displayStatus = client.status || "Nowy kontakt";
+                    return (
+                      <Select
+                        key={`${client.status ?? ""}-${(client as any).updated_at ?? ""}`}
+                        value={displayStatus}
+                        onValueChange={async (newStatus) => {
+                          if (updatingStatus) return;
+                          const clientId = client.id;
+                          const clientQueryKey = ["client", clientId] as const;
+                          const previousClient = queryClient.getQueryData<any>(clientQueryKey);
+                          const previousClients = queryClient.getQueryData<any[]>(["clients"]);
+                          setUpdatingStatus(true);
+                          try {
+                            await queryClient.cancelQueries({ queryKey: ["clients"] });
+                            await queryClient.cancelQueries({ queryKey: clientQueryKey });
+                            queryClient.setQueryData(clientQueryKey, (old: any) => old ? { ...old, status: newStatus } : old);
+                            queryClient.setQueryData(["clients"], (old: any[] | undefined) => old?.map((c: any) => (c.id === clientId ? { ...c, status: newStatus } : c)));
+                            const { data, error } = await supabase.from("clients").update({ status: newStatus as any }).eq("id", clientId).select();
+                            const updatedClient = data?.[0];
+                            if (error || !updatedClient || updatedClient.status !== newStatus) {
+                              if (previousClient !== undefined) queryClient.setQueryData(clientQueryKey, previousClient);
+                              if (previousClients !== undefined) queryClient.setQueryData(["clients"], previousClients);
+                              toast.error(error?.message || "Błąd zapisu statusu klienta.");
+                              return;
+                            }
+                            await queryClient.removeQueries({ queryKey: ["clients"] });
+                            await queryClient.removeQueries({ queryKey: ["client"] });
+                            toast.success(`Status zmieniony na: ${newStatus}`);
+                          } catch (err: any) {
+                            if (previousClient !== undefined) queryClient.setQueryData(clientQueryKey, previousClient);
+                            if (previousClients !== undefined) queryClient.setQueryData(["clients"], previousClients);
+                            toast.error(err?.message || "Błąd połączenia.");
+                          } finally {
+                            setUpdatingStatus(false);
+                          }
+                        }}
+                      >
+                        <SelectTrigger onPointerDown={(e) => e.stopPropagation()} className="w-full h-auto border-0 p-0 shadow-none focus:ring-0">
+                          <Badge variant="outline" className={`text-xs font-bold px-3 py-1 cursor-pointer w-full justify-center transition-opacity ${updatingStatus ? "opacity-50" : ""} ${getClientStatusColor(displayStatus)}`}>
+                            {getClientStatusLabel(displayStatus)}
+                          </Badge>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CLIENT_STATUS_GROUPS.map((group) => (
+                            <div key={group.name}>
+                              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{group.name}</div>
+                              {group.statuses.map((s) => (
+                                <SelectItem key={s.value} value={s.value}>
+                                  <span className="flex items-center gap-2">
+                                    <span className={`inline-block w-2 h-2 rounded-full ${s.colorClass.split(" ")[0]}`} />
+                                    {s.label}
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </div>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    );
+                  })()}
+
+                  {/* Quick action buttons */}
+                  <div className="flex gap-1.5 pt-1">
+                    <Button size="sm" variant="outline" className="flex-1 text-xs h-8">
+                      <Phone className="h-3.5 w-3.5 mr-1" /> Zadzwoń
+                    </Button>
+                    <Button size="sm" variant="outline" className="flex-1 text-xs h-8">
+                      <MessageSquare className="h-3.5 w-3.5 mr-1" /> SMS
+                    </Button>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="outline" className="w-full text-xs h-8 text-destructive border-destructive/30 hover:bg-destructive/10">
+                        <Trash2 className="h-3.5 w-3.5 mr-1" /> Usuń klienta
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Trwałe usunięcie klienta</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Czy na pewno chcesz trwale usunąć klienta <strong>"{client.name}"</strong>? Zostaną usunięte wszystkie powiązane dane. Tej operacji nie można cofnąć.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteClient} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          {isDeleting ? "Usuwanie..." : "Tak, usuń"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </CardContent>
+              </Card>
+
+              {/* Navigation tabs */}
+              <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 space-y-1 rounded-none border-none">
+                {CLIENT_TABS.map(tab => {
+                  const count = tabCounts[tab.key] || 0;
+                  const TabIcon = tab.icon;
+                  return (
+                    <TabsTrigger
+                      key={tab.key}
+                      value={tab.key}
+                      className="w-full justify-start gap-3 px-4 py-2.5 text-left text-sm font-medium rounded-md transition-colors text-muted-foreground hover:bg-muted/60 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-none"
+                    >
+                      <TabIcon className="h-4 w-4 shrink-0" />
+                      <span className="flex-1 truncate">{tab.label}</span>
+                      {count > 0 && (
+                        <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                          {count}
+                        </span>
+                      )}
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </div>
+
+            {/* ═══════ RIGHT CONTENT AREA ═══════ */}
+            <div className="flex-1 w-full min-w-0 bg-card rounded-xl shadow-sm border border-border p-6">
+
+              {/* ─── Overview Tab ──────────────────────────────── */}
+              <TabsContent value="overview" className="mt-0 space-y-6">
+                {/* KPI Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground font-medium">Wartość miesięczna</p>
+                          <p className="text-2xl font-extrabold text-foreground mt-1">
+                            {(client.monthly_value || 0).toLocaleString("pl-PL")} zł
+                          </p>
+                        </div>
+                        <div className="h-10 w-10 rounded-lg bg-green-600/10 flex items-center justify-center">
+                          <DollarSign className="h-5 w-5 text-green-600" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground font-medium">Aktywne zadania</p>
+                          <p className="text-2xl font-extrabold text-foreground mt-1">{activeTasks.length}</p>
+                        </div>
+                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <ListTodo className="h-5 w-5 text-primary" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground font-medium">Otwarte zgłoszenia</p>
+                          <p className="text-2xl font-extrabold text-foreground mt-1">{openBugs.length}</p>
+                        </div>
+                        <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center">
+                          <AlertTriangle className="h-5 w-5 text-destructive" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground font-medium">Rozmowy</p>
+                          <p className="text-2xl font-extrabold text-foreground mt-1">{(conversations || []).length}</p>
+                        </div>
+                        <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                          <PhoneCall className="h-5 w-5 text-blue-500" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Onboarding + Notes + Public Status */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <ClientNotesCard clientId={id!} onShowAll={() => setActiveTab("notes")} />
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-bold tracking-wider text-foreground">ONBOARDING</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <div className="flex items-center justify-between text-xs mb-1.5">
+                          <span className="font-medium text-muted-foreground">{onboardingCompleted}/{onboardingTotal} kroków</span>
+                          <span className="font-bold text-primary">{Math.round(onboardingPercent)}%</span>
+                        </div>
+                        <Progress value={onboardingPercent} className="h-2 [&>div]:bg-primary" />
+                      </div>
+                      {onboardingTotal === 0 ? (
+                        <p className="text-xs text-muted-foreground">Brak kroków onboardingu</p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {onboardingSteps.map((step: any, i: number) => (
+                            <li key={i} className="flex items-center gap-2">
+                              {step.completed ? <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" /> : <Circle className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />}
+                              <span className={`text-sm ${step.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>{step.name}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-bold tracking-wider text-foreground">PUBLICZNA STRONA STATUSU</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <p className="text-xs text-muted-foreground">Udostępnij klientowi link do publicznej strony z postępem prac.</p>
+                      {publicUrl ? (
+                        <div className="flex gap-2">
+                          <Input value={publicUrl} readOnly className="text-xs bg-muted font-mono" />
+                          <Button size="sm" onClick={handleCopy} className="flex-shrink-0">
+                            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                            <span className="ml-1">{copied ? "Skopiowano" : "Kopiuj"}</span>
+                          </Button>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic">Brak tokenu — link nie został jeszcze wygenerowany.</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
 
           {/* ─── Tasks Tab ────────────────────────────────────── */}
           <TabsContent value="tasks" className="mt-0 space-y-4">
