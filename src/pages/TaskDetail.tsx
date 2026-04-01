@@ -1563,6 +1563,42 @@ export default function TaskDetail() {
         onConfirm={handleRejectFromReview}
       />
 
+      {/* Hard Delete Confirmation */}
+      <AlertDialog open={hardDeleteOpen} onOpenChange={setHardDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">Trwałe usunięcie zadania</AlertDialogTitle>
+            <AlertDialogDescription>
+              Uwaga: Czy na pewno chcesz trwale usunąć to zadanie? Ta akcja jest bezpowrotna. Z bazy znikną również wszystkie komentarze, logi oraz dane analityczne powiązane z tym zadaniem. Zamiast tego zalecamy użycie archiwizacji.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Anuluj</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!id) return;
+                setIsDeleting(true);
+                const { error } = await supabase.rpc("hard_delete_task", { p_task_id: id });
+                setIsDeleting(false);
+                if (error) {
+                  toast.error("Błąd usuwania: " + error.message);
+                  return;
+                }
+                setHardDeleteOpen(false);
+                toast.success("Zadanie zostało trwale usunięte");
+                queryClient.invalidateQueries({ queryKey: ["tasks"] });
+                navigate("/tasks");
+              }}
+            >
+              {isDeleting ? "Usuwanie..." : "Tak, usuń trwale"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Task Chat Sheet */}
       <Sheet open={isChatOpen} onOpenChange={setIsChatOpen}>
         <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
