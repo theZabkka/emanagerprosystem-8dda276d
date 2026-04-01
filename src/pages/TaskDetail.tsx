@@ -79,7 +79,7 @@ export default function TaskDetail() {
   const [commentText, setCommentText] = useState("");
   const [commentType, setCommentType] = useState("internal");
   const [commentFilter, setCommentFilter] = useState("all");
-  const [newSubtask, setNewSubtask] = useState("");
+  const [commentType, setCommentType] = useState("internal");
   const [briefOpen, setBriefOpen] = useState(false);
   const [briefForm, setBriefForm] = useState<Record<string, string>>({});
   const [assignOpen, setAssignOpen] = useState(false);
