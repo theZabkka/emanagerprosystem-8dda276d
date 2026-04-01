@@ -1,78 +1,30 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
+import { useVerificationLock } from "@/hooks/useVerificationLock";
 import { AlertTriangle, Clock, ExternalLink, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
-const FREEZE_THRESHOLD_MS = 60 * 60 * 1000; // 60 min
 
 export function CoordinatorFreezeOverlay() {
   const { user } = useAuth();
   const { currentRole } = useRole();
   const navigate = useNavigate();
-  const [frozenTasks, setFrozenTasks] = useState<any[]>([]);
+  const location = useLocation();
+  const {
+    hasPendingVerifications,
+    frozenTasks,
+    activeLockedTaskId,
+    setActiveLockedTaskId,
+    isExempt,
+  } = useVerificationLock();
 
-  // Fetch tasks currently in review with their status_entered_at from history
-  const { data: reviewTasks } = useQuery({
-    queryKey: ["review-tasks-freeze"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("task_status_history")
-        .select(`
-          task_id,
-          status_entered_at,
-          tasks:task_id(
-            id, title, priority, is_archived,
-            clients:client_id(name),
-            task_assignments(user_id, role, profiles:user_id(full_name))
-          )
-        `)
-        .eq("new_status", "review")
-        .is("status_exited_at", null);
-
-      return (data || [])
-        .map((h: any) => ({
-          id: h.tasks?.id,
-          title: h.tasks?.title,
-          priority: h.tasks?.priority,
-          is_archived: h.tasks?.is_archived,
-          status_entered_at: h.status_entered_at,
-          client_name: h.tasks?.clients?.name,
-          assignees: (h.tasks?.task_assignments || []).map((a: any) => ({
-            name: a.profiles?.full_name || "Nieznany",
-            role: a.role,
-          })),
-        }))
-        .filter((t: any) => t.id && !t.is_archived);
-    },
-    refetchInterval: 30000,
-    enabled: !!user,
-  });
-
-  useEffect(() => {
-    if (!reviewTasks) {
-      setFrozenTasks([]);
-      return;
-    }
-    const now = Date.now();
-    const overdue = reviewTasks.filter((t: any) => {
-      if (!t.status_entered_at) return false;
-      return now - new Date(t.status_entered_at).getTime() >= FREEZE_THRESHOLD_MS;
-    });
-    setFrozenTasks(overdue);
-  }, [reviewTasks]);
-
-  // No frozen tasks → nothing to show
-  if (frozenTasks.length === 0) return null;
-
-  // superadmin and boss: show non-blocking banner only
-  const isExempt = currentRole === "superadmin" || currentRole === "boss";
-  // clients never see this
+  if (!user) return null;
   if (currentRole === "klient") return null;
+
+  // No frozen tasks → nothing
+  if (frozenTasks.length === 0) return null;
 
   function formatElapsed(enteredAt: string) {
     const mins = Math.floor((Date.now() - new Date(enteredAt).getTime()) / 60000);
@@ -96,7 +48,7 @@ export function CoordinatorFreezeOverlay() {
     low: "Niski",
   };
 
-  // Non-blocking info banner for superadmin/boss
+  // superadmin/boss: non-blocking banner
   if (isExempt) {
     return (
       <div className="fixed bottom-4 right-4 z-50 max-w-md w-full animate-in slide-in-from-bottom-4">
@@ -130,7 +82,17 @@ export function CoordinatorFreezeOverlay() {
     );
   }
 
-  // Blocking overlay for koordynator, specjalista, praktykant
+  // If actively locked on a task and user is ON that task page, hide overlay
+  if (activeLockedTaskId) {
+    const isOnLockedTask = location.pathname === `/tasks/${activeLockedTaskId}`;
+    if (isOnLockedTask) return null;
+    // If user somehow navigated away from locked task, show overlay again
+    // Reset activeLockedTaskId to show the full list
+    // Actually keep it set - the NavigationLock in AppLayout prevents navigation
+    return null; // NavigationLock handles blocking
+  }
+
+  // Full blocking overlay
   return (
     <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="max-w-2xl w-full bg-card border-2 border-destructive rounded-2xl shadow-2xl p-8 space-y-6 max-h-[90vh] overflow-y-auto">
@@ -192,7 +154,10 @@ export function CoordinatorFreezeOverlay() {
               )}
 
               <Button
-                onClick={() => navigate(`/tasks?taskId=${t.id}`)}
+                onClick={() => {
+                  setActiveLockedTaskId(t.id);
+                  navigate(`/tasks/${t.id}`);
+                }}
                 className="w-full gap-2"
                 size="sm"
               >
