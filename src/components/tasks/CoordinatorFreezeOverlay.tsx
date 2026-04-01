@@ -69,6 +69,17 @@ export function CoordinatorFreezeOverlay() {
     setFrozenTasks(overdue);
   }, [reviewTasks]);
 
+  // Detect if user is currently viewing one of the frozen tasks
+  const taskIdFromSearch = searchParams.get("taskId");
+  const taskIdFromPath = location.pathname.match(/^\/tasks\/([a-f0-9-]+)/)?.[1];
+  const currentTaskId = taskIdFromSearch || taskIdFromPath;
+  const isOnFrozenTask = frozenTasks.some((t) => t.id === currentTaskId);
+
+  // Reset dismissed state when frozen tasks change
+  useEffect(() => {
+    setDismissed(false);
+  }, [frozenTasks.map((t) => t.id).join(",")]);
+
   // No frozen tasks → nothing to show
   if (frozenTasks.length === 0) return null;
 
