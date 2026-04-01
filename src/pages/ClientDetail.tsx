@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+// ScrollArea removed – vertical sidebar tabs don't need horizontal scroll
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -22,7 +22,8 @@ import {
   ArrowLeft, Phone, MessageSquare, DollarSign, ListTodo, AlertTriangle, PhoneCall,
   Copy, Check, CheckCircle2, Circle, Search, Plus, LayoutGrid, List, Timer,
   FileText, Link as LinkIcon, ThumbsUp, Mail, Users, Upload, Trash2, Download,
-  Pencil, Calendar, ExternalLink,
+  Pencil, Calendar, ExternalLink, StickyNote, Lightbulb, FileSignature, ShoppingCart,
+  Share2, Receipt, History, Contact,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -56,19 +57,19 @@ const convTypeIcons: Record<string, { icon: typeof Phone; label: string }> = {
 };
 
 const CLIENT_TABS = [
-  { key: "tasks", label: "Zadania" },
-  { key: "contacts", label: "Kontakty" },
-  { key: "notes", label: "Notatki" },
-  { key: "conversations", label: "Rozmowy" },
-  { key: "voip", label: "Rozmowy VoIP" },
-  { key: "offers", label: "Oferty" },
-  { key: "ideas", label: "Pomysły" },
-  { key: "contracts", label: "Umowy" },
-  { key: "orders", label: "Zlecenia" },
-  { key: "files", label: "Pliki (Drive)" },
-  { key: "social", label: "Social Media" },
-  { key: "billing", label: "Dane do faktury" },
-  { key: "history", label: "Historia" },
+  { key: "tasks", label: "Zadania", icon: ListTodo },
+  { key: "contacts", label: "Kontakty", icon: Contact },
+  { key: "notes", label: "Notatki", icon: StickyNote },
+  { key: "conversations", label: "Rozmowy", icon: MessageSquare },
+  { key: "voip", label: "Rozmowy VoIP", icon: PhoneCall },
+  { key: "offers", label: "Oferty", icon: FileText },
+  { key: "ideas", label: "Pomysły", icon: Lightbulb },
+  { key: "contracts", label: "Umowy", icon: FileSignature },
+  { key: "orders", label: "Zlecenia", icon: ShoppingCart },
+  { key: "files", label: "Pliki (Drive)", icon: Upload },
+  { key: "social", label: "Social Media", icon: Share2 },
+  { key: "billing", label: "Dane do faktury", icon: Receipt },
+  { key: "history", label: "Historia", icon: History },
 ];
 
 function formatFileSize(bytes: number) {
@@ -731,26 +732,37 @@ await supabase.from("client_files").delete().eq("id", fileId);
           </Card>
         </div>
 
-        {/* ─── Tabs Navigation ────────────────────────────────── */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <ScrollArea className="w-full">
-            <TabsList className="bg-transparent h-auto p-0 gap-1 flex w-max">
+        {/* ─── Tabs Navigation (Vertical Sidebar Layout) ─────── */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="flex flex-col md:flex-row gap-6 w-full items-start">
+            {/* Left sidebar menu */}
+            <TabsList className="flex flex-col h-auto w-full md:w-64 shrink-0 bg-transparent p-0 space-y-1 rounded-none border-none">
               {CLIENT_TABS.map(tab => {
                 const count = tabCounts[tab.key] || 0;
-                const isActive = activeTab === tab.key;
+                const TabIcon = tab.icon;
                 return (
-                  <TabsTrigger key={tab.key} value={tab.key} className={`text-xs font-semibold px-3 py-2 rounded-md transition-colors data-[state=active]:shadow-none ${isActive ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
-                    {tab.label}
-                    <span className={`ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded ${isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-background text-muted-foreground"}`}>{count}</span>
+                  <TabsTrigger
+                    key={tab.key}
+                    value={tab.key}
+                    className="w-full justify-start gap-3 px-4 py-3 text-left text-sm font-medium rounded-md transition-colors text-muted-foreground hover:bg-muted/60 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-none"
+                  >
+                    <TabIcon className="h-4 w-4 shrink-0" />
+                    <span className="flex-1 truncate">{tab.label}</span>
+                    {count > 0 && (
+                      <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                        {count}
+                      </span>
+                    )}
                   </TabsTrigger>
                 );
               })}
             </TabsList>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+
+            {/* Right content area */}
+            <div className="flex-1 w-full min-w-0">
 
           {/* ─── Tasks Tab ────────────────────────────────────── */}
-          <TabsContent value="tasks" className="mt-4 space-y-4">
+          <TabsContent value="tasks" className="mt-0 space-y-4">
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
               <div className="flex gap-2 flex-1">
                 <div className="relative flex-1 max-w-xs">
@@ -800,17 +812,17 @@ await supabase.from("client_files").delete().eq("id", fileId);
           </TabsContent>
 
           {/* ─── Contacts Tab ──────────────────────────────────── */}
-          <TabsContent value="contacts" className="mt-4">
+          <TabsContent value="contacts" className="mt-0">
             <ClientContactsTab clientId={id!} />
           </TabsContent>
 
           {/* ─── Notes Tab ─────────────────────────────────────── */}
-          <TabsContent value="notes" className="mt-4">
+          <TabsContent value="notes" className="mt-0">
             <ClientNotesTimeline clientId={id!} />
           </TabsContent>
 
           {/* ─── Offers Tab ───────────────────────────────────── */}
-          <TabsContent value="offers" className="mt-4">
+          <TabsContent value="offers" className="mt-0">
             <Card>
               <CardContent className="p-0">
                 {(offers || []).length === 0 ? (
@@ -853,7 +865,7 @@ await supabase.from("client_files").delete().eq("id", fileId);
           </TabsContent>
 
           {/* ─── Ideas Tab ────────────────────────────────────── */}
-          <TabsContent value="ideas" className="mt-4 space-y-4">
+          <TabsContent value="ideas" className="mt-0 space-y-4">
             <div className="flex justify-end">
               <Button size="sm" onClick={() => setShowIdeaDialog(true)}><Plus className="h-4 w-4 mr-1" /> Zgłoś pomysł</Button>
             </div>
@@ -891,7 +903,7 @@ await supabase.from("client_files").delete().eq("id", fileId);
           </TabsContent>
 
           {/* ─── Conversations Tab ────────────────────────────── */}
-          <TabsContent value="conversations" className="mt-4">
+          <TabsContent value="conversations" className="mt-0">
             {(conversations || []).length === 0 ? (
               <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Brak rozmów</CardContent></Card>
             ) : (
@@ -930,12 +942,12 @@ await supabase.from("client_files").delete().eq("id", fileId);
           </TabsContent>
 
           {/* ─── VoIP Calls Tab ───────────────────────────────── */}
-          <TabsContent value="voip" className="mt-4">
+          <TabsContent value="voip" className="mt-0">
             <ClientCallsTab clientId={id!} />
           </TabsContent>
 
           {/* ─── Files Tab ────────────────────────────────────── */}
-          <TabsContent value="files" className="mt-4 space-y-4">
+          <TabsContent value="files" className="mt-0 space-y-4">
             <div className="flex gap-2 justify-end">
               <Button size="sm" variant="outline" onClick={() => setShowLinkDialog(true)}>
                 <LinkIcon className="h-4 w-4 mr-1" /> Dodaj link
@@ -1002,7 +1014,7 @@ await supabase.from("client_files").delete().eq("id", fileId);
           </TabsContent>
 
           {/* ─── Billing Tab ──────────────────────────────────── */}
-          <TabsContent value="billing" className="mt-4">
+          <TabsContent value="billing" className="mt-0">
             <Card className="max-w-lg">
               <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <CardTitle className="text-sm font-bold tracking-wider">DANE DO FAKTURY</CardTitle>
@@ -1023,7 +1035,7 @@ await supabase.from("client_files").delete().eq("id", fileId);
           </TabsContent>
 
           {/* ─── Contracts Tab ────────────────────────────────── */}
-          <TabsContent value="contracts" className="mt-4">
+          <TabsContent value="contracts" className="mt-0">
             <Card>
               <CardContent className="p-0">
                 {(contracts || []).length === 0 ? (
@@ -1069,7 +1081,7 @@ await supabase.from("client_files").delete().eq("id", fileId);
           </TabsContent>
 
           {/* ─── Orders Tab ───────────────────────────────────── */}
-          <TabsContent value="orders" className="mt-4">
+          <TabsContent value="orders" className="mt-0">
             <Card>
               <CardContent className="p-0">
                 {(orders || []).length === 0 ? (
@@ -1112,7 +1124,7 @@ await supabase.from("client_files").delete().eq("id", fileId);
           </TabsContent>
 
           {/* ─── Social Media Tab ─────────────────────────────── */}
-          <TabsContent value="social" className="mt-4">
+          <TabsContent value="social" className="mt-0">
             {(socialAccounts || []).length === 0 ? (
               <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Brak kont social media</CardContent></Card>
             ) : (
@@ -1147,7 +1159,7 @@ await supabase.from("client_files").delete().eq("id", fileId);
           </TabsContent>
 
           {/* ─── History Tab ──────────────────────────────────── */}
-          <TabsContent value="history" className="mt-4">
+          <TabsContent value="history" className="mt-0">
             {(activityHistory || []).length === 0 ? (
               <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Brak historii aktywności</CardContent></Card>
             ) : (
@@ -1180,6 +1192,9 @@ await supabase.from("client_files").delete().eq("id", fileId);
               </Card>
             )}
           </TabsContent>
+
+            </div>{/* end right content area */}
+          </div>{/* end flex row */}
         </Tabs>
       </div>
 
