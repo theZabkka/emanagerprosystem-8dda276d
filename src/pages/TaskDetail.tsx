@@ -967,7 +967,7 @@ export default function TaskDetail() {
                 </div>
               )}
             </CardContent>
-          </Card>}
+          </Card>
 
           {/* Assigned people - hidden in preview and for clients */}
           {!isPreviewMode && !isClient && <Card>
