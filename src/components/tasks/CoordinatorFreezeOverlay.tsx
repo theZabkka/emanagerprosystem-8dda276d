@@ -156,7 +156,15 @@ export function CoordinatorFreezeOverlay() {
   // Blocking overlay for koordynator, specjalista, praktykant
   return (
     <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full bg-card border-2 border-destructive rounded-2xl shadow-2xl p-8 space-y-6 max-h-[90vh] overflow-y-auto">
+      <div className="relative max-w-2xl w-full bg-card border-2 border-destructive rounded-2xl shadow-2xl p-8 space-y-6 max-h-[90vh] overflow-y-auto">
+        {/* Close button */}
+        <button
+          onClick={handleDismiss}
+          className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-muted transition-colors"
+        >
+          <X className="h-5 w-5 text-muted-foreground" />
+        </button>
+
         <div className="text-center space-y-4">
           <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
             <AlertTriangle className="h-8 w-8 text-destructive" />
@@ -215,7 +223,7 @@ export function CoordinatorFreezeOverlay() {
               )}
 
               <Button
-                onClick={() => navigate(`/tasks?taskId=${t.id}`)}
+                onClick={() => handleGoToTask(t.id)}
                 className="w-full gap-2"
                 size="sm"
               >
@@ -226,9 +234,14 @@ export function CoordinatorFreezeOverlay() {
           ))}
         </div>
 
-        <p className="text-xs text-muted-foreground text-center">
-          Blokada zniknie automatycznie, gdy wszystkie zaległe zadania zostaną zweryfikowane lub zmienią status.
-        </p>
+        <div className="flex flex-col items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={handleDismiss} className="text-muted-foreground">
+            Zamknij / Przypomnij później
+          </Button>
+          <p className="text-xs text-muted-foreground text-center">
+            Blokada pojawi się ponownie przy kolejnym odświeżeniu lub po pojawieniu się nowych zaległych zadań.
+          </p>
+        </div>
       </div>
     </div>
   );
