@@ -345,13 +345,13 @@ export default function TaskKanbanBoard({
         }}
       />
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-3 h-[calc(100vh-16rem)] overflow-x-auto pb-4">
+        <div className="flex h-[calc(100vh-16rem)] items-stretch gap-3 overflow-x-auto pb-4">
           {KANBAN_COLUMNS.map((col) => {
             const columnTasks = getColumnTasks(col.key);
             const isEmpty = columnTasks.length === 0;
             return (
-              <div key={col.key} className="flex-shrink-0 w-72 flex flex-col">
-                <div className={`flex flex-col flex-1 rounded-xl border border-dashed ${isEmpty ? "border-muted-foreground/20" : "border-destructive/30"} bg-card/50`}>
+              <div key={col.key} className="flex h-full w-72 flex-shrink-0 flex-col">
+                <div className={`flex h-full min-h-0 flex-1 flex-col rounded-xl border border-dashed ${isEmpty ? "border-muted-foreground/20" : "border-destructive/30"} bg-card/50`}>
                   <div className="px-4 pt-3 pb-2">
                     <h3 className="text-xs font-extrabold tracking-wider text-foreground">{col.label}</h3>
                     <span className="text-[11px] text-muted-foreground">
@@ -361,11 +361,11 @@ export default function TaskKanbanBoard({
 
                   <Droppable droppableId={col.key}>
                     {(provided, snapshot) => (
-                      <ScrollArea className="flex-1">
+                      <ScrollArea className="min-h-0 flex-1">
                         <div
                           ref={provided.innerRef}
                           {...provided.droppableProps}
-                          className={`px-2 pb-2 space-y-1.5 min-h-[120px] transition-colors ${snapshot.isDraggingOver ? "bg-destructive/5" : ""}`}
+                          className={`flex min-h-full flex-1 flex-col px-2 pb-2 space-y-1.5 transition-colors ${snapshot.isDraggingOver ? "bg-destructive/5" : ""}`}
                         >
                           {columnTasks.map((task: any, index: number) => {
                             const assignee = getAssignee(task.id);
