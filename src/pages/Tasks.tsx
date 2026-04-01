@@ -229,6 +229,7 @@ export default function Tasks() {
             onArchive={handleArchive}
             onRefresh={refetch}
             onLexoRankUpdate={handleLexoRankUpdate}
+            onQuickAdd={(status) => { setQuickAddStatus(status); setIsCreateOpen(true); }}
             sortField={sortField}
             sortDirection={sortDirection}
           />
