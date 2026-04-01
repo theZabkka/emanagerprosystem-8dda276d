@@ -546,7 +546,7 @@ const KanbanCard = React.memo(function KanbanCard({
         )}
       </Link>
 
-      <div className="px-2 pb-1.5 flex items-center justify-between">
+      <div className="px-2 pb-1.5 flex items-end justify-between">
         <div className="flex items-center gap-0.5">
           {taskAssignees.map((person: any) => (
             <TooltipProvider key={person.id} delayDuration={200}>
@@ -574,54 +574,43 @@ const KanbanCard = React.memo(function KanbanCard({
             showAvatarInTrigger={false}
           />
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-end gap-1">
           {task.estimated_time > 0 && task.logged_time > 0 && (
             <span className="flex items-center gap-0.5 text-[9px] text-muted-foreground">
               <Clock className="h-2 w-2" />{(task.logged_time / 60).toFixed(1)}h
             </span>
           )}
-          {((columnKey === "closed" && onArchive) || (isSuperAdmin && onHardDelete)) && (
-            <div className="flex flex-col items-end gap-1">
+          {(columnKey === "closed" || (isSuperAdmin && onOpenDeleteModal)) && (
+            <div className="flex flex-col items-end gap-1 mt-2 relative z-10">
               {columnKey === "closed" && onArchive && (
                 <Button
-                  size="sm" variant="ghost"
-                  className="h-5 text-[8px] gap-0.5 text-muted-foreground hover:text-primary px-1"
+                  size="sm"
+                  variant="ghost"
+                  className="h-5 px-1 text-[8px] gap-0.5 text-muted-foreground hover:text-primary"
                   onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); onArchive(task.id); }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onArchive(task.id);
+                  }}
                 >
                   <Archive className="h-2 w-2" />Archiwizuj
                 </Button>
               )}
-              {isSuperAdmin && onHardDelete && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      size="sm" variant="ghost"
-                      className="h-5 text-[8px] gap-0.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 px-1"
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                    >
-                      <Trash2 className="h-2 w-2" />Usuń
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle className="text-destructive">Trwałe usunięcie zadania</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Uwaga: Czy na pewno chcesz trwale usunąć to zadanie? Ta akcja jest bezpowrotna. Z bazy znikną również wszystkie komentarze, logi oraz dane analityczne powiązane z tym zadaniem. Zamiast tego zalecamy użycie archiwizacji.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                      <AlertDialogAction
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        onClick={(e) => { e.stopPropagation(); onHardDelete(task.id); }}
-                      >
-                        Tak, usuń trwale
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+              {isSuperAdmin && onOpenDeleteModal && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-5 px-1 text-[8px] gap-0.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onOpenDeleteModal(task);
+                  }}
+                >
+                  <Trash2 className="h-2 w-2" />Usuń
+                </Button>
               )}
             </div>
           )}
