@@ -337,19 +337,15 @@ export default function TaskKanbanBoard({
     setTaskToDelete(task);
   }, []);
 
-  const handleConfirmDelete = useCallback(async () => {
-    if (!taskToDelete?.id || !onHardDelete) return;
-
-    try {
-      setIsDeletingTask(true);
-      await onHardDelete(taskToDelete.id);
+  const handleDeleteModalOpenChange = useCallback((open: boolean) => {
+    if (!open) {
       setTaskToDelete(null);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsDeletingTask(false);
     }
-  }, [onHardDelete, taskToDelete]);
+  }, []);
+
+  const handleTaskDeleted = useCallback((deletedTaskId: string) => {
+    setOptimisticTasks((prev) => prev.filter((task: any) => task.id !== deletedTaskId));
+  }, []);
 
   return (
     <>
