@@ -799,6 +799,11 @@ await supabase.from("client_files").delete().eq("id", fileId);
             )}
           </TabsContent>
 
+          {/* ─── Contacts Tab ──────────────────────────────────── */}
+          <TabsContent value="contacts" className="mt-4">
+            <ClientContactsTab clientId={id!} />
+          </TabsContent>
+
           {/* ─── Notes Tab ─────────────────────────────────────── */}
           <TabsContent value="notes" className="mt-4">
             <ClientNotesTimeline clientId={id!} />
