@@ -341,11 +341,13 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated, defaul
   const handleCreate = async () => {
     if (!form.title.trim()) { toast.error("Podaj nazwę zadania"); return; }
 
-    // Get the last lexo_rank in todo column to place new task at the end
+    const targetStatus = defaultStatus || "todo";
+
+    // Get the last lexo_rank in target column to place new task at the end
     const { data: lastTask } = await supabase
       .from("tasks")
       .select("lexo_rank")
-      .eq("status", "todo" as any)
+      .eq("status", targetStatus as any)
       .eq("is_archived", false)
       .order("lexo_rank" as any, { ascending: false })
       .limit(1)
@@ -359,7 +361,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated, defaul
       title: form.title,
       description: form.description || null,
       priority: form.priority as any,
-      status: "todo" as any,
+      status: targetStatus as any,
       type: form.type || null,
       client_id: form.client_id || null,
       project_id: form.project_id || null,
