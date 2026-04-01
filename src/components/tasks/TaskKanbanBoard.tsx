@@ -64,7 +64,7 @@ export default function TaskKanbanBoard({
 }: TaskKanbanBoardProps) {
   const { user } = useAuth();
   const { currentRole } = useRole();
-  const isSuperAdmin = currentRole === "superadmin";
+  const isSuperAdmin = currentRole?.toLowerCase().replace(/\s/g, '') === 'superadmin';
   const isManualSort = sortField === "manual";
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
   const [responsibilityOpen, setResponsibilityOpen] = useState(false);
