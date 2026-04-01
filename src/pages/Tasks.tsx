@@ -175,12 +175,12 @@ export default function Tasks() {
     }
   }, [priorityFilter, queryClient]);
 
-  async function handleArchive(taskId: string) {
+  const handleArchive = useCallback(async (taskId: string) => {
     const { error } = await supabase.from("tasks").update({ is_archived: true, updated_at: new Date().toISOString() } as any).eq("id", taskId);
     if (error) { toast.error("Błąd archiwizacji"); return; }
     toast.success("Zadanie zarchiwizowane");
     refetch();
-  }
+  }, [refetch]);
 
   return (
     <AppLayout title="Zadania">
