@@ -88,6 +88,7 @@ export default function TaskDetail() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
+  const [clientPickerOpen, setClientPickerOpen] = useState(false);
 
   // ─── Queries ─────────────────────────────────────────────────────
   const { data: task, isLoading } = useQuery({
