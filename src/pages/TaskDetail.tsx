@@ -344,6 +344,7 @@ export default function TaskDetail() {
     if (error) { toast.error(error.message); return; }
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     queryClient.invalidateQueries({ queryKey: ["status-history", id] });
+    refreshAfterVerification();
     toast.success("Zadanie zaakceptowane!");
   }
 
