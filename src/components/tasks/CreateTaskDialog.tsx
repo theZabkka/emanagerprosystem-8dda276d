@@ -265,7 +265,11 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated, defaul
   };
 
   const resetForm = () => {
-    setForm(initialForm);
+    setForm({
+      ...initialForm,
+      ...(defaultProjectId ? { project_id: defaultProjectId } : {}),
+      ...(defaultClientId ? { client_id: defaultClientId } : {}),
+    });
     setSelectedUsers([]);
     setBriefOpen(false);
     setNipInput("");
