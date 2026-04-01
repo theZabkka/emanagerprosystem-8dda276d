@@ -4,6 +4,15 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+export interface ContactPermissions {
+  support?: boolean;
+  invoices?: boolean;
+  projects?: boolean;
+  contracts?: boolean;
+  estimates?: boolean;
+  [key: string]: boolean | undefined;
+}
+
 interface ProfileData {
   id: string;
   email: string;
@@ -18,6 +27,8 @@ interface ProfileData {
   contact_phone?: string | null;
   contact_position?: string | null;
   is_contact?: boolean;
+  is_primary_contact?: boolean;
+  contact_permissions?: ContactPermissions;
 }
 
 interface AuthContextType {
@@ -81,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (profileData.role === "klient" && profileData.client_id) {
       const { data: contactData } = await supabase
         .from("customer_contacts")
-        .select("first_name, last_name, phone, position")
+        .select("first_name, last_name, phone, position, is_primary, permissions")
         .eq("id", userId)
         .maybeSingle();
 
@@ -91,6 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profileData.contact_phone = contactData.phone;
         profileData.contact_position = contactData.position;
         profileData.is_contact = true;
+        profileData.is_primary_contact = contactData.is_primary;
+        profileData.contact_permissions = (contactData.permissions as ContactPermissions) || {};
         // Override full_name with contact's personal name
         const contactName = `${contactData.first_name || ""} ${contactData.last_name || ""}`.trim();
         if (contactName) {

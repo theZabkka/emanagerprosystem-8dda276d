@@ -9,7 +9,8 @@ import { FolderKanban, FileText, Filter, MessageSquare } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/hooks/useRole";
-import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate, Navigate } from "react-router-dom";
 import { statusLabels, statusColors } from "@/lib/statusConfig";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
@@ -29,9 +30,12 @@ const REVIEW_STATUSES = ["review", "client_review"];
 const DONE_STATUSES = ["done", "client_verified", "closed"];
 
 export default function ClientTasks() {
-  const { clientId } = useRole();
+  const { clientId, hasContactPermission, isPrimaryContact } = useRole();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+  const hasPermission = hasContactPermission("projects");
 
   // Fetch projects
   const { data: projects, isLoading: projectsLoading } = useQuery({
@@ -46,12 +50,12 @@ export default function ClientTasks() {
         .order("name");
       return data || [];
     },
-    enabled: !!clientId,
+    enabled: !!clientId && hasPermission,
   });
 
-  // Fetch all tasks for this client
+  // Fetch tasks — non-primary contacts only see tasks assigned to them
   const { data: tasks, isLoading: tasksLoading } = useQuery({
-    queryKey: ["client-tasks-full", clientId],
+    queryKey: ["client-tasks-full", clientId, isPrimaryContact, user?.id],
     queryFn: async () => {
       if (!clientId) return [];
       const { data } = await supabase
@@ -64,9 +68,16 @@ export default function ClientTasks() {
         .eq("client_id", clientId)
         .eq("is_archived", false)
         .order("updated_at", { ascending: false });
-      return data || [];
+      if (!data) return [];
+      // For non-primary contacts, filter to only tasks they're assigned to
+      if (!isPrimaryContact && user?.id) {
+        return data.filter((t: any) =>
+          (t.task_assignments || []).some((a: any) => a.user_id === user.id)
+        );
+      }
+      return data;
     },
-    enabled: !!clientId,
+    enabled: !!clientId && hasPermission,
   });
 
   // Filter tasks
@@ -109,6 +120,11 @@ export default function ClientTasks() {
     const primary = assignments.find((a: any) => a.role === "primary");
     return primary?.profiles?.full_name || null;
   };
+
+  // Permission guard — all hooks called above
+  if (!hasPermission) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <AppLayout title="Moje Zadania">

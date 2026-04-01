@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { statusLabels as allStatusLabels, statusColors as taskStatusColors } from "@/lib/statusConfig";
 
 export default function ClientDashboard() {
-  const { clientId } = useRole();
+  const { clientId, isPrimaryContact } = useRole();
   const { profile, user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -37,33 +37,46 @@ export default function ClientDashboard() {
   });
 
   const { data: taskSummary } = useQuery({
-    queryKey: ["client-tasks-summary", clientId],
+    queryKey: ["client-tasks-summary", clientId, isPrimaryContact, user?.id],
     queryFn: async () => {
       if (!clientId) return { review: 0, done: 0, total: 0 };
       const { data } = await supabase
         .from("tasks")
-        .select("status")
+        .select("status, task_assignments(user_id)")
         .eq("client_id", clientId)
         .eq("is_archived", false);
-      const review = data?.filter(t => t.status === "client_review").length || 0;
-      const done = data?.filter(t => t.status === "done" || t.status === "client_verified" || t.status === "closed").length || 0;
-      return { review, done, total: data?.length || 0 };
+      let filtered = data || [];
+      if (!isPrimaryContact && user?.id) {
+        filtered = filtered.filter((t: any) =>
+          (t.task_assignments || []).some((a: any) => a.user_id === user.id)
+        );
+      }
+      const review = filtered.filter(t => t.status === "client_review").length;
+      const done = filtered.filter(t => t.status === "done" || t.status === "client_verified" || t.status === "closed").length;
+      return { review, done, total: filtered.length };
     },
     enabled: !!clientId,
   });
 
   // Fetch ALL client tasks (no status filter) — client sees everything
   const { data: allClientTasks } = useQuery({
-    queryKey: ["client-all-tasks", clientId],
+    queryKey: ["client-all-tasks", clientId, isPrimaryContact, user?.id],
     queryFn: async () => {
       if (!clientId) return [];
       const { data } = await supabase
         .from("tasks")
-        .select("id, title, description, due_date, type, status, updated_at, projects(name), project_id")
+        .select("id, title, description, due_date, type, status, updated_at, projects(name), project_id, task_assignments(user_id)")
         .eq("client_id", clientId)
         .eq("is_archived", false)
         .order("updated_at", { ascending: false });
-      return data || [];
+      if (!data) return [];
+      // Non-primary contacts only see tasks they're assigned to
+      if (!isPrimaryContact && user?.id) {
+        return data.filter((t: any) =>
+          (t.task_assignments || []).some((a: any) => a.user_id === user.id)
+        );
+      }
+      return data;
     },
     enabled: !!clientId,
   });

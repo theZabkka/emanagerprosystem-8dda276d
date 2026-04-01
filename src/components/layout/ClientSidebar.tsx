@@ -2,6 +2,7 @@ import { LayoutDashboard, TicketCheck, Lightbulb, LogOut, CheckSquare } from "lu
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useRole } from "@/hooks/useRole";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter,
@@ -11,11 +12,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
-const clientItems = [
-  { title: "Mój Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Moje Zadania", url: "/client/tasks", icon: CheckSquare },
-  { title: "Zgłoszenia", url: "/client/tickets", icon: TicketCheck },
-  { title: "Zgłoś pomysł", url: "/client-ideas", icon: Lightbulb },
+/** Permission key required for each menu item. null = always visible. */
+const clientItems: { title: string; url: string; icon: any; permKey: string | null }[] = [
+  { title: "Mój Dashboard", url: "/dashboard", icon: LayoutDashboard, permKey: null },
+  { title: "Moje Zadania", url: "/client/tasks", icon: CheckSquare, permKey: "projects" },
+  { title: "Zgłoszenia", url: "/client/tickets", icon: TicketCheck, permKey: "support" },
+  { title: "Zgłoś pomysł", url: "/client-ideas", icon: Lightbulb, permKey: null },
 ];
 
 export function ClientSidebar() {
@@ -23,10 +25,15 @@ export function ClientSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { profile, signOut } = useAuth();
+  const { hasContactPermission } = useRole();
 
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "K";
+
+  const visibleItems = clientItems.filter(
+    (item) => item.permKey === null || hasContactPermission(item.permKey)
+  );
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -50,7 +57,7 @@ export function ClientSidebar() {
           )}
           <SidebarGroupContent>
             <SidebarMenu>
-              {clientItems.map((item) => (
+              {visibleItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton
                     asChild
