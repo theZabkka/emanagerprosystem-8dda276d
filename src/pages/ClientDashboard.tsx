@@ -54,16 +54,23 @@ export default function ClientDashboard() {
 
   // Fetch ALL client tasks (no status filter) — client sees everything
   const { data: allClientTasks } = useQuery({
-    queryKey: ["client-all-tasks", clientId],
+    queryKey: ["client-all-tasks", clientId, isPrimaryContact, user?.id],
     queryFn: async () => {
       if (!clientId) return [];
       const { data } = await supabase
         .from("tasks")
-        .select("id, title, description, due_date, type, status, updated_at, projects(name), project_id")
+        .select("id, title, description, due_date, type, status, updated_at, projects(name), project_id, task_assignments(user_id)")
         .eq("client_id", clientId)
         .eq("is_archived", false)
         .order("updated_at", { ascending: false });
-      return data || [];
+      if (!data) return [];
+      // Non-primary contacts only see tasks they're assigned to
+      if (!isPrimaryContact && user?.id) {
+        return data.filter((t: any) =>
+          (t.task_assignments || []).some((a: any) => a.user_id === user.id)
+        );
+      }
+      return data;
     },
     enabled: !!clientId,
   });
