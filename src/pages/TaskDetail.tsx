@@ -724,6 +724,9 @@ export default function TaskDetail() {
             <span className="text-foreground/60 truncate max-w-[300px]">{task.title}</span>
           </div>
           )}
+
+        {/* Action buttons row */}
+        <div className="flex flex-wrap items-center gap-2">
           {!isClient && !isPreviewMode && task.status === "review" && (
             <Button
               size="sm"
@@ -736,9 +739,6 @@ export default function TaskDetail() {
               <ShieldCheck className="h-3 w-3" />Do akceptacji klienta
             </Button>
           )}
-
-        {/* Action buttons row */}
-        <div className="flex flex-wrap items-center gap-2">
           {!isClient && !isPreviewMode && (
             <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsPreviewMode(true)}><Eye className="h-3 w-3" />Zobacz jako klient</Button>
           )}
