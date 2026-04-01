@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Pencil, Trash2, Shield } from "lucide-react";
+import { Plus, Pencil, Trash2, Shield, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 interface ContactPermissions {
@@ -44,6 +44,7 @@ interface ContactForm {
   email: string;
   position: string;
   phone: string;
+  password: string;
   is_primary: boolean;
   permissions: ContactPermissions;
 }
@@ -54,6 +55,7 @@ const emptyForm: ContactForm = {
   email: "",
   position: "",
   phone: "",
+  password: "",
   is_primary: false,
   permissions: { ...DEFAULT_PERMISSIONS },
 };
@@ -63,6 +65,8 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ContactForm>(emptyForm);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const { data: contacts, isLoading } = useQuery({
     queryKey: ["customer-contacts", clientId],
@@ -81,6 +85,7 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
   const openNew = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setShowPassword(false);
     setShowDialog(true);
   };
 
@@ -93,6 +98,7 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
       email: contact.email || "",
       position: contact.position || "",
       phone: contact.phone || "",
+      password: "",
       is_primary: contact.is_primary || false,
       permissions: {
         invoices: perms.invoices ?? true,
@@ -102,6 +108,7 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
         projects: perms.projects ?? true,
       },
     });
+    setShowPassword(false);
     setShowDialog(true);
   };
 
@@ -111,39 +118,76 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
       return;
     }
 
-    // If setting as primary, unset others first
-    if (form.is_primary) {
-      await (supabase.from("customer_contacts" as any) as any)
-        .update({ is_primary: false })
-        .eq("customer_id", clientId)
-        .eq("is_primary", true);
+    setIsSaving(true);
+
+    try {
+      if (editingId) {
+        // Editing existing contact – direct DB update (no auth user changes)
+        if (form.is_primary) {
+          await (supabase.from("customer_contacts" as any) as any)
+            .update({ is_primary: false })
+            .eq("customer_id", clientId)
+            .eq("is_primary", true);
+        }
+
+        const payload = {
+          first_name: form.first_name,
+          last_name: form.last_name,
+          email: form.email,
+          position: form.position,
+          phone: form.phone,
+          is_primary: form.is_primary,
+          permissions: form.permissions,
+        };
+
+        const { error } = await (supabase.from("customer_contacts" as any) as any)
+          .update(payload)
+          .eq("id", editingId);
+        if (error) { toast.error(error.message); return; }
+        toast.success("Kontakt zaktualizowany");
+      } else {
+        // New contact – use edge function to create auth user + contact
+        if (!form.email.trim()) {
+          toast.error("Email jest wymagany dla nowego kontaktu");
+          return;
+        }
+        if (!form.password.trim() || form.password.length < 6) {
+          toast.error("Hasło musi mieć co najmniej 6 znaków");
+          return;
+        }
+
+        const { data, error } = await supabase.functions.invoke("create-contact-user", {
+          body: {
+            email: form.email,
+            password: form.password,
+            first_name: form.first_name,
+            last_name: form.last_name,
+            phone: form.phone,
+            position: form.position,
+            client_id: clientId,
+            is_primary: form.is_primary,
+            permissions: form.permissions,
+          },
+        });
+
+        if (error) {
+          toast.error(error.message || "Błąd tworzenia kontaktu");
+          return;
+        }
+
+        if (data && !data.success) {
+          toast.error(data.error || "Błąd tworzenia kontaktu");
+          return;
+        }
+
+        toast.success("Kontakt dodany i konto użytkownika utworzone");
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["customer-contacts", clientId] });
+      setShowDialog(false);
+    } finally {
+      setIsSaving(false);
     }
-
-    const payload = {
-      first_name: form.first_name,
-      last_name: form.last_name,
-      email: form.email,
-      position: form.position,
-      phone: form.phone,
-      is_primary: form.is_primary,
-      permissions: form.permissions,
-    };
-
-    if (editingId) {
-      const { error } = await (supabase.from("customer_contacts" as any) as any)
-        .update(payload)
-        .eq("id", editingId);
-      if (error) { toast.error(error.message); return; }
-      toast.success("Kontakt zaktualizowany");
-    } else {
-      const { error } = await (supabase.from("customer_contacts" as any) as any)
-        .insert({ customer_id: clientId, ...payload });
-      if (error) { toast.error(error.message); return; }
-      toast.success("Kontakt dodany");
-    }
-
-    queryClient.invalidateQueries({ queryKey: ["customer-contacts", clientId] });
-    setShowDialog(false);
   };
 
   const handleDelete = async (contactId: string) => {
@@ -258,8 +302,41 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
             </div>
             <div className="space-y-1">
               <Label>Email</Label>
-              <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              <Input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                disabled={!!editingId}
+              />
+              {editingId && (
+                <p className="text-xs text-muted-foreground">Email nie może być zmieniony po utworzeniu konta.</p>
+              )}
             </div>
+
+            {/* Password field – only for new contacts */}
+            {!editingId && (
+              <div className="space-y-1">
+                <Label>Hasło</Label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    value={form.password}
+                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                    placeholder="Min. 6 znaków"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-10 w-10"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1">
               <Label>Stanowisko</Label>
               <Input value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} />
@@ -299,7 +376,9 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)}>Anuluj</Button>
-            <Button onClick={handleSave}>{editingId ? "Zapisz" : "Dodaj"}</Button>
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? "Zapisywanie..." : editingId ? "Zapisz" : "Dodaj"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
