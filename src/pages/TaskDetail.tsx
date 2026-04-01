@@ -657,12 +657,29 @@ export default function TaskDetail() {
             Wróć do panelu klienta
           </Link>
         ) : (
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <Link to="/tasks" className="hover:text-foreground transition-colors">Zadania</Link>
-            <ChevronRight className="h-3 w-3" />
-            {task.clients?.name && <><Link to="/clients" className="hover:text-foreground transition-colors">{task.clients.name}</Link><ChevronRight className="h-3 w-3" /></>}
-            {task.projects?.name && <><span>{task.projects.name}</span><ChevronRight className="h-3 w-3" /></>}
-            <span className="text-foreground font-medium">{task.title}</span>
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Link to="/tasks" className="hover:text-foreground hover:underline transition-colors flex items-center gap-1">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Zadania
+            </Link>
+            {task.client_id && (task as any).clients?.name && (
+              <>
+                <ChevronRight className="h-3 w-3 shrink-0" />
+                <Link to={`/clients/${task.client_id}`} className="hover:text-foreground hover:underline transition-colors truncate max-w-[200px]">
+                  {(task as any).clients.name}
+                </Link>
+              </>
+            )}
+            {task.project_id && (task as any).projects?.name && (
+              <>
+                <ChevronRight className="h-3 w-3 shrink-0" />
+                <Link to={`/projects/${task.project_id}`} className="hover:text-foreground hover:underline transition-colors truncate max-w-[200px]">
+                  {(task as any).projects.name}
+                </Link>
+              </>
+            )}
+            <ChevronRight className="h-3 w-3 shrink-0" />
+            <span className="text-foreground/60 truncate max-w-[300px]">{task.title}</span>
           </div>
         )}
 
