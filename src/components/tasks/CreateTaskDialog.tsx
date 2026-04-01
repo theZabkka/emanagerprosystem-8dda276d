@@ -203,7 +203,7 @@ function AssigneeCombobox({
 }
 
 /* ─── Main Dialog ─── */
-export default function CreateTaskDialog({ open, onOpenChange, onCreated, defaultProjectId, defaultClientId }: CreateTaskDialogProps) {
+export default function CreateTaskDialog({ open, onOpenChange, onCreated, defaultProjectId, defaultClientId, defaultStatus }: CreateTaskDialogProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [form, setForm] = useState(() => ({
