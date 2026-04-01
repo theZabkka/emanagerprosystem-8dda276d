@@ -9,7 +9,6 @@ import { useRoutePrefetch } from "@/hooks/useRoutePrefetch";
 import { CoordinatorFreezeOverlay } from "@/components/tasks/CoordinatorFreezeOverlay";
 import { ProfileGatekeeper } from "./ProfileGatekeeper";
 
-
 interface AppLayoutProps {
   children: ReactNode;
   title?: string;
