@@ -32,7 +32,6 @@ export function AppLayout({ children, title }: AppLayoutProps) {
       <AIAssistantButton />
       <CoordinatorFreezeOverlay />
       <ProfileGatekeeper />
-      
     </SidebarProvider>
   );
 }
