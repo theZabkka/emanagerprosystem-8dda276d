@@ -6,7 +6,7 @@ import { Navigate } from "react-router-dom";
 
 export default function ClientTickets() {
   const { profile } = useAuth();
-  const { hasContactPermission } = useRole();
+  const { hasContactPermission, isPrimaryContact } = useRole();
 
   const hasPermission = hasContactPermission("support");
 
@@ -17,7 +17,12 @@ export default function ClientTickets() {
 
   return (
     <AppLayout title="Moje zgłoszenia">
-      <TicketsTable isAdmin={false} clientId={profile?.client_id} />
+      <TicketsTable
+        isAdmin={false}
+        clientId={profile?.client_id}
+        isPrimaryContact={isPrimaryContact}
+        contactId={profile?.id}
+      />
     </AppLayout>
   );
 }
