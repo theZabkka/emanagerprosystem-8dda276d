@@ -33,6 +33,7 @@ import {
 import { NotUnderstoodModal, ChecklistBlockModal, ResponsibilityModal } from "@/components/tasks/WorkflowModals";
 import { useRole } from "@/hooks/useRole";
 import { StatusTimeline } from "@/components/tasks/StatusTimeline";
+import { DescriptionCard } from "@/components/tasks/DescriptionCard";
 import { statusLabels, statusColors, TERMINAL_STATUSES } from "@/lib/statusConfig";
 import { useTimerStore } from "@/hooks/useTimerStore";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
