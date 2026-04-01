@@ -30,9 +30,15 @@ const REVIEW_STATUSES = ["review", "client_review"];
 const DONE_STATUSES = ["done", "client_verified", "closed"];
 
 export default function ClientTasks() {
-  const { clientId } = useRole();
+  const { clientId, hasContactPermission, isPrimaryContact } = useRole();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+  // Permission guard — hooks are already called above
+  if (!hasContactPermission("projects")) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   // Fetch projects
   const { data: projects, isLoading: projectsLoading } = useQuery({
@@ -50,12 +56,12 @@ export default function ClientTasks() {
     enabled: !!clientId,
   });
 
-  // Fetch all tasks for this client
+  // Fetch tasks — non-primary contacts only see tasks assigned to them
   const { data: tasks, isLoading: tasksLoading } = useQuery({
-    queryKey: ["client-tasks-full", clientId],
+    queryKey: ["client-tasks-full", clientId, isPrimaryContact, user?.id],
     queryFn: async () => {
       if (!clientId) return [];
-      const { data } = await supabase
+      let query = supabase
         .from("tasks")
         .select(`
           id, title, status, updated_at, due_date, project_id,
@@ -65,7 +71,15 @@ export default function ClientTasks() {
         .eq("client_id", clientId)
         .eq("is_archived", false)
         .order("updated_at", { ascending: false });
-      return data || [];
+      const { data } = await query;
+      if (!data) return [];
+      // For non-primary contacts, filter client-side to only tasks they're assigned to
+      if (!isPrimaryContact && user?.id) {
+        return data.filter((t: any) =>
+          (t.task_assignments || []).some((a: any) => a.user_id === user.id)
+        );
+      }
+      return data;
     },
     enabled: !!clientId,
   });
