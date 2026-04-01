@@ -539,15 +539,50 @@ const KanbanCard = React.memo(function KanbanCard({
               <Clock className="h-2 w-2" />{(task.logged_time / 60).toFixed(1)}h
             </span>
           )}
-          {columnKey === "closed" && onArchive && (
-            <Button
-              size="sm" variant="ghost"
-              className="h-5 text-[8px] gap-0.5 text-muted-foreground hover:text-primary px-1"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onArchive(task.id); }}
-            >
-              <Archive className="h-2 w-2" />Archiwizuj
-            </Button>
+          {(columnKey === "closed" && (onArchive || (isSuperAdmin && onHardDelete))) && (
+            <div className="flex flex-col items-end gap-1">
+              {onArchive && (
+                <Button
+                  size="sm" variant="ghost"
+                  className="h-5 text-[8px] gap-0.5 text-muted-foreground hover:text-primary px-1"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); onArchive(task.id); }}
+                >
+                  <Archive className="h-2 w-2" />Archiwizuj
+                </Button>
+              )}
+              {isSuperAdmin && onHardDelete && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      size="sm" variant="ghost"
+                      className="h-5 text-[8px] gap-0.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 px-1"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    >
+                      <Trash2 className="h-2 w-2" />Usuń
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-destructive">Trwałe usunięcie zadania</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Uwaga: Czy na pewno chcesz trwale usunąć to zadanie? Ta akcja jest bezpowrotna. Z bazy znikną również wszystkie komentarze, logi oraz dane analityczne powiązane z tym zadaniem. Zamiast tego zalecamy użycie archiwizacji.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={(e) => { e.stopPropagation(); onHardDelete(task.id); }}
+                      >
+                        Tak, usuń trwale
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
           )}
         </div>
       </div>
