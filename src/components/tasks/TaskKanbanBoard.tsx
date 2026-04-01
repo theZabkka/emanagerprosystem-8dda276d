@@ -64,7 +64,7 @@ export default function TaskKanbanBoard({
 }: TaskKanbanBoardProps) {
   const { user } = useAuth();
   const { currentRole } = useRole();
-  const isSuperAdmin = currentRole === "superadmin";
+  const isSuperAdmin = currentRole?.toLowerCase().replace(/\s/g, '') === 'superadmin';
   const isManualSort = sortField === "manual";
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
   const [responsibilityOpen, setResponsibilityOpen] = useState(false);
@@ -539,7 +539,7 @@ const KanbanCard = React.memo(function KanbanCard({
               <Clock className="h-2 w-2" />{(task.logged_time / 60).toFixed(1)}h
             </span>
           )}
-          {(columnKey === "closed" && (onArchive || (isSuperAdmin && onHardDelete))) && (
+          {columnKey === "closed" && (onArchive || (isSuperAdmin && onHardDelete)) && (
             <div className="flex flex-col items-end gap-1">
               {onArchive && (
                 <Button
