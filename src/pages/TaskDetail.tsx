@@ -915,8 +915,15 @@ export default function TaskDetail() {
             </div>
           )}
           {task.clients?.name && <p className="text-sm text-muted-foreground mt-0.5">{(task as any).clients.name} {task.projects?.name && `• ${(task as any).projects.name}`}</p>}
-          {task.description && <p className="text-sm mt-2 text-muted-foreground whitespace-pre-wrap">{linkifyText(task.description)}</p>}
         </div>
+
+        {/* Description Card */}
+        <DescriptionCard
+          description={task.description}
+          taskId={task.id}
+          canEdit={canEditInline}
+          onSaved={() => queryClient.invalidateQueries({ queryKey: ["task", id] })}
+        />
 
         {/* Cards grid */}
         <div className="space-y-4">
