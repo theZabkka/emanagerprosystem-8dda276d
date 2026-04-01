@@ -1208,6 +1208,68 @@ await supabase.from("client_files").delete().eq("id", fileId);
             )}
           </TabsContent>
 
+          {/* ─── Projects Tab ─────────────────────────────────── */}
+          <TabsContent value="projects-tab" className="mt-0">
+            {(projects || []).length === 0 ? (
+              <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Brak projektów dla tego klienta</CardContent></Card>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {(projects || []).map((p: any) => (
+                  <Link key={p.id} to={`/projects/${p.id}`}>
+                    <Card className="hover:border-primary/30 transition-colors cursor-pointer">
+                      <CardContent className="p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold text-sm truncate">{p.name}</h3>
+                          <Badge variant="outline" className="text-[10px] shrink-0">
+                            {p.status === "active" ? "Aktywny" : p.status === "completed" ? "Ukończony" : p.status || "—"}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Kierownik: {p.profiles?.full_name || "—"}
+                          {p.start_date && ` · Start: ${new Date(p.start_date).toLocaleDateString("pl-PL")}`}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ─── Tickets Tab ──────────────────────────────────── */}
+          <TabsContent value="tickets-tab" className="mt-0">
+            {!clientTickets || clientTickets.length === 0 ? (
+              <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Brak zgłoszeń dla tego klienta</CardContent></Card>
+            ) : (
+              <Card>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-16">#</TableHead>
+                        <TableHead>Tytuł</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Priorytet</TableHead>
+                        <TableHead>Data</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {clientTickets.map((t: any) => (
+                        <TableRow key={t.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/admin/tickets/${t.id}`)}>
+                          <TableCell className="font-mono text-xs text-muted-foreground">#{t.ticket_number}</TableCell>
+                          <TableCell className="font-medium text-sm">{t.title}</TableCell>
+                          <TableCell><Badge variant="outline" className="text-[10px]">{t.status}</Badge></TableCell>
+                          <TableCell><Badge variant="outline" className="text-[10px]">{t.priority}</Badge></TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{new Date(t.created_at).toLocaleDateString("pl-PL")}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
           {/* ─── History Tab ──────────────────────────────────── */}
           <TabsContent value="history" className="mt-0">
             {(activityHistory || []).length === 0 ? (
