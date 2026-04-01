@@ -285,6 +285,16 @@ export default function ClientDetail() {
     enabled: !!id,
   });
 
+  // ─── Fetch contacts count ─────────────────────────────────────
+  const { data: contactsCount } = useQuery({
+    queryKey: ["customer-contacts-count", id],
+    queryFn: async () => {
+      const { count } = await supabase.from("customer_contacts" as any).select("id", { count: "exact", head: true }).eq("customer_id", id!);
+      return count || 0;
+    },
+    enabled: !!id,
+  });
+
   const [invoiceForm, setInvoiceForm] = useState({ company_name: "", nip: "", street: "", postal_code: "", city: "" });
 
   const openInvoiceEdit = () => {
