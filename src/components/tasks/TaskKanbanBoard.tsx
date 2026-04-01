@@ -3,7 +3,7 @@ import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-p
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -345,13 +345,13 @@ export default function TaskKanbanBoard({
         }}
       />
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex h-[calc(100vh-16rem)] items-stretch gap-3 overflow-x-auto pb-4">
+        <div className="flex h-[calc(100vh-16rem)] items-stretch gap-3 overflow-x-auto pb-4 min-h-0">
           {KANBAN_COLUMNS.map((col) => {
             const columnTasks = getColumnTasks(col.key);
             const isEmpty = columnTasks.length === 0;
             return (
-              <div key={col.key} className="flex h-full w-72 flex-shrink-0 flex-col">
-                <div className={`flex h-full min-h-0 flex-1 flex-col rounded-xl border border-dashed ${isEmpty ? "border-muted-foreground/20" : "border-destructive/30"} bg-card/50`}>
+              <div key={col.key} className="w-72 flex-shrink-0 self-stretch flex flex-col">
+                <div className={`flex flex-col flex-1 min-h-0 rounded-xl border border-dashed ${isEmpty ? "border-muted-foreground/20" : "border-destructive/30"} bg-card/50`}>
                   <div className="px-4 pt-3 pb-2">
                     <h3 className="text-xs font-extrabold tracking-wider text-foreground">{col.label}</h3>
                     <span className="text-[11px] text-muted-foreground">
@@ -361,12 +361,11 @@ export default function TaskKanbanBoard({
 
                   <Droppable droppableId={col.key}>
                     {(provided, snapshot) => (
-                      <ScrollArea className="min-h-0 flex-1">
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.droppableProps}
-                          className={`flex min-h-full flex-1 flex-col px-2 pb-2 space-y-1.5 transition-colors ${snapshot.isDraggingOver ? "bg-destructive/5" : ""}`}
-                        >
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className={`flex-1 overflow-y-auto px-2 pb-2 space-y-1.5 transition-colors ${snapshot.isDraggingOver ? "bg-destructive/5" : ""}`}
+                      >
                           {columnTasks.map((task: any, index: number) => {
                             const assignee = getAssignee(task.id);
                             const taskAssignees = getAllAssignees(task.id);
@@ -503,8 +502,7 @@ export default function TaskKanbanBoard({
                           {isEmpty && (
                             <p className="text-xs text-muted-foreground text-center py-8">Pusto</p>
                           )}
-                        </div>
-                      </ScrollArea>
+                      </div>
                     )}
                   </Droppable>
                 </div>
