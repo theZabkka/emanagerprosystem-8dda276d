@@ -62,9 +62,10 @@ export default function TaskKanbanBoard({
   tasks, profiles, assignments, clients, onStatusChange, onArchive, onHardDelete, onRefresh,
   onLexoRankUpdate, onQuickAdd, sortField = "manual", sortDirection = "asc",
 }: TaskKanbanBoardProps) {
-  const { user } = useAuth();
-  const { currentRole } = useRole();
-  const isSuperAdmin = currentRole?.toLowerCase().replace(/\s/g, '') === 'superadmin';
+  const { user, profile } = useAuth();
+  const { currentRole, roleLoading } = useRole();
+  const normalizedRole = (profile?.role ?? currentRole ?? "").toLowerCase().replace(/\s/g, "");
+  const isSuperAdmin = !roleLoading && normalizedRole === "superadmin";
   const isManualSort = sortField === "manual";
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
   const [responsibilityOpen, setResponsibilityOpen] = useState(false);
@@ -72,6 +73,8 @@ export default function TaskKanbanBoard({
   const [pendingMove, setPendingMove] = useState<{ taskId: string; newStatus: string } | null>(null);
   const [pendingRejectionTaskId, setPendingRejectionTaskId] = useState<string | null>(null);
   const [optimisticTasks, setOptimisticTasks] = useState<any[]>(tasks);
+  const [taskToDelete, setTaskToDelete] = useState<any | null>(null);
+  const [isDeletingTask, setIsDeletingTask] = useState(false);
 
   useEffect(() => {
     setOptimisticTasks(tasks);
