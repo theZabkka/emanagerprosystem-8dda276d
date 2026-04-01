@@ -587,7 +587,7 @@ export default function TaskDetail() {
     toast.success("Tytuł zaktualizowany");
   }, [task, titleValue, isSavingTitle, queryClient, id]);
 
-
+  async function handlePriorityChange(newPriority: string) {
     if (!task || newPriority === task.priority) return;
     const { error } = await supabase.from("tasks").update({ priority: newPriority as any, updated_at: new Date().toISOString() } as any).eq("id", task.id);
     if (error) { toast.error("Błąd aktualizacji priorytetu"); return; }
