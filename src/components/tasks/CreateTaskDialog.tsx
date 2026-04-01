@@ -29,6 +29,8 @@ interface CreateTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated: () => void;
+  defaultProjectId?: string;
+  defaultClientId?: string;
 }
 
 const initialForm = {
