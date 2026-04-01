@@ -438,11 +438,14 @@ interface KanbanCardProps {
   allProfiles: any[];
   onAssign: (taskId: string, userId: string) => void;
   onArchive?: (taskId: string) => void;
+  onHardDelete?: (taskId: string) => void;
+  isSuperAdmin?: boolean;
 }
 
 const KanbanCard = React.memo(function KanbanCard({
   task, provided, isDragging, columnKey, getAssignee, getAllAssignees, getClient,
   getInitials, getAvatarColor, getWaitingTime, allProfiles, onAssign, onArchive,
+  onHardDelete, isSuperAdmin,
 }: KanbanCardProps) {
   const taskAssignees = getAllAssignees(task.id);
   const client = getClient(task.client_id);
