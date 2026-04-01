@@ -60,6 +60,8 @@ const CLIENT_TABS = [
   { key: "overview", label: "Podsumowanie", icon: LayoutGrid },
   { key: "profile", label: "Profil", icon: Pencil },
   { key: "tasks", label: "Zadania", icon: ListTodo },
+  { key: "projects-tab", label: "Projekty", icon: FileSignature },
+  { key: "tickets-tab", label: "Zgłoszenia", icon: Mail },
   { key: "contacts", label: "Kontakty", icon: Contact },
   { key: "notes", label: "Notatki", icon: StickyNote },
   { key: "conversations", label: "Rozmowy", icon: MessageSquare },
@@ -141,10 +143,20 @@ export default function ClientDetail() {
   const { data: projects } = useQuery({
     queryKey: ["client-projects", id],
     queryFn: async () => {
-      const { data } = await supabase.from("projects").select("*").eq("client_id", id!).eq("is_archived", false);
+      const { data } = await supabase.from("projects").select("*, profiles:manager_id(full_name)").eq("client_id", id!).eq("is_archived", false).order("created_at", { ascending: false });
       return data || [];
     },
     enabled: !!id,
+  });
+
+  // ─── Fetch tickets (lazy) ────────────────────────────────────
+  const { data: clientTickets } = useQuery({
+    queryKey: ["client-tickets-tab", id],
+    queryFn: async () => {
+      const { data } = await supabase.from("tickets").select("id, title, status, priority, created_at, ticket_number").eq("client_id", id!).order("created_at", { ascending: false });
+      return data || [];
+    },
+    enabled: !!id && activeTab === "tickets-tab",
   });
 
   // ─── Fetch tasks ──────────────────────────────────────────────
@@ -355,6 +367,8 @@ const { data: existing } = await supabase.from("client_invoice_data").select("id
   // ─── Tab counts ───────────────────────────────────────────────
   const tabCounts: Record<string, number> = useMemo(() => ({
     tasks: activeTasks.length,
+    "projects-tab": (projects || []).length,
+    "tickets-tab": (clientTickets || []).length,
     contacts: contactsCount || 0,
     conversations: (conversations || []).length,
     voip: callsCount || 0,
@@ -366,7 +380,8 @@ const { data: existing } = await supabase.from("client_invoice_data").select("id
     social: (socialAccounts || []).length,
     billing: invoiceData ? 1 : 0,
     history: (activityHistory || []).length,
-  }), [activeTasks, contactsCount, conversations, callsCount, offers, ideas, contracts, orders, files, socialAccounts, invoiceData, activityHistory]);
+  }), [activeTasks, projects, clientTickets, contactsCount, conversations, callsCount, offers, ideas, contracts, orders, files, socialAccounts, invoiceData, activityHistory]);
+  
 
   // ─── Filtered tasks ───────────────────────────────────────────
   const filteredTasks = useMemo(() => {
@@ -1190,6 +1205,68 @@ await supabase.from("client_files").delete().eq("id", fileId);
                   );
                 })}
               </div>
+            )}
+          </TabsContent>
+
+          {/* ─── Projects Tab ─────────────────────────────────── */}
+          <TabsContent value="projects-tab" className="mt-0">
+            {(projects || []).length === 0 ? (
+              <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Brak projektów dla tego klienta</CardContent></Card>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {(projects || []).map((p: any) => (
+                  <Link key={p.id} to={`/projects/${p.id}`}>
+                    <Card className="hover:border-primary/30 transition-colors cursor-pointer">
+                      <CardContent className="p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold text-sm truncate">{p.name}</h3>
+                          <Badge variant="outline" className="text-[10px] shrink-0">
+                            {p.status === "active" ? "Aktywny" : p.status === "completed" ? "Ukończony" : p.status || "—"}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Kierownik: {p.profiles?.full_name || "—"}
+                          {p.start_date && ` · Start: ${new Date(p.start_date).toLocaleDateString("pl-PL")}`}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ─── Tickets Tab ──────────────────────────────────── */}
+          <TabsContent value="tickets-tab" className="mt-0">
+            {!clientTickets || clientTickets.length === 0 ? (
+              <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Brak zgłoszeń dla tego klienta</CardContent></Card>
+            ) : (
+              <Card>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-16">#</TableHead>
+                        <TableHead>Tytuł</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Priorytet</TableHead>
+                        <TableHead>Data</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {clientTickets.map((t: any) => (
+                        <TableRow key={t.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/admin/tickets/${t.id}`)}>
+                          <TableCell className="font-mono text-xs text-muted-foreground">#{t.ticket_number}</TableCell>
+                          <TableCell className="font-medium text-sm">{t.title}</TableCell>
+                          <TableCell><Badge variant="outline" className="text-[10px]">{t.status}</Badge></TableCell>
+                          <TableCell><Badge variant="outline" className="text-[10px]">{t.priority}</Badge></TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{new Date(t.created_at).toLocaleDateString("pl-PL")}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
             )}
           </TabsContent>
 

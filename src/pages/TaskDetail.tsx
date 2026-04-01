@@ -79,7 +79,6 @@ export default function TaskDetail() {
   const [commentText, setCommentText] = useState("");
   const [commentType, setCommentType] = useState("internal");
   const [commentFilter, setCommentFilter] = useState("all");
-  const [newSubtask, setNewSubtask] = useState("");
   const [briefOpen, setBriefOpen] = useState(false);
   const [briefForm, setBriefForm] = useState<Record<string, string>>({});
   const [assignOpen, setAssignOpen] = useState(false);
@@ -139,14 +138,6 @@ export default function TaskDetail() {
 
   const { data: allProfiles } = useStaffMembers();
 
-  const { data: subtasks } = useQuery({
-    queryKey: ["subtasks", id],
-    queryFn: async () => {
-      const { data } = await supabase.from("subtasks").select("*").eq("task_id", id!).order("created_at");
-      return data || [];
-    },
-    enabled: !!id,
-  });
 
   const { data: comments } = useQuery({
     queryKey: ["comments", id],
@@ -212,7 +203,7 @@ export default function TaskDetail() {
     if (!id) return;
     const channel = supabase
       .channel(`task-${id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "subtasks", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["subtasks", id] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "comments", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["comments", id] }))
       .on("postgres_changes", { event: "*", schema: "public", table: "comments", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["comments", id] }))
       .on("postgres_changes", { event: "*", schema: "public", table: "time_logs", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["time-logs", id] }))
       .on("postgres_changes", { event: "*", schema: "public", table: "task_status_history", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["status-history", id] }))
@@ -435,21 +426,6 @@ export default function TaskDetail() {
     toast.success("Osoba usunięta");
   }
 
-  // 4. Subtasks
-  async function addSubtask() {
-    if (!newSubtask.trim()) return;
-
-    const { error } = await supabase.from("subtasks").insert({ task_id: id!, title: newSubtask });
-    if (error) { toast.error(error.message); return; }
-    setNewSubtask("");
-    queryClient.invalidateQueries({ queryKey: ["subtasks", id] });
-    toast.success("Podzadanie dodane");
-  }
-
-  async function toggleSubtask(subtaskId: string, completed: boolean) {
-    await supabase.from("subtasks").update({ is_completed: !completed }).eq("id", subtaskId);
-    queryClient.invalidateQueries({ queryKey: ["subtasks", id] });
-  }
 
   // 5. Checklists
   async function addChecklist() {
@@ -627,7 +603,6 @@ export default function TaskDetail() {
   }, [task]);
 
   const totalLogged = timeLogs?.reduce((sum: number, l: any) => sum + l.duration, 0) || 0;
-  const completedSubtasks = subtasks?.filter((s: any) => s.is_completed).length || 0;
   const isOverdue = task?.due_date && new Date(task.due_date) < new Date() && task.status !== "done" && task.status !== "cancelled";
   const hasNoAssignment = !assignments || assignments.length === 0;
 
@@ -735,11 +710,9 @@ export default function TaskDetail() {
 
         {/* Action buttons row */}
         <div className="flex flex-wrap items-center gap-2">
-          {!isClient && !isPreviewMode ? (
+          {!isClient && !isPreviewMode && (
             <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsPreviewMode(true)}><Eye className="h-3 w-3" />Zobacz jako klient</Button>
-          ) : !isClient && isPreviewMode ? (
-            <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsPreviewMode(false)}><Eye className="h-3 w-3" />Wróć do widoku pełnego</Button>
-          ) : null}
+          )}
           {!isClient && !isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><FileText className="h-3 w-3" />Zastosuj szablon</Button>}
           {!isClient && !isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><Zap className="h-3 w-3" />Uruchom automatyzację</Button>}
           {!isClient && !isPreviewMode && (task.status === "in_progress" || task.status === "todo") && !(task as any).is_misunderstood && (
@@ -1052,29 +1025,6 @@ export default function TaskDetail() {
             </Card>
           )}
 
-          {/* Subtasks - read-only for clients */}
-          {!isClient && <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">
-                Podzadania <span className="text-muted-foreground font-normal ml-1">{completedSubtasks} z {subtasks?.length || 0} Ukończonych</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {subtasks?.map((s: any) => (
-                <div key={s.id} className="flex items-center gap-2 py-0.5">
-                  <Checkbox checked={s.is_completed} disabled={isPreviewMode || isClient} onCheckedChange={() => !isPreviewMode && !isClient && toggleSubtask(s.id, s.is_completed)} />
-                  <span className={`text-sm flex-1 ${s.is_completed ? "line-through text-muted-foreground" : ""}`}>{s.title}</span>
-                </div>
-              ))}
-              {!isPreviewMode && !isClient && (
-              <div className="flex gap-2 pt-1">
-                <Input placeholder="Dodaj podzadanie..." value={newSubtask} onChange={e => setNewSubtask(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && addSubtask()} className="text-sm h-8" />
-                <Button size="sm" variant="outline" onClick={addSubtask} className="h-8 w-8 p-0"><Plus className="h-3 w-3" /></Button>
-              </div>
-              )}
-            </CardContent>
-          </Card>}
 
           {/* Checklists - read-only for clients */}
           <Card>

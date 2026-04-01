@@ -29,6 +29,8 @@ interface CreateTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated: () => void;
+  defaultProjectId?: string;
+  defaultClientId?: string;
 }
 
 const initialForm = {
@@ -200,10 +202,14 @@ function AssigneeCombobox({
 }
 
 /* ─── Main Dialog ─── */
-export default function CreateTaskDialog({ open, onOpenChange, onCreated }: CreateTaskDialogProps) {
+export default function CreateTaskDialog({ open, onOpenChange, onCreated, defaultProjectId, defaultClientId }: CreateTaskDialogProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [form, setForm] = useState(initialForm);
+  const [form, setForm] = useState(() => ({
+    ...initialForm,
+    ...(defaultProjectId ? { project_id: defaultProjectId } : {}),
+    ...(defaultClientId ? { client_id: defaultClientId } : {}),
+  }));
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [briefOpen, setBriefOpen] = useState(false);
   const [nipInput, setNipInput] = useState("");
@@ -259,7 +265,11 @@ export default function CreateTaskDialog({ open, onOpenChange, onCreated }: Crea
   };
 
   const resetForm = () => {
-    setForm(initialForm);
+    setForm({
+      ...initialForm,
+      ...(defaultProjectId ? { project_id: defaultProjectId } : {}),
+      ...(defaultClientId ? { client_id: defaultClientId } : {}),
+    });
     setSelectedUsers([]);
     setBriefOpen(false);
     setNipInput("");

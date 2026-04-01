@@ -9,11 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, ListChecks, Briefcase, FileText, Sparkles, CheckCircle2, Circle, Pencil, Save, X, Archive, Lock, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
+import { ArrowLeft, ListChecks, Briefcase, FileText, Sparkles, CheckCircle2, Circle, Pencil, Save, X, Archive, Lock, Trash2, Plus, Search } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";
 
 const statusLabels: Record<string, string> = {
   active: "AKTYWNY", completed: "UKOŃCZONY", paused: "WSTRZYMANY", planning: "PLANOWANIE",
@@ -50,6 +53,9 @@ export default function ProjectDetail() {
   const [editingBrief, setEditingBrief] = useState(false);
   const [editedBrief, setEditedBrief] = useState<BriefQuestion[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showCreateTask, setShowCreateTask] = useState(false);
+  const [showAssignExisting, setShowAssignExisting] = useState(false);
+  const [assigningTaskId, setAssigningTaskId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const handleDeleteProject = async () => {
@@ -96,6 +102,32 @@ export default function ProjectDetail() {
     },
     enabled: !!id,
   });
+
+
+
+  // Unassigned tasks for the same client (for "Assign existing" modal)
+  const { data: unassignedTasks } = useQuery({
+    queryKey: ["unassigned-tasks-for-project", project?.client_id],
+    queryFn: async () => {
+      let query = supabase.from("tasks").select("id, title, status, priority").is("project_id", null);
+      if (project?.client_id) {
+        query = query.eq("client_id", project.client_id);
+      }
+      const { data } = await query.eq("is_archived", false).order("created_at", { ascending: false }).limit(50);
+      return data || [];
+    },
+    enabled: showAssignExisting && !!project,
+  });
+
+  const assignTaskToProject = async (taskId: string) => {
+    setAssigningTaskId(taskId);
+    const { error } = await supabase.from("tasks").update({ project_id: id!, updated_at: new Date().toISOString() } as any).eq("id", taskId);
+    setAssigningTaskId(null);
+    if (error) { toast.error(error.message); return; }
+    queryClient.invalidateQueries({ queryKey: ["project-tasks", id] });
+    queryClient.invalidateQueries({ queryKey: ["unassigned-tasks-for-project"] });
+    toast.success("Zadanie przypisane do projektu");
+  };
 
   const teamMembers = (() => {
     if (!tasks) return [];
@@ -291,7 +323,19 @@ export default function ProjectDetail() {
 
         {/* Tab content: Tasks */}
         {activeTab === "tasks" && (
-          <div className="space-y-2">
+          <div className="space-y-3">
+            {/* Task management buttons */}
+            {!isClient && !isArchived && (
+              <div className="flex gap-2">
+                <Button size="sm" className="gap-1.5" onClick={() => setShowCreateTask(true)}>
+                  <Plus className="h-3.5 w-3.5" /> Utwórz nowe zadanie
+                </Button>
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowAssignExisting(true)}>
+                  <Search className="h-3.5 w-3.5" /> Przypisz istniejące
+                </Button>
+              </div>
+            )}
+            <div className="space-y-2">
             {(() => {
               const displayTasks = isClient
                 ? (tasks || []).filter((t: any) => t.status === "client_review")
@@ -379,6 +423,7 @@ export default function ProjectDetail() {
                 );
               });
             })()}
+            </div>
           </div>
         )}
 
@@ -471,6 +516,52 @@ export default function ProjectDetail() {
             </Card>
           </div>
         )}
+
+        {/* Create Task Dialog */}
+        <CreateTaskDialog
+          open={showCreateTask}
+          onOpenChange={setShowCreateTask}
+          onCreated={() => queryClient.invalidateQueries({ queryKey: ["project-tasks", id] })}
+          defaultProjectId={id}
+          defaultClientId={project?.client_id || undefined}
+        />
+
+        {/* Assign Existing Task Dialog */}
+        <Dialog open={showAssignExisting} onOpenChange={setShowAssignExisting}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Przypisz istniejące zadanie</DialogTitle>
+              <DialogDescription>
+                Wyszukaj zadanie bez projektu {project?.client_id ? `dla klienta ${(project as any).clients?.name || ""}` : ""} i przypisz je do tego projektu.
+              </DialogDescription>
+            </DialogHeader>
+            <Command className="border rounded-lg">
+              <CommandInput placeholder="Szukaj zadania..." />
+              <CommandList className="max-h-64">
+                <CommandEmpty>Brak dostępnych zadań do przypisania</CommandEmpty>
+                <CommandGroup>
+                  {(unassignedTasks || []).map((t: any) => (
+                    <CommandItem
+                      key={t.id}
+                      value={t.title}
+                      onSelect={() => assignTaskToProject(t.id)}
+                      disabled={assigningTaskId === t.id}
+                      className="flex items-center gap-2"
+                    >
+                      <Circle className="h-3 w-3 shrink-0 text-muted-foreground" />
+                      <span className="flex-1 truncate text-sm">{t.title}</span>
+                      {t.priority && (
+                        <Badge variant="outline" className={`text-[9px] shrink-0 ${priorityColors[t.priority] || ""}`}>
+                          {priorityLabels[t.priority] || t.priority}
+                        </Badge>
+                      )}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );
