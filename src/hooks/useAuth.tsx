@@ -13,6 +13,11 @@ interface ProfileData {
   department: string | null;
   client_id: string | null;
   zadarma_sip_login: string | null;
+  contact_first_name?: string | null;
+  contact_last_name?: string | null;
+  contact_phone?: string | null;
+  contact_position?: string | null;
+  is_contact?: boolean;
 }
 
 interface AuthContextType {
