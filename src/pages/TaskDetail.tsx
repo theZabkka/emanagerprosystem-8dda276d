@@ -99,7 +99,6 @@ export default function TaskDetail() {
   const [correctionSeverity, setCorrectionSeverity] = useState<"normal" | "critical">("normal");
   const [correctionText, setCorrectionText] = useState("");
   const [rejectReviewOpen, setRejectReviewOpen] = useState(false);
-  const [rejectReviewText, setRejectReviewText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
