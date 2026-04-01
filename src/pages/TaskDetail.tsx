@@ -934,7 +934,7 @@ export default function TaskDetail() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold">Brief zadania</CardTitle>
-                {!isClient && <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={openBriefEditor}><Edit3 className="h-3 w-3" />Edytuj brief</Button>}
+                {!isClient && !isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={openBriefEditor}><Edit3 className="h-3 w-3" />Edytuj brief</Button>}
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
