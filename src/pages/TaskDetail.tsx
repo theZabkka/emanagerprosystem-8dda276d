@@ -36,6 +36,7 @@ import { StatusTimeline } from "@/components/tasks/StatusTimeline";
 import { DescriptionCard } from "@/components/tasks/DescriptionCard";
 import { statusLabels, statusColors, TERMINAL_STATUSES } from "@/lib/statusConfig";
 import { useTimerStore } from "@/hooks/useTimerStore";
+import { useVerificationLock } from "@/hooks/useVerificationLock";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
