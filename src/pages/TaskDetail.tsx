@@ -929,7 +929,8 @@ export default function TaskDetail() {
         <div className="space-y-4">
 
           {/* Brief - hidden in preview, read-only for clients */}
-          {!isPreviewMode && <Card>
+          {/* Brief - visible always, edit only for staff outside preview */}
+          <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold">Brief zadania</CardTitle>
