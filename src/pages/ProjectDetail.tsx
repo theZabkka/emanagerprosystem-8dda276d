@@ -103,6 +103,32 @@ export default function ProjectDetail() {
     enabled: !!id,
   });
 
+
+
+  // Unassigned tasks for the same client (for "Assign existing" modal)
+  const { data: unassignedTasks } = useQuery({
+    queryKey: ["unassigned-tasks-for-project", project?.client_id],
+    queryFn: async () => {
+      let query = supabase.from("tasks").select("id, title, status, priority").is("project_id", null);
+      if (project?.client_id) {
+        query = query.eq("client_id", project.client_id);
+      }
+      const { data } = await query.eq("is_archived", false).order("created_at", { ascending: false }).limit(50);
+      return data || [];
+    },
+    enabled: showAssignExisting && !!project,
+  });
+
+  const assignTaskToProject = async (taskId: string) => {
+    setAssigningTaskId(taskId);
+    const { error } = await supabase.from("tasks").update({ project_id: id!, updated_at: new Date().toISOString() } as any).eq("id", taskId);
+    setAssigningTaskId(null);
+    if (error) { toast.error(error.message); return; }
+    queryClient.invalidateQueries({ queryKey: ["project-tasks", id] });
+    queryClient.invalidateQueries({ queryKey: ["unassigned-tasks-for-project"] });
+    toast.success("Zadanie przypisane do projektu");
+  };
+
   const teamMembers = (() => {
     if (!tasks) return [];
     const seen = new Set<string>();
