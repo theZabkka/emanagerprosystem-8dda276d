@@ -404,13 +404,6 @@ export default function TaskKanbanBoard({
                                   onHardDelete={onHardDelete}
                                   isSuperAdmin={isSuperAdmin}
                                 />
-                                  getInitials={getInitials}
-                                  getAvatarColor={getAvatarColor}
-                                  getWaitingTime={getWaitingTime}
-                                  allProfiles={allProfiles || []}
-                                  onAssign={handleAssign}
-                                  onArchive={onArchive}
-                                />
                               )}
                             </Draggable>
                           ))}
