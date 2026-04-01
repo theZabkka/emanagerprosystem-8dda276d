@@ -353,11 +353,23 @@ export default function TaskKanbanBoard({
             return (
               <div key={col.key} className="w-72 flex-shrink-0 self-stretch flex flex-col">
                 <div className={`flex flex-col flex-1 min-h-0 rounded-xl border border-dashed ${isEmpty ? "border-muted-foreground/20" : "border-destructive/30"} bg-card/50`}>
-                  <div className="px-4 pt-3 pb-2">
-                    <h3 className="text-xs font-extrabold tracking-wider text-foreground">{col.label}</h3>
-                    <span className="text-[11px] text-muted-foreground">
-                      {columnTasks.length} {columnTasks.length === 1 ? "zadanie" : columnTasks.length < 5 ? "zadania" : "zadań"}
-                    </span>
+                  <div className="px-4 pt-3 pb-2 flex items-start justify-between">
+                    <div>
+                      <h3 className="text-xs font-extrabold tracking-wider text-foreground">{col.label}</h3>
+                      <span className="text-[11px] text-muted-foreground">
+                        {columnTasks.length} {columnTasks.length === 1 ? "zadanie" : columnTasks.length < 5 ? "zadania" : "zadań"}
+                      </span>
+                    </div>
+                    {onQuickAdd && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground hover:bg-accent"
+                        onClick={() => onQuickAdd(col.key)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
 
                   <Droppable droppableId={col.key}>
