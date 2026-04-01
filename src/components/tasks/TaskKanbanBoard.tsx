@@ -50,6 +50,7 @@ interface TaskKanbanBoardProps {
   clients: any[];
   onStatusChange: (taskId: string, newStatus: string) => void;
   onArchive?: (taskId: string) => void;
+  onHardDelete?: (taskId: string) => void;
   onRefresh?: () => void;
   onLexoRankUpdate?: (taskId: string, newRank: string) => void;
   onQuickAdd?: (status: string) => void;
