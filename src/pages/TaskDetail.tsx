@@ -874,9 +874,35 @@ export default function TaskDetail() {
 
         {/* Title & description */}
         <div>
-          <h1 className="text-xl font-bold">{task.title}</h1>
-          {task.clients?.name && <p className="text-sm text-muted-foreground mt-0.5">{task.clients.name} {task.projects?.name && `• ${task.projects.name}`}</p>}
-          {task.description && <p className="text-sm mt-2 text-muted-foreground">{task.description}</p>}
+          {canEditInline && isEditingTitle ? (
+            <Input
+              ref={titleInputRef}
+              autoFocus
+              value={titleValue}
+              onChange={(e) => setTitleValue(e.target.value)}
+              disabled={isSavingTitle}
+              className="text-xl font-bold h-auto py-1 px-2"
+              onBlur={saveTitle}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); saveTitle(); }
+                if (e.key === "Escape") { setIsEditingTitle(false); setTitleValue(task.title); }
+              }}
+            />
+          ) : (
+            <div
+              className={cn("group flex items-center gap-2", canEditInline && "cursor-pointer")}
+              onClick={() => {
+                if (!canEditInline) return;
+                setTitleValue(task.title);
+                setIsEditingTitle(true);
+              }}
+            >
+              <h1 className="text-xl font-bold">{task.title}</h1>
+              {canEditInline && <Edit3 className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
+            </div>
+          )}
+          {task.clients?.name && <p className="text-sm text-muted-foreground mt-0.5">{(task as any).clients.name} {task.projects?.name && `• ${(task as any).projects.name}`}</p>}
+          {task.description && <p className="text-sm mt-2 text-muted-foreground whitespace-pre-wrap">{linkifyText(task.description)}</p>}
         </div>
 
         {/* Cards grid */}
