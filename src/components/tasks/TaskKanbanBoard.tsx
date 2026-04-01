@@ -8,13 +8,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Clock, UserPlus, Archive, GripVertical, Plus, Trash2 } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { toast } from "sonner";
 import { ChecklistBlockModal, ResponsibilityModal } from "./WorkflowModals";
 import { RejectionModal } from "./RejectionModal";
+import { DeleteTaskModal } from "./DeleteTaskModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { compareRanks, generateMidpointRank, generateRankAfter, generateRankBefore } from "@/lib/lexoRank";
@@ -50,7 +50,6 @@ interface TaskKanbanBoardProps {
   clients: any[];
   onStatusChange: (taskId: string, newStatus: string) => void;
   onArchive?: (taskId: string) => void;
-  onHardDelete?: (taskId: string) => void;
   onRefresh?: () => void;
   onLexoRankUpdate?: (taskId: string, newRank: string) => void;
   onQuickAdd?: (status: string) => void;
@@ -59,7 +58,7 @@ interface TaskKanbanBoardProps {
 }
 
 export default function TaskKanbanBoard({
-  tasks, profiles, assignments, clients, onStatusChange, onArchive, onHardDelete, onRefresh,
+  tasks, profiles, assignments, clients, onStatusChange, onArchive, onRefresh,
   onLexoRankUpdate, onQuickAdd, sortField = "manual", sortDirection = "asc",
 }: TaskKanbanBoardProps) {
   const { user, profile } = useAuth();
@@ -74,7 +73,6 @@ export default function TaskKanbanBoard({
   const [pendingRejectionTaskId, setPendingRejectionTaskId] = useState<string | null>(null);
   const [optimisticTasks, setOptimisticTasks] = useState<any[]>(tasks);
   const [taskToDelete, setTaskToDelete] = useState<any | null>(null);
-  const [isDeletingTask, setIsDeletingTask] = useState(false);
 
   useEffect(() => {
     setOptimisticTasks(tasks);
@@ -339,19 +337,15 @@ export default function TaskKanbanBoard({
     setTaskToDelete(task);
   }, []);
 
-  const handleConfirmDelete = useCallback(async () => {
-    if (!taskToDelete?.id || !onHardDelete) return;
-
-    try {
-      setIsDeletingTask(true);
-      await onHardDelete(taskToDelete.id);
+  const handleDeleteModalOpenChange = useCallback((open: boolean) => {
+    if (!open) {
       setTaskToDelete(null);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsDeletingTask(false);
     }
-  }, [onHardDelete, taskToDelete]);
+  }, []);
+
+  const handleTaskDeleted = useCallback((deletedTaskId: string) => {
+    setOptimisticTasks((prev) => prev.filter((task: any) => task.id !== deletedTaskId));
+  }, []);
 
   return (
     <>
@@ -371,26 +365,12 @@ export default function TaskKanbanBoard({
           }
         }}
       />
-      <AlertDialog open={!!taskToDelete} onOpenChange={(open) => { if (!open && !isDeletingTask) setTaskToDelete(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-destructive">Trwałe usunięcie zadania</AlertDialogTitle>
-            <AlertDialogDescription>
-              Uwaga: Czy na pewno chcesz trwale usunąć to zadanie? Ta akcja jest bezpowrotna. Z bazy znikną również wszystkie komentarze, logi oraz dane analityczne powiązane z tym zadaniem. Zamiast tego zalecamy użycie archiwizacji.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeletingTask}>Anuluj</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={isDeletingTask}
-              onClick={handleConfirmDelete}
-            >
-              {isDeletingTask ? "Usuwanie..." : "Tak, usuń trwale"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteTaskModal
+        open={!!taskToDelete}
+        task={taskToDelete}
+        onOpenChange={handleDeleteModalOpenChange}
+        onDeleted={handleTaskDeleted}
+      />
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex h-[calc(100vh-16rem)] items-stretch gap-3 overflow-x-auto overflow-y-hidden w-full pb-4 min-h-0">
           {KANBAN_COLUMNS.map((col) => {

@@ -187,42 +187,6 @@ export default function Tasks() {
     refetch();
   }, [refetch]);
 
-  const handleHardDelete = useCallback(async (taskId: string) => {
-    const relatedTables = [
-      "task_rejections", "comments", "task_status_history", "task_materials",
-      "task_assignments", "subtasks", "checklists", "task_corrections", "checklist_items",
-    ];
-
-    for (const table of relatedTables) {
-      if (table === "checklist_items") {
-        const { data: checklists } = await supabase.from("checklists").select("id").eq("task_id", taskId);
-        if (checklists && checklists.length > 0) {
-          const { error } = await supabase.from("checklist_items").delete().in("checklist_id", checklists.map((c: any) => c.id));
-          if (error) {
-            toast.error("Błąd usuwania powiązanych danych zadania");
-            throw error;
-          }
-        }
-        continue;
-      }
-
-      const { error } = await supabase.from(table as any).delete().eq("task_id", taskId);
-      if (error) {
-        toast.error("Błąd usuwania powiązanych danych zadania");
-        throw error;
-      }
-    }
-
-    const { error } = await supabase.from("tasks").delete().eq("id", taskId);
-    if (error) {
-      toast.error("Błąd usuwania zadania");
-      throw error;
-    }
-
-    toast.success("Zadanie trwale usunięte");
-    refetch();
-  }, [refetch]);
-
   return (
     <AppLayout title="Zadania">
       <div className="space-y-4 mx-auto">
@@ -263,7 +227,6 @@ export default function Tasks() {
             clients={filteredTasks.map((t: any) => t.clients ? { id: t.client_id, name: t.clients.name, has_retainer: t.clients.has_retainer } : null).filter(Boolean)}
             onStatusChange={handleStatusChange}
             onArchive={handleArchive}
-            onHardDelete={handleHardDelete}
             onRefresh={refetch}
             onLexoRankUpdate={handleLexoRankUpdate}
             onQuickAdd={(status) => { setQuickAddStatus(status); setIsCreateOpen(true); }}
