@@ -151,7 +151,7 @@ export default function ClientDetail() {
   const { data: tasks } = useQuery({
     queryKey: ["client-tasks", id],
     queryFn: async () => {
-      const { data } = await supabase.from("tasks").select("*").eq("client_id", id!);
+      const { data } = await supabase.from("tasks").select("id, title, status, priority, due_date, lexo_rank, client_id, project_id, type, parent_task_id, not_understood, is_misunderstood, correction_severity, is_archived, estimated_time, logged_time, updated_at, created_at, status_updated_at, bug_severity").eq("client_id", id!);
       return data || [];
     },
     enabled: !!id,
