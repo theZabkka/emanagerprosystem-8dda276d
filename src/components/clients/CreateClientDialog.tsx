@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,6 +102,7 @@ async function fetchCompanyDataByNip(rawNip: string) {
 export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClientDialogProps) {
   const [loading, setLoading] = useState(false);
   const [nipLoading, setNipLoading] = useState(false);
+  const firstNameRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
@@ -130,10 +131,9 @@ export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClie
     setNipLoading(true);
     try {
       const data = await fetchCompanyDataByNip(form.nip);
+      // ONLY update company fields — never touch first_name / last_name
       setForm((prev) => ({
         ...prev,
-        first_name: data.first_name || prev.first_name,
-        last_name: data.last_name || prev.last_name,
         company_name: data.company_name || prev.company_name,
         address: data.street || prev.address,
         postal_code: data.postal_code || prev.postal_code,
@@ -141,6 +141,8 @@ export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClie
         voivodeship: data.voivodeship || prev.voivodeship,
       }));
       toast.success("Pomyślnie pobrano dane firmy!");
+      // Auto-focus the first name field for smooth UX flow
+      setTimeout(() => firstNameRef.current?.focus(), 100);
     } catch (err: any) {
       if (err.message.includes("Nieprawidłowy NIP")) {
         toast.error(err.message);
@@ -213,7 +215,7 @@ export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClie
             <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Informacje o kontakcie</h3>
             <div className="space-y-2">
               <Label>Imię <span className="text-destructive">*</span></Label>
-              <Input value={form.first_name} onChange={(e) => updateField("first_name", e.target.value)} />
+              <Input ref={firstNameRef} value={form.first_name} onChange={(e) => updateField("first_name", e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Nazwisko <span className="text-destructive">*</span></Label>
