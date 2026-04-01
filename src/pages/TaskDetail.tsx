@@ -1543,8 +1543,9 @@ export default function TaskDetail() {
       <ResponsibilityModal
         open={responsibilityOpen}
         onOpenChange={setResponsibilityOpen}
-        onConfirm={() => {
-          if (pendingStatus) {
+        onConfirm={async () => {
+          if (pendingStatus && task) {
+            await supabase.from("tasks").update({ accepted_responsibility_by: user?.id } as any).eq("id", task.id);
             executeStatusChange(pendingStatus);
             setPendingStatus(null);
           }
