@@ -57,7 +57,7 @@ interface TaskKanbanBoardProps {
 
 export default function TaskKanbanBoard({
   tasks, profiles, assignments, clients, onStatusChange, onArchive, onRefresh,
-  onLexoRankUpdate, sortField = "manual", sortDirection = "asc",
+  onLexoRankUpdate, onQuickAdd, sortField = "manual", sortDirection = "asc",
 }: TaskKanbanBoardProps) {
   const { user } = useAuth();
   const isManualSort = sortField === "manual";
