@@ -1192,6 +1192,9 @@ await supabase.from("client_files").delete().eq("id", fileId);
               </Card>
             )}
           </TabsContent>
+
+            </div>{/* end right content area */}
+          </div>{/* end flex row */}
         </Tabs>
       </div>
 
