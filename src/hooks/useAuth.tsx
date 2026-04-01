@@ -92,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (profileData.role === "klient" && profileData.client_id) {
       const { data: contactData } = await supabase
         .from("customer_contacts")
-        .select("first_name, last_name, phone, position")
+        .select("first_name, last_name, phone, position, is_primary, permissions")
         .eq("id", userId)
         .maybeSingle();
 
@@ -102,6 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profileData.contact_phone = contactData.phone;
         profileData.contact_position = contactData.position;
         profileData.is_contact = true;
+        profileData.is_primary_contact = contactData.is_primary;
+        profileData.contact_permissions = (contactData.permissions as ContactPermissions) || {};
         // Override full_name with contact's personal name
         const contactName = `${contactData.first_name || ""} ${contactData.last_name || ""}`.trim();
         if (contactName) {
