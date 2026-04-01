@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { format, isPast } from "date-fns";
-import { Bell, BellRing } from "lucide-react";
+import { pl } from "date-fns/locale";
+import { Bell, BellRing, AlertTriangle } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { CrmDeal } from "@/hooks/useCrmData";
@@ -23,6 +24,7 @@ export const CrmDealCard = memo(function CrmDealCard({ deal, labels, onReminderT
     : null;
   const colorIdx = assignedName ? assignedName.charCodeAt(0) % AVATAR_COLORS.length : 0;
 
+  const isOverdue = deal.due_date ? isPast(new Date(deal.due_date)) : false;
   const reminderOverdue =
     deal.reminder_active && deal.reminder_trigger_date && isPast(new Date(deal.reminder_trigger_date));
 
@@ -32,7 +34,8 @@ export const CrmDealCard = memo(function CrmDealCard({ deal, labels, onReminderT
       className={cn(
         "bg-card rounded-xl border border-border/60 p-3.5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer space-y-2",
         deal.reminder_active && !reminderOverdue && "border-primary/30 bg-primary/[0.02]",
-        reminderOverdue && "border-destructive/50 bg-destructive/5"
+        reminderOverdue && "border-destructive/50 bg-destructive/5",
+        isOverdue && !reminderOverdue && "border-destructive/40"
       )}
     >
       {/* Labels */}
@@ -53,14 +56,22 @@ export const CrmDealCard = memo(function CrmDealCard({ deal, labels, onReminderT
       {/* Title */}
       <p className="text-sm font-semibold leading-tight line-clamp-2 text-foreground">{deal.title}</p>
 
-      {/* Date */}
-      {deal.due_date && (
-        <span className="text-[11px] text-muted-foreground">
-          {format(new Date(deal.due_date), "dd.MM")}
-        </span>
+      {/* Client name */}
+      {deal.clients?.name && (
+        <span className="text-[10px] text-muted-foreground">🏢 {deal.clients.name}</span>
       )}
 
-      {/* Bottom row: avatar + reminder */}
+      {/* Date with overdue indicator */}
+      {deal.due_date && (
+        <div className="flex items-center gap-1">
+          {isOverdue && <AlertTriangle className="h-3 w-3 text-destructive shrink-0" />}
+          <span className={cn("text-[11px]", isOverdue ? "text-destructive font-medium" : "text-muted-foreground")}>
+            {format(new Date(deal.due_date), "dd.MM.yyyy HH:mm", { locale: pl })}
+          </span>
+        </div>
+      )}
+
+      {/* Bottom row: avatar + bell */}
       <div className="flex items-center justify-between pt-1.5 border-t border-border/40">
         {initials ? (
           <Avatar className="h-6 w-6">
@@ -78,15 +89,17 @@ export const CrmDealCard = memo(function CrmDealCard({ deal, labels, onReminderT
           }}
           className={cn(
             "p-1 rounded-md transition-colors",
-            deal.reminder_active
-              ? reminderOverdue
-                ? "text-destructive hover:bg-destructive/10"
-                : "text-primary hover:bg-primary/10"
-              : "text-muted-foreground hover:bg-muted"
+            isOverdue
+              ? "text-destructive hover:bg-destructive/10 animate-pulse"
+              : deal.reminder_active
+                ? reminderOverdue
+                  ? "text-destructive hover:bg-destructive/10"
+                  : "text-primary hover:bg-primary/10"
+                : "text-muted-foreground hover:bg-muted"
           )}
-          title={deal.reminder_active ? "Wyłącz przypomnienie" : "Włącz przypomnienie (10 min)"}
+          title={isOverdue ? "Termin minął!" : deal.reminder_active ? "Wyłącz przypomnienie" : "Włącz przypomnienie (10 min)"}
         >
-          {deal.reminder_active ? <BellRing className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
+          {deal.reminder_active || isOverdue ? <BellRing className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
         </button>
       </div>
     </div>

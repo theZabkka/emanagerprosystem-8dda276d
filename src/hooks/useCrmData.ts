@@ -24,7 +24,10 @@ export interface CrmDeal {
   lexo_rank: string;
   created_at: string | null;
   updated_at: string | null;
+  closed_at: string | null;
+  client_id: string | null;
   profiles?: { full_name: string | null } | null;
+  clients?: { id: string; name: string } | null;
   labels?: CrmLabel[];
 }
 
@@ -63,7 +66,7 @@ export function useCrmDeals(archived = false) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("crm_deals" as any)
-        .select("*, profiles:assigned_to(full_name)")
+        .select("*, profiles:assigned_to(full_name), clients:client_id(id, name)")
         .eq("is_archived", archived)
         .order("lexo_rank");
       if (error) throw error;
@@ -114,6 +117,26 @@ export function useCrmDealComments(dealId: string | null) {
   });
 }
 
+export function useCrmLabelsForDeals(dealIds: string[]) {
+  return useQuery({
+    queryKey: ["crm-all-deal-labels", dealIds.join(",")],
+    enabled: dealIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crm_deal_labels" as any)
+        .select("deal_id, crm_labels(id, name, color)")
+        .in("deal_id", dealIds);
+      if (error) throw error;
+      const map: Record<string, Array<{ id: string; name: string; color: string }>> = {};
+      (data as any[]).forEach((row: any) => {
+        if (!map[row.deal_id]) map[row.deal_id] = [];
+        if (row.crm_labels) map[row.deal_id].push(row.crm_labels);
+      });
+      return map;
+    },
+  });
+}
+
 export function useCrmRealtime() {
   const qc = useQueryClient();
   useEffect(() => {
@@ -124,6 +147,9 @@ export function useCrmRealtime() {
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "crm_columns" }, () => {
         qc.invalidateQueries({ queryKey: ["crm-columns"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "crm_deal_comments" }, () => {
+        qc.invalidateQueries({ queryKey: ["crm-deal-comments"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -152,7 +178,11 @@ export function useCrmMutations() {
   });
 
   const createDeal = useMutation({
-    mutationFn: async (deal: { title: string; column_id: string; priority?: string; due_date?: string; assigned_to?: string; description?: string; lexo_rank: string; reminder_active?: boolean }) => {
+    mutationFn: async (deal: {
+      title: string; column_id: string; priority?: string; due_date?: string;
+      assigned_to?: string; description?: string; lexo_rank: string;
+      reminder_active?: boolean; client_id?: string;
+    }) => {
       const { error } = await supabase.from("crm_deals" as any).insert(deal as any);
       if (error) throw error;
     },
@@ -228,6 +258,22 @@ export function useCrmMutations() {
     onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ["crm-deal-comments", vars.deal_id] }),
   });
 
+  const updateComment = useMutation({
+    mutationFn: async ({ id, content }: { id: string; content: string }) => {
+      const { error } = await supabase.from("crm_deal_comments" as any).update({ content } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-deal-comments"] }),
+  });
+
+  const deleteComment = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("crm_deal_comments" as any).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-deal-comments"] }),
+  });
+
   const toggleLabel = useMutation({
     mutationFn: async ({ deal_id, label_id, attach }: { deal_id: string; label_id: string; attach: boolean }) => {
       if (attach) {
@@ -238,7 +284,10 @@ export function useCrmMutations() {
         if (error) throw error;
       }
     },
-    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ["crm-deal-labels", vars.deal_id] }),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["crm-deal-labels", vars.deal_id] });
+      qc.invalidateQueries({ queryKey: ["crm-all-deal-labels"] });
+    },
   });
 
   const createLabel = useMutation({
@@ -251,6 +300,6 @@ export function useCrmMutations() {
 
   return {
     updateDealRank, updateColumnRank, createDeal, updateDeal, createColumn, updateColumn, deleteColumn,
-    archiveDeal, restoreDeal, toggleReminder, addComment, toggleLabel, createLabel,
+    archiveDeal, restoreDeal, toggleReminder, addComment, updateComment, deleteComment, toggleLabel, createLabel,
   };
 }
