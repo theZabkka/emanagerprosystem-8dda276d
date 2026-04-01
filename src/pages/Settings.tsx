@@ -63,6 +63,70 @@ const SETTINGS_TABS: SettingsTab[] = [
   { id: "crm-labels", label: "Etykiety CRM", icon: Tag, adminOnly: true },
 ];
 
+function ContactProfileEditor({ profile }: { profile: any }) {
+  const [firstName, setFirstName] = useState(profile?.contact_first_name || "");
+  const [lastName, setLastName] = useState(profile?.contact_last_name || "");
+  const [phone, setPhone] = useState(profile?.contact_phone || "");
+  const [position, setPosition] = useState(profile?.contact_position || "");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!firstName.trim() || !lastName.trim()) {
+      toast.error("Imię i nazwisko są wymagane.");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase
+      .from("customer_contacts")
+      .update({
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        phone: phone.trim() || null,
+        position: position.trim() || null,
+      })
+      .eq("id", profile.id);
+    setSaving(false);
+    if (error) {
+      toast.error("Błąd zapisu: " + error.message);
+      return;
+    }
+    toast.success("Dane zaktualizowane!");
+    // Reload to reflect changes in header
+    window.location.reload();
+  };
+
+  return (
+    <div className="space-y-4 py-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label className="text-sm">Imię *</Label>
+          <Input className="mt-1" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Imię" />
+        </div>
+        <div>
+          <Label className="text-sm">Nazwisko *</Label>
+          <Input className="mt-1" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Nazwisko" />
+        </div>
+      </div>
+      <div>
+        <Label className="text-sm">Email</Label>
+        <Input className="mt-1" value={profile?.email || ""} disabled />
+        <p className="text-xs text-muted-foreground mt-1">Email nie może być zmieniony.</p>
+      </div>
+      <div>
+        <Label className="text-sm">Telefon</Label>
+        <Input className="mt-1" value={phone} onChange={e => setPhone(e.target.value)} placeholder="np. +48 123 456 789" />
+      </div>
+      <div>
+        <Label className="text-sm">Stanowisko</Label>
+        <Input className="mt-1" value={position} onChange={e => setPosition(e.target.value)} placeholder="np. Dyrektor Marketingu" />
+      </div>
+      <Button onClick={handleSave} disabled={saving}>
+        {saving ? "Zapisywanie..." : "Zapisz zmiany"}
+      </Button>
+    </div>
+  );
+}
+
 export default function Settings() {
   const { profile, user } = useAuth();
   const { currentRole } = useRole();
@@ -210,18 +274,24 @@ export default function Settings() {
               {activeTab === "profile" && (
                 <>
                   <SectionHeader icon={User} title="Profil" />
-                  <SettingRow label="Imię i nazwisko">
-                    <span className="text-sm text-foreground">{profile?.full_name || "—"}</span>
-                  </SettingRow>
-                  <SettingRow label="Email">
-                    <span className="text-sm text-foreground">{profile?.email || "—"}</span>
-                  </SettingRow>
-                  <SettingRow label="Rola">
-                    <Badge variant="outline">{currentRole.toUpperCase()}</Badge>
-                  </SettingRow>
-                  <SettingRow label="Departament">
-                    <span className="text-sm text-foreground">{profile?.department || "—"}</span>
-                  </SettingRow>
+                  {profile?.is_contact ? (
+                    <ContactProfileEditor profile={profile} />
+                  ) : (
+                    <>
+                      <SettingRow label="Imię i nazwisko">
+                        <span className="text-sm text-foreground">{profile?.full_name || "—"}</span>
+                      </SettingRow>
+                      <SettingRow label="Email">
+                        <span className="text-sm text-foreground">{profile?.email || "—"}</span>
+                      </SettingRow>
+                      <SettingRow label="Rola">
+                        <Badge variant="outline">{currentRole.toUpperCase()}</Badge>
+                      </SettingRow>
+                      <SettingRow label="Departament">
+                        <span className="text-sm text-foreground">{profile?.department || "—"}</span>
+                      </SettingRow>
+                    </>
+                  )}
                 </>
               )}
 
