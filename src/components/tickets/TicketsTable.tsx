@@ -21,6 +21,8 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 interface TicketsTableProps {
   isAdmin: boolean;
   clientId?: string | null;
+  isPrimaryContact?: boolean;
+  contactId?: string | null;
 }
 
 export default function TicketsTable({ isAdmin, clientId }: TicketsTableProps) {
