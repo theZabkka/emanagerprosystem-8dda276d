@@ -352,6 +352,7 @@ const { data: existing } = await supabase.from("client_invoice_data").select("id
   // ─── Tab counts ───────────────────────────────────────────────
   const tabCounts: Record<string, number> = useMemo(() => ({
     tasks: activeTasks.length,
+    contacts: contactsCount || 0,
     conversations: (conversations || []).length,
     voip: callsCount || 0,
     offers: (offers || []).length,
@@ -362,7 +363,7 @@ const { data: existing } = await supabase.from("client_invoice_data").select("id
     social: (socialAccounts || []).length,
     billing: invoiceData ? 1 : 0,
     history: (activityHistory || []).length,
-  }), [activeTasks, conversations, callsCount, offers, ideas, contracts, orders, files, socialAccounts, invoiceData, activityHistory]);
+  }), [activeTasks, contactsCount, conversations, callsCount, offers, ideas, contracts, orders, files, socialAccounts, invoiceData, activityHistory]);
 
   // ─── Filtered tasks ───────────────────────────────────────────
   const filteredTasks = useMemo(() => {
