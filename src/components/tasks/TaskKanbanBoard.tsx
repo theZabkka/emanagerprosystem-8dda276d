@@ -311,7 +311,7 @@ export default function TaskKanbanBoard({
     }
   };
 
-  const handleAssign = async (taskId: string, userId: string) => {
+  const handleAssign = useCallback(async (taskId: string, userId: string) => {
     await supabase.from("task_assignments").delete().eq("task_id", taskId).eq("role", "primary" as any);
     const { error } = await supabase.from("task_assignments").insert({
       task_id: taskId,
@@ -324,7 +324,7 @@ export default function TaskKanbanBoard({
     }
     toast.success("Przypisano osobę");
     onRefresh?.();
-  };
+  }, [onRefresh]);
 
   return (
     <>
