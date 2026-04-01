@@ -725,6 +725,30 @@ export default function TaskDetail() {
               <AlertTriangle className="h-3 w-3" />Odrzuć (do poprawek)
             </Button>
           )}
+          {!isClient && !isPreviewMode && !["review", "client_review", "client_verified", "done", "closed", "cancelled"].includes(task.status || "") && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs gap-1.5 border-emerald-500/50 text-emerald-600 hover:bg-emerald-500/10"
+              onClick={async () => {
+                try {
+                  const { error } = await supabase.rpc("change_task_status", {
+                    _task_id: task.id,
+                    _new_status: "review",
+                    _changed_by: user?.id,
+                    _note: "Przekazano do weryfikacji (quick action)",
+                  });
+                  if (error) throw error;
+                  toast.success("Zadanie przekazane do weryfikacji");
+                  queryClient.invalidateQueries({ queryKey: ["task"] });
+                } catch (err: any) {
+                  toast.error("Błąd: " + (err.message || "Nie udało się zmienić statusu"));
+                }
+              }}
+            >
+              <CheckCircle2 className="h-3 w-3" />Przekaż do weryfikacji
+            </Button>
+          )}
           {!isClient && !isPreviewMode && <Button size="sm" className="text-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={() => setIsChatOpen(true)}><MessageCircle className="h-3 w-3" />Czat zadania</Button>}
         </div>
 
