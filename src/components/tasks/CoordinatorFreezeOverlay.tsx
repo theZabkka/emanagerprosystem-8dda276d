@@ -119,17 +119,22 @@ export function CoordinatorFreezeOverlay() {
     return (
       <div className="fixed bottom-4 right-4 z-50 max-w-md w-full animate-in slide-in-from-bottom-4">
         <div className="bg-card border-2 border-warning/50 rounded-xl shadow-lg p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-warning" />
-            <p className="text-sm font-semibold">
-              {frozenTasks.length} {frozenTasks.length === 1 ? "zadanie oczekuje" : "zadań oczekuje"} na weryfikację
-            </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              <p className="text-sm font-semibold">
+                {frozenTasks.length} {frozenTasks.length === 1 ? "zadanie oczekuje" : "zadań oczekuje"} na weryfikację
+              </p>
+            </div>
+            <button onClick={handleDismiss} className="p-1 rounded-md hover:bg-muted transition-colors">
+              <X className="h-4 w-4 text-muted-foreground" />
+            </button>
           </div>
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {frozenTasks.map((t: any) => (
               <button
                 key={t.id}
-                onClick={() => navigate(`/tasks/${t.id}`)}
+                onClick={() => handleGoToTask(t.id)}
                 className="w-full flex items-center justify-between gap-2 rounded-lg border p-2 hover:bg-muted/50 transition-colors text-left"
               >
                 <div className="min-w-0 flex-1">
