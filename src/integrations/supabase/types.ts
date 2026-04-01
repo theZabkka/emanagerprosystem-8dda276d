@@ -948,6 +948,7 @@ export type Database = {
       crm_deals: {
         Row: {
           assigned_to: string | null
+          client_id: string | null
           closed_at: string | null
           column_id: string
           created_at: string | null
@@ -964,6 +965,7 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          client_id?: string | null
           closed_at?: string | null
           column_id: string
           created_at?: string | null
@@ -980,6 +982,7 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          client_id?: string | null
           closed_at?: string | null
           column_id?: string
           created_at?: string | null
@@ -1000,6 +1003,13 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
           {
