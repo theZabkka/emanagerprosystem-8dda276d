@@ -139,14 +139,6 @@ export default function TaskDetail() {
 
   const { data: allProfiles } = useStaffMembers();
 
-  const { data: subtasks } = useQuery({
-    queryKey: ["subtasks", id],
-    queryFn: async () => {
-      const { data } = await supabase.from("subtasks").select("*").eq("task_id", id!).order("created_at");
-      return data || [];
-    },
-    enabled: !!id,
-  });
 
   const { data: comments } = useQuery({
     queryKey: ["comments", id],
