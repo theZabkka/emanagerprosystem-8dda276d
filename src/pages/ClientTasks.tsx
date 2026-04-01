@@ -35,10 +35,7 @@ export default function ClientTasks() {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
-  // Permission guard — hooks are already called above
-  if (!hasContactPermission("projects")) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  const hasPermission = hasContactPermission("projects");
 
   // Fetch projects
   const { data: projects, isLoading: projectsLoading } = useQuery({
@@ -53,7 +50,7 @@ export default function ClientTasks() {
         .order("name");
       return data || [];
     },
-    enabled: !!clientId,
+    enabled: !!clientId && hasPermission,
   });
 
   // Fetch tasks — non-primary contacts only see tasks assigned to them
@@ -61,7 +58,7 @@ export default function ClientTasks() {
     queryKey: ["client-tasks-full", clientId, isPrimaryContact, user?.id],
     queryFn: async () => {
       if (!clientId) return [];
-      let query = supabase
+      const { data } = await supabase
         .from("tasks")
         .select(`
           id, title, status, updated_at, due_date, project_id,
@@ -71,9 +68,8 @@ export default function ClientTasks() {
         .eq("client_id", clientId)
         .eq("is_archived", false)
         .order("updated_at", { ascending: false });
-      const { data } = await query;
       if (!data) return [];
-      // For non-primary contacts, filter client-side to only tasks they're assigned to
+      // For non-primary contacts, filter to only tasks they're assigned to
       if (!isPrimaryContact && user?.id) {
         return data.filter((t: any) =>
           (t.task_assignments || []).some((a: any) => a.user_id === user.id)
@@ -81,7 +77,7 @@ export default function ClientTasks() {
       }
       return data;
     },
-    enabled: !!clientId,
+    enabled: !!clientId && hasPermission,
   });
 
   // Filter tasks
@@ -124,6 +120,11 @@ export default function ClientTasks() {
     const primary = assignments.find((a: any) => a.role === "primary");
     return primary?.profiles?.full_name || null;
   };
+
+  // Permission guard — all hooks called above
+  if (!hasPermission) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <AppLayout title="Moje Zadania">
