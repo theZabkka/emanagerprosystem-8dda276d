@@ -64,10 +64,10 @@ const SETTINGS_TABS: SettingsTab[] = [
 ];
 
 function ContactProfileEditor({ profile }: { profile: any }) {
+  const [isEditing, setIsEditing] = useState(false);
   const [firstName, setFirstName] = useState(profile?.contact_first_name || "");
   const [lastName, setLastName] = useState(profile?.contact_last_name || "");
   const [phone, setPhone] = useState(profile?.contact_phone || "");
-  const [position, setPosition] = useState(profile?.contact_position || "");
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -82,7 +82,6 @@ function ContactProfileEditor({ profile }: { profile: any }) {
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         phone: phone.trim() || null,
-        position: position.trim() || null,
       })
       .eq("id", profile.id);
     setSaving(false);
@@ -91,9 +90,42 @@ function ContactProfileEditor({ profile }: { profile: any }) {
       return;
     }
     toast.success("Dane zaktualizowane!");
-    // Reload to reflect changes in header
+    setIsEditing(false);
     window.location.reload();
   };
+
+  const handleCancel = () => {
+    setFirstName(profile?.contact_first_name || "");
+    setLastName(profile?.contact_last_name || "");
+    setPhone(profile?.contact_phone || "");
+    setIsEditing(false);
+  };
+
+  if (!isEditing) {
+    return (
+      <div className="py-4">
+        <div className="flex justify-end mb-2">
+          <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+            <Settings2 className="h-4 w-4 mr-1" /> Edytuj profil
+          </Button>
+        </div>
+        <SettingRow label="Imię i nazwisko">
+          <span className="text-sm text-foreground">
+            {[profile?.contact_first_name, profile?.contact_last_name].filter(Boolean).join(" ") || "—"}
+          </span>
+        </SettingRow>
+        <SettingRow label="Email">
+          <span className="text-sm text-foreground">{profile?.email || "—"}</span>
+        </SettingRow>
+        <SettingRow label="Telefon">
+          <span className="text-sm text-foreground">{profile?.contact_phone || "—"}</span>
+        </SettingRow>
+        <SettingRow label="Stanowisko">
+          <span className="text-sm text-foreground">{profile?.contact_position || "—"}</span>
+        </SettingRow>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 py-4">
@@ -110,19 +142,18 @@ function ContactProfileEditor({ profile }: { profile: any }) {
       <div>
         <Label className="text-sm">Email</Label>
         <Input className="mt-1" value={profile?.email || ""} disabled />
-        <p className="text-xs text-muted-foreground mt-1">Email nie może być zmieniony.</p>
+        <p className="text-xs text-muted-foreground mt-1">Email nie może być zmieniony z tego miejsca.</p>
       </div>
       <div>
         <Label className="text-sm">Telefon</Label>
         <Input className="mt-1" value={phone} onChange={e => setPhone(e.target.value)} placeholder="np. +48 123 456 789" />
       </div>
-      <div>
-        <Label className="text-sm">Stanowisko</Label>
-        <Input className="mt-1" value={position} onChange={e => setPosition(e.target.value)} placeholder="np. Dyrektor Marketingu" />
+      <div className="flex gap-3 pt-2">
+        <Button variant="outline" onClick={handleCancel}>Anuluj</Button>
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? "Zapisywanie..." : "Zapisz zmiany"}
+        </Button>
       </div>
-      <Button onClick={handleSave} disabled={saving}>
-        {saving ? "Zapisywanie..." : "Zapisz zmiany"}
-      </Button>
     </div>
   );
 }
