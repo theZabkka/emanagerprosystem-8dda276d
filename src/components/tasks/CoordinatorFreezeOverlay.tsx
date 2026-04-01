@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
@@ -14,7 +14,10 @@ export function CoordinatorFreezeOverlay() {
   const { user } = useAuth();
   const { currentRole } = useRole();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [frozenTasks, setFrozenTasks] = useState<any[]>([]);
+  const [dismissed, setDismissed] = useState(false);
 
   // Fetch tasks currently in review with their status_entered_at from history
   const { data: reviewTasks } = useQuery({
