@@ -50,7 +50,6 @@ interface TaskKanbanBoardProps {
   clients: any[];
   onStatusChange: (taskId: string, newStatus: string) => void;
   onArchive?: (taskId: string) => void;
-  onHardDelete?: (taskId: string) => void;
   onRefresh?: () => void;
   onLexoRankUpdate?: (taskId: string, newRank: string) => void;
   onQuickAdd?: (status: string) => void;
@@ -59,7 +58,7 @@ interface TaskKanbanBoardProps {
 }
 
 export default function TaskKanbanBoard({
-  tasks, profiles, assignments, clients, onStatusChange, onArchive, onHardDelete, onRefresh,
+  tasks, profiles, assignments, clients, onStatusChange, onArchive, onRefresh,
   onLexoRankUpdate, onQuickAdd, sortField = "manual", sortDirection = "asc",
 }: TaskKanbanBoardProps) {
   const { user, profile } = useAuth();
@@ -74,7 +73,6 @@ export default function TaskKanbanBoard({
   const [pendingRejectionTaskId, setPendingRejectionTaskId] = useState<string | null>(null);
   const [optimisticTasks, setOptimisticTasks] = useState<any[]>(tasks);
   const [taskToDelete, setTaskToDelete] = useState<any | null>(null);
-  const [isDeletingTask, setIsDeletingTask] = useState(false);
 
   useEffect(() => {
     setOptimisticTasks(tasks);
