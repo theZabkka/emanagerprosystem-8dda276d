@@ -68,36 +68,71 @@ function ContactProfileEditor({ profile }: { profile: any }) {
   const [firstName, setFirstName] = useState(profile?.contact_first_name || "");
   const [lastName, setLastName] = useState(profile?.contact_last_name || "");
   const [phone, setPhone] = useState(profile?.contact_phone || "");
+  const [email, setEmail] = useState(profile?.email || "");
   const [saving, setSaving] = useState(false);
+
+  const originalEmail = profile?.email || "";
 
   const handleSave = async () => {
     if (!firstName.trim() || !lastName.trim()) {
       toast.error("Imię i nazwisko są wymagane.");
       return;
     }
-    setSaving(true);
-    const { error } = await supabase
-      .from("customer_contacts")
-      .update({
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        phone: phone.trim() || null,
-      })
-      .eq("id", profile.id);
-    setSaving(false);
-    if (error) {
-      toast.error("Błąd zapisu: " + error.message);
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      toast.error("Podaj poprawny adres email.");
       return;
     }
-    toast.success("Dane zaktualizowane!");
-    setIsEditing(false);
-    window.location.reload();
+
+    setSaving(true);
+    try {
+      // STEP A: Update auth email if changed
+      const emailChanged = trimmedEmail.toLowerCase() !== originalEmail.toLowerCase();
+      if (emailChanged) {
+        const { error: authErr } = await supabase.auth.updateUser({ email: trimmedEmail });
+        if (authErr) {
+          toast.error("Błąd zmiany email: " + authErr.message);
+          setSaving(false);
+          return;
+        }
+      }
+
+      // STEP B: Update customer_contacts table
+      const { error } = await supabase
+        .from("customer_contacts")
+        .update({
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          phone: phone.trim() || null,
+          email: trimmedEmail,
+        })
+        .eq("id", profile.id);
+
+      if (error) {
+        toast.error("Błąd zapisu: " + error.message);
+        setSaving(false);
+        return;
+      }
+
+      if (emailChanged) {
+        toast.success("Dane zaktualizowane! Sprawdź nowy email — wymagane potwierdzenie.");
+      } else {
+        toast.success("Dane zaktualizowane!");
+      }
+      setIsEditing(false);
+      window.location.reload();
+    } catch {
+      toast.error("Wystąpił nieoczekiwany błąd.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCancel = () => {
     setFirstName(profile?.contact_first_name || "");
     setLastName(profile?.contact_last_name || "");
     setPhone(profile?.contact_phone || "");
+    setEmail(profile?.email || "");
     setIsEditing(false);
   };
 
@@ -141,15 +176,15 @@ function ContactProfileEditor({ profile }: { profile: any }) {
       </div>
       <div>
         <Label className="text-sm">Email</Label>
-        <Input className="mt-1" value={profile?.email || ""} disabled />
-        <p className="text-xs text-muted-foreground mt-1">Email nie może być zmieniony z tego miejsca.</p>
+        <Input className="mt-1" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jan@firma.pl" />
+        <p className="text-xs text-muted-foreground mt-1">Zmiana email wymaga potwierdzenia na nowym adresie.</p>
       </div>
       <div>
         <Label className="text-sm">Telefon</Label>
         <Input className="mt-1" value={phone} onChange={e => setPhone(e.target.value)} placeholder="np. +48 123 456 789" />
       </div>
       <div className="flex gap-3 pt-2">
-        <Button variant="outline" onClick={handleCancel}>Anuluj</Button>
+        <Button variant="outline" onClick={handleCancel} disabled={saving}>Anuluj</Button>
         <Button onClick={handleSave} disabled={saving}>
           {saving ? "Zapisywanie..." : "Zapisz zmiany"}
         </Button>
@@ -239,25 +274,23 @@ export default function Settings() {
 
   const handlePasswordChange = async () => {
     if (!currentPassword) { toast.error("Wprowadź obecne hasło"); return; }
-    if (newPassword.length < 6) { toast.error("Nowe hasło musi mieć min. 6 znaków"); return; }
+    if (newPassword.length < 8) { toast.error("Nowe hasło musi mieć min. 8 znaków"); return; }
     if (newPassword !== confirmPassword) { toast.error("Hasła nie są identyczne"); return; }
     setChangingPassword(true);
     try {
-      // Re-authenticate with current password
+      // Step A: Verify old password via background sign-in
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (!currentUser?.email) { toast.error("Nie można pobrać danych użytkownika"); setChangingPassword(false); return; }
-      const { error: authError } = await supabase.auth.signInWithPassword({ email: currentUser.email, password: currentPassword });
-      if (authError) { toast.error("Obecne hasło jest nieprawidłowe"); setChangingPassword(false); return; }
-      // Update password
+      const { error: verifyErr } = await supabase.auth.signInWithPassword({ email: currentUser.email, password: currentPassword });
+      if (verifyErr) { toast.error("Stare hasło jest nieprawidłowe"); setChangingPassword(false); return; }
+      // Step B: Update password
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) { toast.error("Błąd zmiany hasła: " + error.message); setChangingPassword(false); return; }
-      toast.success("Hasło zostało zmienione. Zaloguj się ponownie nowym hasłem.");
+      toast.success("Hasło zostało zmienione.");
       setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
-      // Sign out and redirect
-      await supabase.auth.signOut();
-      window.location.href = "/login";
-    } catch (e) {
+    } catch {
       toast.error("Wystąpił nieoczekiwany błąd");
+    } finally {
       setChangingPassword(false);
     }
   };
@@ -378,7 +411,7 @@ export default function Settings() {
                      </div>
                      <div>
                        <Label className="text-sm">Nowe hasło</Label>
-                       <Input type="password" className="mt-1" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Min. 6 znaków" />
+                       <Input type="password" className="mt-1" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Min. 8 znaków" />
                      </div>
                      <div>
                        <Label className="text-sm">Potwierdź nowe hasło</Label>
