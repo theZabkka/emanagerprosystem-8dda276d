@@ -110,12 +110,16 @@ export default function Tasks() {
     .map((t: any) => ({ id: t.id, not_understood_at: t.not_understood_at }));
 
   const handleFilterStatus = (status: string) => {
-    setStatusFilter(status);
+    setStatusFilter(prev => prev === status ? "all" : status);
     setOverdueFilter(false);
     setUnassignedFilter(false);
   };
 
   const handleFilterUnassigned = () => {
+    if (unassignedFilter) {
+      setUnassignedFilter(false);
+      return;
+    }
     setSearch("");
     setPriorityFilter("all");
     setTypeFilter("all");

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -56,6 +56,18 @@ const briefFields = [
   { key: "brief_inspiration", label: "Wzorzec / inspiracja" },
 ];
 
+const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
+function linkifyText(text: string): React.ReactNode[] {
+  const parts = text.split(URL_REGEX);
+  return parts.map((part, i) =>
+    URL_REGEX.test(part) ? (
+      <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
+
 // ─── Demo state store (mutable for demo interactivity) ────────────
 export default function TaskDetail() {
   const { id } = useParams<{ id: string }>();
@@ -89,6 +101,10 @@ export default function TaskDetail() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleValue, setTitleValue] = useState("");
+  const [isSavingTitle, setIsSavingTitle] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   // ─── Queries ─────────────────────────────────────────────────────
   const { data: task, isLoading } = useQuery({
@@ -570,6 +586,19 @@ export default function TaskDetail() {
     toast.success(newClientId ? "Klient przypisany" : "Powiązanie z klientem usunięte");
   }
 
+  const saveTitle = useCallback(async () => {
+    if (!task || isSavingTitle) return;
+    const trimmed = titleValue.trim();
+    if (!trimmed || trimmed === task.title) { setIsEditingTitle(false); return; }
+    setIsSavingTitle(true);
+    const { error } = await supabase.from("tasks").update({ title: trimmed, updated_at: new Date().toISOString() } as any).eq("id", task.id);
+    setIsSavingTitle(false);
+    if (error) { toast.error("Błąd zapisu tytułu"); return; }
+    queryClient.invalidateQueries({ queryKey: ["task", id] });
+    setIsEditingTitle(false);
+    toast.success("Tytuł zaktualizowany");
+  }, [task, titleValue, isSavingTitle, queryClient, id]);
+
   async function handlePriorityChange(newPriority: string) {
     if (!task || newPriority === task.priority) return;
     const { error } = await supabase.from("tasks").update({ priority: newPriority as any, updated_at: new Date().toISOString() } as any).eq("id", task.id);
@@ -857,9 +886,35 @@ export default function TaskDetail() {
 
         {/* Title & description */}
         <div>
-          <h1 className="text-xl font-bold">{task.title}</h1>
-          {task.clients?.name && <p className="text-sm text-muted-foreground mt-0.5">{task.clients.name} {task.projects?.name && `• ${task.projects.name}`}</p>}
-          {task.description && <p className="text-sm mt-2 text-muted-foreground">{task.description}</p>}
+          {canEditInline && isEditingTitle ? (
+            <Input
+              ref={titleInputRef}
+              autoFocus
+              value={titleValue}
+              onChange={(e) => setTitleValue(e.target.value)}
+              disabled={isSavingTitle}
+              className="text-xl font-bold h-auto py-1 px-2"
+              onBlur={saveTitle}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); saveTitle(); }
+                if (e.key === "Escape") { setIsEditingTitle(false); setTitleValue(task.title); }
+              }}
+            />
+          ) : (
+            <div
+              className={cn("group flex items-center gap-2", canEditInline && "cursor-pointer")}
+              onClick={() => {
+                if (!canEditInline) return;
+                setTitleValue(task.title);
+                setIsEditingTitle(true);
+              }}
+            >
+              <h1 className="text-xl font-bold">{task.title}</h1>
+              {canEditInline && <Edit3 className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
+            </div>
+          )}
+          {task.clients?.name && <p className="text-sm text-muted-foreground mt-0.5">{(task as any).clients.name} {task.projects?.name && `• ${(task as any).projects.name}`}</p>}
+          {task.description && <p className="text-sm mt-2 text-muted-foreground whitespace-pre-wrap">{linkifyText(task.description)}</p>}
         </div>
 
         {/* Cards grid */}

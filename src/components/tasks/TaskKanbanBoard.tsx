@@ -345,7 +345,7 @@ export default function TaskKanbanBoard({
         }}
       />
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex h-[calc(100vh-16rem)] items-stretch gap-3 overflow-x-auto pb-4 min-h-0">
+        <div className="flex h-[calc(100vh-16rem)] items-stretch gap-3 overflow-x-auto overflow-y-hidden w-full pb-4 min-h-0">
           {KANBAN_COLUMNS.map((col) => {
             const columnTasks = getColumnTasks(col.key);
             const isEmpty = columnTasks.length === 0;
@@ -436,7 +436,7 @@ const KanbanCard = React.memo(function KanbanCard({
       ref={provided.innerRef}
       {...provided.draggableProps}
       {...provided.dragHandleProps}
-      className={`rounded-lg border shadow-sm transition-shadow ${isUnassigned ? "bg-destructive/15 border-destructive/50 ring-2 ring-destructive/30" : task.is_misunderstood ? "bg-amber-500/10 border-amber-500/30 ring-2 ring-amber-500/30" : "bg-card"} ${task.not_understood && !task.is_misunderstood ? "ring-2 ring-amber-500/50 border-amber-500/30" : ""} ${task.correction_severity === "critical" ? "ring-2 ring-destructive/50" : ""} ${isDragging ? "shadow-lg ring-2 ring-destructive/20" : "hover:shadow-md"}`}
+      className={`rounded-lg border shadow-sm transition-shadow touch-none ${isUnassigned ? "bg-destructive/15 border-destructive/50 ring-2 ring-destructive/30" : task.is_misunderstood ? "bg-amber-500/10 border-amber-500/30 ring-2 ring-amber-500/30" : "bg-card"} ${task.not_understood && !task.is_misunderstood ? "ring-2 ring-amber-500/50 border-amber-500/30" : ""} ${task.correction_severity === "critical" ? "ring-2 ring-destructive/50" : ""} ${isDragging ? "shadow-lg ring-2 ring-destructive/20" : "hover:shadow-md"}`}
     >
       <Link to={`/tasks/${task.id}`} className="block px-2 pt-1.5 pb-1">
         <div className="flex items-start gap-1.5">
