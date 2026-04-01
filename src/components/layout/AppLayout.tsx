@@ -8,7 +8,7 @@ import { useRole } from "@/hooks/useRole";
 import { useRoutePrefetch } from "@/hooks/useRoutePrefetch";
 import { CoordinatorFreezeOverlay } from "@/components/tasks/CoordinatorFreezeOverlay";
 import { ProfileGatekeeper } from "./ProfileGatekeeper";
-import { ZadarmaWidget } from "./ZadarmaWidget";
+
 
 interface AppLayoutProps {
   children: ReactNode;
