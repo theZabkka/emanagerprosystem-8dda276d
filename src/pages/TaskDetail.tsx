@@ -31,6 +31,7 @@ import {
   Upload, Timer, UserPlus, Edit3, Bug, Lock, X, Trash2, HelpCircle, ArrowLeft, CalendarIcon, Building2
 } from "lucide-react";
 import { NotUnderstoodModal, ChecklistBlockModal, ResponsibilityModal } from "@/components/tasks/WorkflowModals";
+import { RejectionModal } from "@/components/tasks/RejectionModal";
 import { useRole } from "@/hooks/useRole";
 import { StatusTimeline } from "@/components/tasks/StatusTimeline";
 import { DescriptionCard } from "@/components/tasks/DescriptionCard";
