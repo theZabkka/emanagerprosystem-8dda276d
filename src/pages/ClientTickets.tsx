@@ -8,7 +8,10 @@ export default function ClientTickets() {
   const { profile } = useAuth();
   const { hasContactPermission } = useRole();
 
-  if (!hasContactPermission("support")) {
+  const hasPermission = hasContactPermission("support");
+
+  // Permission guard — all hooks called above
+  if (!hasPermission) {
     return <Navigate to="/dashboard" replace />;
   }
 

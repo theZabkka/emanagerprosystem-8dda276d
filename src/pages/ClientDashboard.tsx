@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { statusLabels as allStatusLabels, statusColors as taskStatusColors } from "@/lib/statusConfig";
 
 export default function ClientDashboard() {
-  const { clientId } = useRole();
+  const { clientId, isPrimaryContact } = useRole();
   const { profile, user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
