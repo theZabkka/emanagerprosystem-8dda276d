@@ -427,21 +427,6 @@ export default function TaskDetail() {
     toast.success("Osoba usunięta");
   }
 
-  // 4. Subtasks
-  async function addSubtask() {
-    if (!newSubtask.trim()) return;
-
-    const { error } = await supabase.from("subtasks").insert({ task_id: id!, title: newSubtask });
-    if (error) { toast.error(error.message); return; }
-    setNewSubtask("");
-    queryClient.invalidateQueries({ queryKey: ["subtasks", id] });
-    toast.success("Podzadanie dodane");
-  }
-
-  async function toggleSubtask(subtaskId: string, completed: boolean) {
-    await supabase.from("subtasks").update({ is_completed: !completed }).eq("id", subtaskId);
-    queryClient.invalidateQueries({ queryKey: ["subtasks", id] });
-  }
 
   // 5. Checklists
   async function addChecklist() {
