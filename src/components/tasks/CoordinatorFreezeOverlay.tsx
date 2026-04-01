@@ -144,6 +144,9 @@ export function CoordinatorFreezeOverlay() {
     );
   }
 
+  // Hide overlay when user is viewing a frozen task or dismissed it
+  if (isOnFrozenTask || dismissed) return null;
+
   // Blocking overlay for koordynator, specjalista, praktykant
   return (
     <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex items-center justify-center p-4">
