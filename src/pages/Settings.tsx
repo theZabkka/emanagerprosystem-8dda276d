@@ -210,18 +210,24 @@ export default function Settings() {
               {activeTab === "profile" && (
                 <>
                   <SectionHeader icon={User} title="Profil" />
-                  <SettingRow label="Imię i nazwisko">
-                    <span className="text-sm text-foreground">{profile?.full_name || "—"}</span>
-                  </SettingRow>
-                  <SettingRow label="Email">
-                    <span className="text-sm text-foreground">{profile?.email || "—"}</span>
-                  </SettingRow>
-                  <SettingRow label="Rola">
-                    <Badge variant="outline">{currentRole.toUpperCase()}</Badge>
-                  </SettingRow>
-                  <SettingRow label="Departament">
-                    <span className="text-sm text-foreground">{profile?.department || "—"}</span>
-                  </SettingRow>
+                  {profile?.is_contact ? (
+                    <ContactProfileEditor profile={profile} />
+                  ) : (
+                    <>
+                      <SettingRow label="Imię i nazwisko">
+                        <span className="text-sm text-foreground">{profile?.full_name || "—"}</span>
+                      </SettingRow>
+                      <SettingRow label="Email">
+                        <span className="text-sm text-foreground">{profile?.email || "—"}</span>
+                      </SettingRow>
+                      <SettingRow label="Rola">
+                        <Badge variant="outline">{currentRole.toUpperCase()}</Badge>
+                      </SettingRow>
+                      <SettingRow label="Departament">
+                        <span className="text-sm text-foreground">{profile?.department || "—"}</span>
+                      </SettingRow>
+                    </>
+                  )}
                 </>
               )}
 

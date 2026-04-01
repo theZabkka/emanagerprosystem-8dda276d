@@ -73,7 +73,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select("id, email, full_name, role, avatar_url, department, client_id, zadarma_sip_login")
       .eq("id", userId)
       .single();
-    if (data) setProfile(data as ProfileData);
+    if (!data) return;
+
+    const profileData = data as ProfileData;
+
+    // If client role, try to fetch contact data for proper name display
+    if (profileData.role === "klient" && profileData.client_id) {
+      const { data: contactData } = await supabase
+        .from("customer_contacts")
+        .select("first_name, last_name, phone, position")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (contactData) {
+        profileData.contact_first_name = contactData.first_name;
+        profileData.contact_last_name = contactData.last_name;
+        profileData.contact_phone = contactData.phone;
+        profileData.contact_position = contactData.position;
+        profileData.is_contact = true;
+        // Override full_name with contact's personal name
+        const contactName = `${contactData.first_name || ""} ${contactData.last_name || ""}`.trim();
+        if (contactName) {
+          profileData.full_name = contactName;
+        }
+      }
+    }
+
+    setProfile(profileData);
   }
 
   async function signIn(email: string, password: string) {

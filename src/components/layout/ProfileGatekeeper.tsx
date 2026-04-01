@@ -35,6 +35,13 @@ export function ProfileGatekeeper() {
       return;
     }
 
+    // Skip gatekeeper entirely for users created as contacts (via create-contact-user)
+    if (profile?.is_contact) {
+      setChecked(true);
+      setOpen(false);
+      return;
+    }
+
     let cancelled = false;
 
     (async () => {
@@ -61,7 +68,7 @@ export function ProfileGatekeeper() {
     })();
 
     return () => { cancelled = true; };
-  }, [isClient, clientId]);
+  }, [isClient, clientId, profile?.is_contact]);
 
   const handleSave = async () => {
     if (!name.trim() || !phone.trim()) {
