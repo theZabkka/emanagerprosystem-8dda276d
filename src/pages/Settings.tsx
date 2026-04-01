@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Eye, Bell, Briefcase, Users, Shield, Bot, Settings2, Clock, LayoutList, RotateCcw, Phone, Tag, User, Lock } from "lucide-react";
+import { Eye, Bell, Briefcase, Users, Shield, Bot, Settings2, Clock, LayoutList, RotateCcw, Phone, Tag, User, Lock, Pencil, X, Save } from "lucide-react";
 import { useRole, STAFF_ROLES } from "@/hooks/useRole";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { SipLoginManager } from "@/components/settings/SipLoginManager";
@@ -64,11 +65,23 @@ const SETTINGS_TABS: SettingsTab[] = [
 ];
 
 function ContactProfileEditor({ profile }: { profile: any }) {
+  const [editing, setEditing] = useState(false);
   const [firstName, setFirstName] = useState(profile?.contact_first_name || "");
   const [lastName, setLastName] = useState(profile?.contact_last_name || "");
   const [phone, setPhone] = useState(profile?.contact_phone || "");
   const [position, setPosition] = useState(profile?.contact_position || "");
   const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
+
+  const startEditing = () => {
+    setFirstName(profile?.contact_first_name || "");
+    setLastName(profile?.contact_last_name || "");
+    setPhone(profile?.contact_phone || "");
+    setPosition(profile?.contact_position || "");
+    setEditing(true);
+  };
+
+  const cancelEditing = () => setEditing(false);
 
   const handleSave = async () => {
     if (!firstName.trim() || !lastName.trim()) {
@@ -91,25 +104,67 @@ function ContactProfileEditor({ profile }: { profile: any }) {
       return;
     }
     toast.success("Dane zaktualizowane!");
+    setEditing(false);
     // Reload to reflect changes in header
     window.location.reload();
   };
 
+  if (!editing) {
+    return (
+      <div className="space-y-1 py-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium text-muted-foreground">Twoje dane</span>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={startEditing}>
+            <Pencil className="h-3.5 w-3.5" /> Edytuj profil
+          </Button>
+        </div>
+        <SettingRow label="Imię i nazwisko">
+          <span className="text-sm text-foreground">
+            {[profile?.contact_first_name, profile?.contact_last_name].filter(Boolean).join(" ") || "—"}
+          </span>
+        </SettingRow>
+        <SettingRow label="Email">
+          <span className="text-sm text-foreground">{profile?.email || "—"}</span>
+        </SettingRow>
+        <SettingRow label="Telefon">
+          <span className="text-sm text-foreground">{profile?.contact_phone || "—"}</span>
+        </SettingRow>
+        <SettingRow label="Stanowisko">
+          <span className="text-sm text-foreground">{profile?.contact_position || "—"}</span>
+        </SettingRow>
+        <SettingRow label="Rola">
+          <Badge variant="outline">KLIENT</Badge>
+        </SettingRow>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 py-4">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-medium text-muted-foreground">Edycja profilu</span>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm" className="gap-1.5" onClick={cancelEditing} disabled={saving}>
+            <X className="h-3.5 w-3.5" /> Anuluj
+          </Button>
+          <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={saving}>
+            <Save className="h-3.5 w-3.5" /> {saving ? "Zapisywanie..." : "Zapisz zmiany"}
+          </Button>
+        </div>
+      </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-sm">Imię *</Label>
+          <Label className="text-sm">Imię <span className="text-destructive">*</span></Label>
           <Input className="mt-1" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Imię" />
         </div>
         <div>
-          <Label className="text-sm">Nazwisko *</Label>
+          <Label className="text-sm">Nazwisko <span className="text-destructive">*</span></Label>
           <Input className="mt-1" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Nazwisko" />
         </div>
       </div>
       <div>
         <Label className="text-sm">Email</Label>
-        <Input className="mt-1" value={profile?.email || ""} disabled />
+        <Input className="mt-1 bg-muted text-muted-foreground" value={profile?.email || ""} disabled />
         <p className="text-xs text-muted-foreground mt-1">Email nie może być zmieniony.</p>
       </div>
       <div>
@@ -120,9 +175,10 @@ function ContactProfileEditor({ profile }: { profile: any }) {
         <Label className="text-sm">Stanowisko</Label>
         <Input className="mt-1" value={position} onChange={e => setPosition(e.target.value)} placeholder="np. Dyrektor Marketingu" />
       </div>
-      <Button onClick={handleSave} disabled={saving}>
-        {saving ? "Zapisywanie..." : "Zapisz zmiany"}
-      </Button>
+      <div>
+        <Label className="text-sm">Rola</Label>
+        <Input className="mt-1 bg-muted text-muted-foreground" value="Klient" disabled />
+      </div>
     </div>
   );
 }
