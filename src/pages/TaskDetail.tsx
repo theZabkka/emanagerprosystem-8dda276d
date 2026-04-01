@@ -1027,29 +1027,6 @@ export default function TaskDetail() {
             </Card>
           )}
 
-          {/* Subtasks - read-only for clients */}
-          {!isClient && <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">
-                Podzadania <span className="text-muted-foreground font-normal ml-1">{completedSubtasks} z {subtasks?.length || 0} Ukończonych</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {subtasks?.map((s: any) => (
-                <div key={s.id} className="flex items-center gap-2 py-0.5">
-                  <Checkbox checked={s.is_completed} disabled={isPreviewMode || isClient} onCheckedChange={() => !isPreviewMode && !isClient && toggleSubtask(s.id, s.is_completed)} />
-                  <span className={`text-sm flex-1 ${s.is_completed ? "line-through text-muted-foreground" : ""}`}>{s.title}</span>
-                </div>
-              ))}
-              {!isPreviewMode && !isClient && (
-              <div className="flex gap-2 pt-1">
-                <Input placeholder="Dodaj podzadanie..." value={newSubtask} onChange={e => setNewSubtask(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && addSubtask()} className="text-sm h-8" />
-                <Button size="sm" variant="outline" onClick={addSubtask} className="h-8 w-8 p-0"><Plus className="h-3 w-3" /></Button>
-              </div>
-              )}
-            </CardContent>
-          </Card>}
 
           {/* Checklists - read-only for clients */}
           <Card>
