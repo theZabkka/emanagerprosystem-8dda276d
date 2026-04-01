@@ -15,6 +15,16 @@ export function CoordinatorFreezeOverlay() {
   const { currentRole } = useRole();
   const navigate = useNavigate();
   const [frozenTasks, setFrozenTasks] = useState<any[]>([]);
+  const [dismissed, setDismissed] = useState(false);
+
+  const handleGoToTask = useCallback((taskId: string) => {
+    setDismissed(true);
+    navigate(`/tasks/${taskId}`);
+  }, [navigate]);
+
+  const handleDismiss = useCallback(() => {
+    setDismissed(true);
+  }, []);
 
   // Fetch tasks currently in review with their status_entered_at from history
   const { data: reviewTasks } = useQuery({
