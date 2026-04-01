@@ -127,7 +127,7 @@ function ContactProfileEditor({ profile }: { profile: any }) {
   );
 }
 
-
+export default function Settings() {
   const { profile, user } = useAuth();
   const { currentRole } = useRole();
   const isAdmin = ADMIN_ROLES.includes(currentRole);
