@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { ChecklistBlockModal, ResponsibilityModal } from "./WorkflowModals";
 import { RejectionModal } from "./RejectionModal";
 import { useAuth } from "@/hooks/useAuth";
+import { useRole } from "@/hooks/useRole";
 import { compareRanks, generateMidpointRank, generateRankAfter, generateRankBefore } from "@/lib/lexoRank";
 import { sortTasks } from "@/lib/taskSorting";
 import type { SortField, SortDirection } from "@/components/tasks/TaskFilters";
