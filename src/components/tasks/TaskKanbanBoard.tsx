@@ -422,7 +422,7 @@ export default function TaskKanbanBoard({
                                   allProfiles={allProfiles || []}
                                   onAssign={handleAssign}
                                   onArchive={onArchive}
-                                  onHardDelete={onHardDelete}
+                                  onOpenDeleteModal={handleOpenDeleteModal}
                                   isSuperAdmin={isSuperAdmin}
                                 />
                               )}
