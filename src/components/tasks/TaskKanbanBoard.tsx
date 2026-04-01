@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { Clock, UserPlus, Archive, GripVertical } from "lucide-react";
+import { Clock, UserPlus, Archive, GripVertical, Plus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
@@ -50,13 +50,14 @@ interface TaskKanbanBoardProps {
   onArchive?: (taskId: string) => void;
   onRefresh?: () => void;
   onLexoRankUpdate?: (taskId: string, newRank: string) => void;
+  onQuickAdd?: (status: string) => void;
   sortField?: SortField;
   sortDirection?: SortDirection;
 }
 
 export default function TaskKanbanBoard({
   tasks, profiles, assignments, clients, onStatusChange, onArchive, onRefresh,
-  onLexoRankUpdate, sortField = "manual", sortDirection = "asc",
+  onLexoRankUpdate, onQuickAdd, sortField = "manual", sortDirection = "asc",
 }: TaskKanbanBoardProps) {
   const { user } = useAuth();
   const isManualSort = sortField === "manual";
@@ -352,11 +353,23 @@ export default function TaskKanbanBoard({
             return (
               <div key={col.key} className="w-72 flex-shrink-0 self-stretch flex flex-col">
                 <div className={`flex flex-col flex-1 min-h-0 rounded-xl border border-dashed ${isEmpty ? "border-muted-foreground/20" : "border-destructive/30"} bg-card/50`}>
-                  <div className="px-4 pt-3 pb-2">
-                    <h3 className="text-xs font-extrabold tracking-wider text-foreground">{col.label}</h3>
-                    <span className="text-[11px] text-muted-foreground">
-                      {columnTasks.length} {columnTasks.length === 1 ? "zadanie" : columnTasks.length < 5 ? "zadania" : "zadań"}
-                    </span>
+                  <div className="px-4 pt-3 pb-2 flex items-start justify-between">
+                    <div>
+                      <h3 className="text-xs font-extrabold tracking-wider text-foreground">{col.label}</h3>
+                      <span className="text-[11px] text-muted-foreground">
+                        {columnTasks.length} {columnTasks.length === 1 ? "zadanie" : columnTasks.length < 5 ? "zadania" : "zadań"}
+                      </span>
+                    </div>
+                    {onQuickAdd && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground hover:bg-accent"
+                        onClick={() => onQuickAdd(col.key)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
 
                   <Droppable droppableId={col.key}>

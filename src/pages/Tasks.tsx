@@ -23,6 +23,7 @@ export default function Tasks() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [quickAddStatus, setQuickAddStatus] = useState<string | undefined>(undefined);
   const [sortField, setSortField] = useState<SortField>("due_date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -209,7 +210,12 @@ export default function Tasks() {
           sortDirection={sortDirection} onSortDirectionToggle={() => setSortDirection(d => d === "asc" ? "desc" : "asc")}
         />
 
-        <CreateTaskDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} onCreated={() => refetch()} />
+        <CreateTaskDialog
+          open={isCreateOpen}
+          onOpenChange={(v) => { setIsCreateOpen(v); if (!v) setQuickAddStatus(undefined); }}
+          onCreated={() => refetch()}
+          defaultStatus={quickAddStatus}
+        />
 
         {isLoading ? (
           viewMode === "kanban" ? <KanbanSkeleton /> : <TableSkeleton columns={5} rows={8} />
@@ -223,6 +229,7 @@ export default function Tasks() {
             onArchive={handleArchive}
             onRefresh={refetch}
             onLexoRankUpdate={handleLexoRankUpdate}
+            onQuickAdd={(status) => { setQuickAddStatus(status); setIsCreateOpen(true); }}
             sortField={sortField}
             sortDirection={sortDirection}
           />
