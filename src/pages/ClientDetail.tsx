@@ -732,26 +732,37 @@ await supabase.from("client_files").delete().eq("id", fileId);
           </Card>
         </div>
 
-        {/* ─── Tabs Navigation ────────────────────────────────── */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <ScrollArea className="w-full">
-            <TabsList className="bg-transparent h-auto p-0 gap-1 flex w-max">
+        {/* ─── Tabs Navigation (Vertical Sidebar Layout) ─────── */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="flex flex-col md:flex-row gap-6 w-full items-start">
+            {/* Left sidebar menu */}
+            <TabsList className="flex flex-col h-auto w-full md:w-64 shrink-0 bg-transparent p-0 space-y-1 rounded-none border-none">
               {CLIENT_TABS.map(tab => {
                 const count = tabCounts[tab.key] || 0;
-                const isActive = activeTab === tab.key;
+                const TabIcon = tab.icon;
                 return (
-                  <TabsTrigger key={tab.key} value={tab.key} className={`text-xs font-semibold px-3 py-2 rounded-md transition-colors data-[state=active]:shadow-none ${isActive ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
-                    {tab.label}
-                    <span className={`ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded ${isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-background text-muted-foreground"}`}>{count}</span>
+                  <TabsTrigger
+                    key={tab.key}
+                    value={tab.key}
+                    className="w-full justify-start gap-3 px-4 py-3 text-left text-sm font-medium rounded-md transition-colors text-muted-foreground hover:bg-muted/60 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-none"
+                  >
+                    <TabIcon className="h-4 w-4 shrink-0" />
+                    <span className="flex-1 truncate">{tab.label}</span>
+                    {count > 0 && (
+                      <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                        {count}
+                      </span>
+                    )}
                   </TabsTrigger>
                 );
               })}
             </TabsList>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+
+            {/* Right content area */}
+            <div className="flex-1 w-full min-w-0">
 
           {/* ─── Tasks Tab ────────────────────────────────────── */}
-          <TabsContent value="tasks" className="mt-4 space-y-4">
+          <TabsContent value="tasks" className="mt-0 space-y-4">
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
               <div className="flex gap-2 flex-1">
                 <div className="relative flex-1 max-w-xs">
