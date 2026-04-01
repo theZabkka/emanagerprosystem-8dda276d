@@ -783,6 +783,39 @@ export default function TaskDetail() {
           {hasNoAssignment && <Badge className="bg-destructive text-destructive-foreground text-[10px] font-bold">NIEPRZYPISANE!</Badge>}
           {isOverdue && <Badge className="bg-destructive text-destructive-foreground text-[10px] font-bold">PO TERMINIE</Badge>}
           {task.type && <Badge variant="secondary" className="text-[10px]">{task.type}</Badge>}
+          {/* Client picker - inline editable for staff */}
+          {canEditInline ? (
+            <Popover open={clientPickerOpen} onOpenChange={setClientPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="text-xs gap-1.5 h-7">
+                  <Building2 className="h-3 w-3" />
+                  {task.client_id && (task as any).clients?.name ? (task as any).clients.name : "+ Klient"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Szukaj klienta..." />
+                  <CommandList>
+                    <CommandEmpty>Nie znaleziono klienta</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem onSelect={() => handleClientChange(null)} className="text-muted-foreground">
+                        <X className="h-3 w-3 mr-2" /> Brak klienta
+                      </CommandItem>
+                      {(allClients || []).map((c: any) => (
+                        <CommandItem key={c.id} value={c.name} onSelect={() => handleClientChange(c.id)}>
+                          <Building2 className="h-3 w-3 mr-2" />
+                          {c.name}
+                          {c.id === task.client_id && <CheckCircle2 className="h-3 w-3 ml-auto text-primary" />}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          ) : task.client_id && (task as any).clients?.name ? (
+            <Badge variant="outline" className="text-[10px] gap-1"><Building2 className="h-3 w-3" />{(task as any).clients.name}</Badge>
+          ) : null}
           {/* Deadline - inline editable for staff */}
           <div className="ml-auto">
             {canEditInline ? (
