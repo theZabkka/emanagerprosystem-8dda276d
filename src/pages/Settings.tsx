@@ -411,7 +411,7 @@ export default function Settings() {
                      </div>
                      <div>
                        <Label className="text-sm">Nowe hasło</Label>
-                       <Input type="password" className="mt-1" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Min. 6 znaków" />
+                       <Input type="password" className="mt-1" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Min. 8 znaków" />
                      </div>
                      <div>
                        <Label className="text-sm">Potwierdź nowe hasło</Label>
