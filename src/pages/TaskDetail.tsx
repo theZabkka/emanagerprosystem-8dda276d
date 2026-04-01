@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import {
   ChevronRight, Plus, Send, Clock, Play, FileText, Link as LinkIcon,
-  CheckCircle2, MessageCircle, History, AlertTriangle, Eye, Zap,
+  CheckCircle2, MessageCircle, History, AlertTriangle, Eye, Zap, ShieldCheck,
   Upload, Timer, UserPlus, Edit3, Bug, Lock, X, Trash2, HelpCircle, ArrowLeft, CalendarIcon, Building2
 } from "lucide-react";
 import { NotUnderstoodModal, ChecklistBlockModal, ResponsibilityModal } from "@/components/tasks/WorkflowModals";
