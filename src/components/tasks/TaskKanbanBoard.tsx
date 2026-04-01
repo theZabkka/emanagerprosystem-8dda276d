@@ -533,6 +533,7 @@ const KanbanCard = React.memo(function KanbanCard({
 });
 
 
+function AssignPopover({
   taskId, assignee, allProfiles, getInitials, getAvatarColor, onAssign, showAvatarInTrigger = true,
 }: {
   taskId: string; assignee: any; allProfiles: any[];
