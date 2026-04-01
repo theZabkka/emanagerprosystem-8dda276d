@@ -335,6 +335,24 @@ export default function TaskKanbanBoard({
     onRefresh?.();
   }, [onRefresh]);
 
+  const handleOpenDeleteModal = useCallback((task: any) => {
+    setTaskToDelete(task);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!taskToDelete?.id || !onHardDelete) return;
+
+    try {
+      setIsDeletingTask(true);
+      await onHardDelete(taskToDelete.id);
+      setTaskToDelete(null);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsDeletingTask(false);
+    }
+  }, [onHardDelete, taskToDelete]);
+
   return (
     <>
       <ChecklistBlockModal open={checklistBlockOpen} onOpenChange={setChecklistBlockOpen} />
