@@ -723,7 +723,19 @@ export default function TaskDetail() {
             <ChevronRight className="h-3 w-3 shrink-0" />
             <span className="text-foreground/60 truncate max-w-[300px]">{task.title}</span>
           </div>
-        )}
+          )}
+          {!isClient && !isPreviewMode && task.status === "review" && (
+            <Button
+              size="sm"
+              className="text-xs gap-1.5 bg-amber-500 hover:bg-amber-600 text-white"
+              onClick={() => {
+                setPendingStatus("client_review");
+                setResponsibilityOpen(true);
+              }}
+            >
+              <ShieldCheck className="h-3 w-3" />Do akceptacji klienta
+            </Button>
+          )}
 
         {/* Action buttons row */}
         <div className="flex flex-wrap items-center gap-2">
