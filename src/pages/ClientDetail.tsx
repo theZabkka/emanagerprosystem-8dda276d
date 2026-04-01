@@ -57,19 +57,19 @@ const convTypeIcons: Record<string, { icon: typeof Phone; label: string }> = {
 };
 
 const CLIENT_TABS = [
-  { key: "tasks", label: "Zadania" },
-  { key: "contacts", label: "Kontakty" },
-  { key: "notes", label: "Notatki" },
-  { key: "conversations", label: "Rozmowy" },
-  { key: "voip", label: "Rozmowy VoIP" },
-  { key: "offers", label: "Oferty" },
-  { key: "ideas", label: "Pomysły" },
-  { key: "contracts", label: "Umowy" },
-  { key: "orders", label: "Zlecenia" },
-  { key: "files", label: "Pliki (Drive)" },
-  { key: "social", label: "Social Media" },
-  { key: "billing", label: "Dane do faktury" },
-  { key: "history", label: "Historia" },
+  { key: "tasks", label: "Zadania", icon: ListTodo },
+  { key: "contacts", label: "Kontakty", icon: Contact },
+  { key: "notes", label: "Notatki", icon: StickyNote },
+  { key: "conversations", label: "Rozmowy", icon: MessageSquare },
+  { key: "voip", label: "Rozmowy VoIP", icon: PhoneCall },
+  { key: "offers", label: "Oferty", icon: FileText },
+  { key: "ideas", label: "Pomysły", icon: Lightbulb },
+  { key: "contracts", label: "Umowy", icon: FileSignature },
+  { key: "orders", label: "Zlecenia", icon: ShoppingCart },
+  { key: "files", label: "Pliki (Drive)", icon: Upload },
+  { key: "social", label: "Social Media", icon: Share2 },
+  { key: "billing", label: "Dane do faktury", icon: Receipt },
+  { key: "history", label: "Historia", icon: History },
 ];
 
 function formatFileSize(bytes: number) {
