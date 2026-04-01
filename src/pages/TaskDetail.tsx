@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -26,7 +27,7 @@ import { Calendar } from "@/components/ui/calendar";
 import {
   ChevronRight, Plus, Send, Clock, Play, FileText, Link as LinkIcon,
   CheckCircle2, MessageCircle, History, AlertTriangle, Eye, Zap,
-  Upload, Timer, UserPlus, Edit3, Bug, Lock, X, Trash2, HelpCircle, ArrowLeft, CalendarIcon
+  Upload, Timer, UserPlus, Edit3, Bug, Lock, X, Trash2, HelpCircle, ArrowLeft, CalendarIcon, Building2
 } from "lucide-react";
 import { NotUnderstoodModal, ChecklistBlockModal, ResponsibilityModal } from "@/components/tasks/WorkflowModals";
 import { useRole } from "@/hooks/useRole";
@@ -87,6 +88,7 @@ export default function TaskDetail() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
+  const [clientPickerOpen, setClientPickerOpen] = useState(false);
 
   // ─── Queries ─────────────────────────────────────────────────────
   const { data: task, isLoading } = useQuery({
@@ -98,6 +100,14 @@ export default function TaskDetail() {
       return data;
     },
     enabled: !!id,
+  });
+
+  const { data: allClients } = useQuery({
+    queryKey: ["all-clients-picker"],
+    queryFn: async () => {
+      const { data } = await supabase.from("clients").select("id, name").order("name");
+      return data || [];
+    },
   });
 
   const { data: assignments } = useQuery({
@@ -551,6 +561,15 @@ export default function TaskDetail() {
   // ─── Inline edit: Priority & Deadline ─────────────────────────────
   const canEditInline = !isClient && !isPreviewMode;
 
+  async function handleClientChange(newClientId: string | null) {
+    if (!task) return;
+    const { error } = await supabase.from("tasks").update({ client_id: newClientId, updated_at: new Date().toISOString() } as any).eq("id", task.id);
+    if (error) { toast.error("Błąd aktualizacji klienta"); return; }
+    queryClient.invalidateQueries({ queryKey: ["task", id] });
+    setClientPickerOpen(false);
+    toast.success(newClientId ? "Klient przypisany" : "Powiązanie z klientem usunięte");
+  }
+
   async function handlePriorityChange(newPriority: string) {
     if (!task || newPriority === task.priority) return;
     const { error } = await supabase.from("tasks").update({ priority: newPriority as any, updated_at: new Date().toISOString() } as any).eq("id", task.id);
@@ -764,6 +783,39 @@ export default function TaskDetail() {
           {hasNoAssignment && <Badge className="bg-destructive text-destructive-foreground text-[10px] font-bold">NIEPRZYPISANE!</Badge>}
           {isOverdue && <Badge className="bg-destructive text-destructive-foreground text-[10px] font-bold">PO TERMINIE</Badge>}
           {task.type && <Badge variant="secondary" className="text-[10px]">{task.type}</Badge>}
+          {/* Client picker - inline editable for staff */}
+          {canEditInline ? (
+            <Popover open={clientPickerOpen} onOpenChange={setClientPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="text-xs gap-1.5 h-7">
+                  <Building2 className="h-3 w-3" />
+                  {task.client_id && (task as any).clients?.name ? (task as any).clients.name : "+ Klient"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Szukaj klienta..." />
+                  <CommandList>
+                    <CommandEmpty>Nie znaleziono klienta</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem onSelect={() => handleClientChange(null)} className="text-muted-foreground">
+                        <X className="h-3 w-3 mr-2" /> Brak klienta
+                      </CommandItem>
+                      {(allClients || []).map((c: any) => (
+                        <CommandItem key={c.id} value={c.name} onSelect={() => handleClientChange(c.id)}>
+                          <Building2 className="h-3 w-3 mr-2" />
+                          {c.name}
+                          {c.id === task.client_id && <CheckCircle2 className="h-3 w-3 ml-auto text-primary" />}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          ) : task.client_id && (task as any).clients?.name ? (
+            <Badge variant="outline" className="text-[10px] gap-1"><Building2 className="h-3 w-3" />{(task as any).clients.name}</Badge>
+          ) : null}
           {/* Deadline - inline editable for staff */}
           <div className="ml-auto">
             {canEditInline ? (
