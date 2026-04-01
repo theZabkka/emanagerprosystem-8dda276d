@@ -561,6 +561,15 @@ export default function TaskDetail() {
   // ─── Inline edit: Priority & Deadline ─────────────────────────────
   const canEditInline = !isClient && !isPreviewMode;
 
+  async function handleClientChange(newClientId: string | null) {
+    if (!task) return;
+    const { error } = await supabase.from("tasks").update({ client_id: newClientId, updated_at: new Date().toISOString() } as any).eq("id", task.id);
+    if (error) { toast.error("Błąd aktualizacji klienta"); return; }
+    queryClient.invalidateQueries({ queryKey: ["task", id] });
+    setClientPickerOpen(false);
+    toast.success(newClientId ? "Klient przypisany" : "Powiązanie z klientem usunięte");
+  }
+
   async function handlePriorityChange(newPriority: string) {
     if (!task || newPriority === task.priority) return;
     const { error } = await supabase.from("tasks").update({ priority: newPriority as any, updated_at: new Date().toISOString() } as any).eq("id", task.id);
