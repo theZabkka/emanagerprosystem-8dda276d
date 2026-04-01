@@ -31,6 +31,7 @@ import {
   Upload, Timer, UserPlus, Edit3, Bug, Lock, X, Trash2, HelpCircle, ArrowLeft, CalendarIcon, Building2
 } from "lucide-react";
 import { NotUnderstoodModal, ChecklistBlockModal, ResponsibilityModal } from "@/components/tasks/WorkflowModals";
+import { RejectionModal } from "@/components/tasks/RejectionModal";
 import { useRole } from "@/hooks/useRole";
 import { StatusTimeline } from "@/components/tasks/StatusTimeline";
 import { DescriptionCard } from "@/components/tasks/DescriptionCard";
@@ -98,7 +99,6 @@ export default function TaskDetail() {
   const [correctionSeverity, setCorrectionSeverity] = useState<"normal" | "critical">("normal");
   const [correctionText, setCorrectionText] = useState("");
   const [rejectReviewOpen, setRejectReviewOpen] = useState(false);
-  const [rejectReviewText, setRejectReviewText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
@@ -370,25 +370,37 @@ export default function TaskDetail() {
     toast.success("Poprawki zgłoszone");
   }
 
-  // Staff reject from review -> corrections
-  async function handleRejectFromReview() {
-    if (!task || !rejectReviewText.trim() || !user?.id) {
-      toast.error("Podaj powód odrzucenia");
-      return;
-    }
-    // 1. Add comment with rejection reason
+  // Staff reject from review -> corrections (unified with Kanban)
+  async function handleRejectFromReview(category: string, comment: string) {
+    if (!task || !user?.id) return;
+
+    const primaryAssign = (assignments || []).find((a: any) => a.role === "primary");
+
+    // 1. Insert rejection analytics record
+    await supabase.from("task_rejections").insert({
+      task_id: task.id,
+      project_id: task.project_id || null,
+      rejected_by: user.id,
+      assigned_to: primaryAssign?.user_id || null,
+      reason_category: category,
+      comment: comment || null,
+    } as any);
+
+    // 2. Add comment with rejection reason
+    const commentContent = `🔴 Odrzucono: [${category}]${comment ? ` — ${comment}` : ""}`;
     await supabase.from("comments").insert({
       task_id: task.id,
       user_id: user.id,
-      content: `🔴 Odrzucono z weryfikacji: ${rejectReviewText.trim()}`,
+      content: commentContent,
       type: "internal",
     });
-    // 2. Change status to corrections
+
+    // 3. Change status to corrections
     const { error } = await supabase.rpc("change_task_status", {
       _task_id: task.id,
       _new_status: "corrections" as any,
       _changed_by: user.id,
-      _note: rejectReviewText.trim(),
+      _note: commentContent,
     });
     if (error) { toast.error(error.message); return; }
     queryClient.invalidateQueries({ queryKey: ["task", id] });
@@ -396,7 +408,6 @@ export default function TaskDetail() {
     queryClient.invalidateQueries({ queryKey: ["status-history", id] });
     refreshAfterVerification();
     setRejectReviewOpen(false);
-    setRejectReviewText("");
     toast.success("Zadanie odrzucone — przeniesiono do POPRAWEK");
   }
 
@@ -1528,29 +1539,12 @@ export default function TaskDetail() {
         }}
       />
 
-      {/* Reject from review modal */}
-      <Dialog open={rejectReviewOpen} onOpenChange={setRejectReviewOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-destructive">Odrzuć zadanie z weryfikacji</DialogTitle>
-            <DialogDescription>Podaj powód odrzucenia. Zadanie zostanie przeniesione do statusu POPRAWKI, a komentarz zostanie dodany automatycznie.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Textarea
-              value={rejectReviewText}
-              onChange={e => setRejectReviewText(e.target.value)}
-              placeholder="Powód odrzucenia / uwagi..."
-              className="min-h-[100px] text-sm"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setRejectReviewOpen(false); setRejectReviewText(""); }}>Anuluj</Button>
-            <Button variant="destructive" onClick={handleRejectFromReview} disabled={!rejectReviewText.trim()}>
-              Odrzuć i przenieś do poprawek
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Reject from review modal — unified with Kanban */}
+      <RejectionModal
+        open={rejectReviewOpen}
+        onOpenChange={setRejectReviewOpen}
+        onConfirm={handleRejectFromReview}
+      />
 
       {/* Task Chat Sheet */}
       <Sheet open={isChatOpen} onOpenChange={setIsChatOpen}>
