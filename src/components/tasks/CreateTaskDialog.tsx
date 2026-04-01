@@ -31,6 +31,7 @@ interface CreateTaskDialogProps {
   onCreated: () => void;
   defaultProjectId?: string;
   defaultClientId?: string;
+  defaultStatus?: string;
 }
 
 const initialForm = {
