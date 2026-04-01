@@ -50,6 +50,7 @@ interface TaskKanbanBoardProps {
   onArchive?: (taskId: string) => void;
   onRefresh?: () => void;
   onLexoRankUpdate?: (taskId: string, newRank: string) => void;
+  onQuickAdd?: (status: string) => void;
   sortField?: SortField;
   sortDirection?: SortDirection;
 }
