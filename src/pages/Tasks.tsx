@@ -227,7 +227,6 @@ export default function Tasks() {
             clients={filteredTasks.map((t: any) => t.clients ? { id: t.client_id, name: t.clients.name, has_retainer: t.clients.has_retainer } : null).filter(Boolean)}
             onStatusChange={handleStatusChange}
             onArchive={handleArchive}
-            onHardDelete={handleHardDelete}
             onRefresh={refetch}
             onLexoRankUpdate={handleLexoRankUpdate}
             onQuickAdd={(status) => { setQuickAddStatus(status); setIsCreateOpen(true); }}

@@ -365,26 +365,12 @@ export default function TaskKanbanBoard({
           }
         }}
       />
-      <AlertDialog open={!!taskToDelete} onOpenChange={(open) => { if (!open && !isDeletingTask) setTaskToDelete(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-destructive">Trwałe usunięcie zadania</AlertDialogTitle>
-            <AlertDialogDescription>
-              Uwaga: Czy na pewno chcesz trwale usunąć to zadanie? Ta akcja jest bezpowrotna. Z bazy znikną również wszystkie komentarze, logi oraz dane analityczne powiązane z tym zadaniem. Zamiast tego zalecamy użycie archiwizacji.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeletingTask}>Anuluj</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={isDeletingTask}
-              onClick={handleConfirmDelete}
-            >
-              {isDeletingTask ? "Usuwanie..." : "Tak, usuń trwale"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteTaskModal
+        open={!!taskToDelete}
+        task={taskToDelete}
+        onOpenChange={handleDeleteModalOpenChange}
+        onDeleted={handleTaskDeleted}
+      />
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex h-[calc(100vh-16rem)] items-stretch gap-3 overflow-x-auto overflow-y-hidden w-full pb-4 min-h-0">
           {KANBAN_COLUMNS.map((col) => {
