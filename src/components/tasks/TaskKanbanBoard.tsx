@@ -361,11 +361,11 @@ export default function TaskKanbanBoard({
 
                   <Droppable droppableId={col.key}>
                     {(provided, snapshot) => (
-                      <ScrollArea className="flex-1">
+                      <ScrollArea className="flex-1 flex flex-col">
                         <div
                           ref={provided.innerRef}
                           {...provided.droppableProps}
-                          className={`px-2 pb-2 space-y-1.5 min-h-[120px] transition-colors ${snapshot.isDraggingOver ? "bg-destructive/5" : ""}`}
+                          className={`px-2 pb-2 space-y-1.5 flex-1 min-h-[200px] h-full transition-colors ${snapshot.isDraggingOver ? "bg-destructive/5" : ""}`}
                         >
                           {columnTasks.map((task: any, index: number) => {
                             const assignee = getAssignee(task.id);
