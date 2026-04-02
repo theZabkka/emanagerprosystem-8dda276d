@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { useVerificationLock } from "@/hooks/useVerificationLock";
-import { AlertTriangle, Clock, ExternalLink, User } from "lucide-react";
+import { AlertTriangle, Clock, ExternalLink, User, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -18,12 +17,13 @@ export function CoordinatorFreezeOverlay() {
     activeLockedTaskId,
     setActiveLockedTaskId,
     isExempt,
+    isSnoozed,
+    hasUsedSnooze,
+    activateSnooze,
   } = useVerificationLock();
 
   if (!user) return null;
   if (currentRole === "klient") return null;
-
-  // No frozen tasks → nothing
   if (frozenTasks.length === 0) return null;
 
   function formatElapsed(enteredAt: string) {
@@ -82,13 +82,13 @@ export function CoordinatorFreezeOverlay() {
     );
   }
 
+  // If snoozed, don't show overlay (banner handles it in AppLayout)
+  if (isSnoozed) return null;
+
   // If actively locked on a task and user is ON that task page, hide overlay
   if (activeLockedTaskId) {
     const isOnLockedTask = location.pathname === `/tasks/${activeLockedTaskId}`;
     if (isOnLockedTask) return null;
-    // If user somehow navigated away from locked task, show overlay again
-    // Reset activeLockedTaskId to show the full list
-    // Actually keep it set - the NavigationLock in AppLayout prevents navigation
     return null; // NavigationLock handles blocking
   }
 
@@ -105,7 +105,7 @@ export function CoordinatorFreezeOverlay() {
               ⏳ Zaległa weryfikacja zadań
             </h2>
             <p className="text-sm text-muted-foreground max-w-md mx-auto">
-              Poniższe zadania zbyt długo oczekują na weryfikację (ponad 60 minut).
+              Poniższe zadania zbyt długo oczekują na weryfikację (ponad 5 minut).
               Przejdź do zadania i zakończ review, aby odblokować system.
             </p>
           </div>
@@ -167,6 +167,20 @@ export function CoordinatorFreezeOverlay() {
             </div>
           ))}
         </div>
+
+        {/* Snooze button — only if not used yet */}
+        {!hasUsedSnooze && (
+          <div className="pt-2 border-t border-border">
+            <Button
+              variant="outline"
+              onClick={() => activateSnooze()}
+              className="w-full gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <Timer className="h-4 w-4" />
+              Odłóż weryfikację na 1 minutę
+            </Button>
+          </div>
+        )}
 
         <p className="text-xs text-muted-foreground text-center">
           Blokada zniknie automatycznie, gdy wszystkie zaległe zadania zostaną zweryfikowane lub zmienią status.
