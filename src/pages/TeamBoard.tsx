@@ -61,7 +61,9 @@ export default function TeamBoard() {
         .select("*, clients(name)")
         .not("status", "in", "(done,cancelled)")
         .eq("is_archived", false)
+        .limit(500)
         .order("lexo_rank" as any, { ascending: true });
+
       return data || [];
     },
   });
@@ -69,9 +71,14 @@ export default function TeamBoard() {
   const { data: assignments = [] } = useQuery({
     queryKey: ["tb-assignments"],
     queryFn: async () => {
-      const { data } = await supabase.from("task_assignments").select("task_id, user_id, role");
+      // Tylko przypisania do aktywnych (niearkiwizowanych) zadań
+      const taskIds = (tasks || []).map((t) => t.id);
+      if (taskIds.length === 0) return [];
+      const { data } = await supabase.from("task_assignments").select("task_id, user_id, role").in("task_id", taskIds);
       return data || [];
     },
+    enabled: tasks.length > 0,
+    staleTime: 2 * 60 * 1000,
   });
 
   const getInitials = (name: string | null) =>

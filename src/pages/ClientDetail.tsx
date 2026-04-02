@@ -1,3 +1,4 @@
+import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { useState, useMemo, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -182,6 +183,7 @@ export default function ClientDetail() {
       return data;
     },
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 
   // ─── Fetch projects ────────────────────────────────────────────
@@ -197,6 +199,7 @@ export default function ClientDetail() {
       return data || [];
     },
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 
   // ─── Fetch tickets (lazy) ────────────────────────────────────
@@ -220,29 +223,28 @@ export default function ClientDetail() {
       const { data } = await supabase
         .from("tasks")
         .select(
-          "id, title, status, priority, due_date, lexo_rank, client_id, project_id, type, parent_task_id, not_understood, is_misunderstood, correction_severity, is_archived, estimated_time, logged_time, updated_at, created_at, status_updated_at, bug_severity",
+          "id, title, status, priority, due_date, lexo_rank, client_id, project_id, type, parent_task_id, not_understood, is_misunderstood, correction_severity, is_archived, estimated_time, logged_time, updated_at, created_at, status_updated_at, bug_severity, task_assignments(task_id, user_id, role)",
         )
         .eq("client_id", id!);
       return data || [];
     },
     enabled: !!id,
+    staleTime: 2 * 60 * 1000,
   });
 
-  // ─── Fetch profiles & assignments ─────────────────────────────
-  import { useStaffMembers } from "@/hooks/useStaffMembers";
-  // ...
   const { data: profiles = [] } = useStaffMembers();
 
   const { data: assignments } = useQuery({
     queryKey: ["client-assignments", id],
     queryFn: async () => {
-      const { data: clientTasks } = await supabase.from("tasks").select("id").eq("client_id", id!);
-      if (!clientTasks?.length) return [];
-      const taskIds = clientTasks.map((t) => t.id);
-      const { data } = await supabase.from("task_assignments").select("*").in("task_id", taskIds);
+      const { data: taskIds } = await supabase.from("tasks").select("id").eq("client_id", id!).eq("is_archived", false);
+      if (!taskIds?.length) return [];
+      const ids = taskIds.map((t) => t.id);
+      const { data } = await supabase.from("task_assignments").select("task_id, user_id, role").in("task_id", ids);
       return data || [];
     },
     enabled: !!id,
+    staleTime: 2 * 60 * 1000,
   });
 
   // ─── Fetch deals ──────────────────────────────────────────────
@@ -253,6 +255,7 @@ export default function ClientDetail() {
       return data || [];
     },
     enabled: !!id,
+    staleTime: 2 * 60 * 1000,
   });
 
   // ─── Fetch offers ─────────────────────────────────────────────
@@ -266,7 +269,8 @@ export default function ClientDetail() {
         .order("created_at", { ascending: false });
       return data || [];
     },
-    enabled: !!id,
+    enabled: !!id && activeTab === "offers",
+    staleTime: 5 * 60 * 1000,
   });
 
   // ─── Fetch ideas ──────────────────────────────────────────────
@@ -280,7 +284,8 @@ export default function ClientDetail() {
         .order("created_at", { ascending: false });
       return data || [];
     },
-    enabled: !!id,
+    enabled: !!id && activeTab === "ideas",
+    staleTime: 5 * 60 * 1000,
   });
 
   // ─── Fetch conversations ──────────────────────────────────────
@@ -294,7 +299,8 @@ export default function ClientDetail() {
         .order("created_at", { ascending: false });
       return data || [];
     },
-    enabled: !!id,
+    enabled: !!id && activeTab === "conversations",
+    staleTime: 3 * 60 * 1000,
   });
 
   // ─── Fetch files ──────────────────────────────────────────────
@@ -308,7 +314,8 @@ export default function ClientDetail() {
         .order("created_at", { ascending: false });
       return data || [];
     },
-    enabled: !!id,
+    enabled: !!id && activeTab === "files",
+    staleTime: 5 * 60 * 1000,
   });
 
   // ─── Fetch invoice data ───────────────────────────────────────
@@ -319,6 +326,7 @@ export default function ClientDetail() {
       return data || null;
     },
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 
   // ─── Fetch contracts ──────────────────────────────────────────
@@ -332,7 +340,8 @@ export default function ClientDetail() {
         .order("created_at", { ascending: false });
       return data || [];
     },
-    enabled: !!id,
+    enabled: !!id && activeTab === "contracts",
+    staleTime: 5 * 60 * 1000,
   });
 
   // ─── Fetch orders ─────────────────────────────────────────────
@@ -346,7 +355,8 @@ export default function ClientDetail() {
         .order("created_at", { ascending: false });
       return data || [];
     },
-    enabled: !!id,
+    enabled: !!id && activeTab === "orders",
+    staleTime: 5 * 60 * 1000,
   });
 
   // ─── Fetch social accounts ────────────────────────────────────
@@ -356,7 +366,8 @@ export default function ClientDetail() {
       const { data } = await supabase.from("client_social_accounts").select("*").eq("client_id", id!);
       return data || [];
     },
-    enabled: !!id,
+    enabled: !!id && activeTab === "social",
+    staleTime: 10 * 60 * 1000,
   });
 
   // ─── Fetch activity history ───────────────────────────────────
@@ -371,7 +382,8 @@ export default function ClientDetail() {
         .limit(50);
       return data || [];
     },
-    enabled: !!id,
+    enabled: !!id && activeTab === "history",
+    staleTime: 2 * 60 * 1000,
   });
 
   // ─── Fetch calls count ────────────────────────────────────────

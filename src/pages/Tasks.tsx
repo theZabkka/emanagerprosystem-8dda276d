@@ -1,3 +1,4 @@
+import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { useState, useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams, useNavigate } from "react-router-dom";
@@ -18,6 +19,7 @@ export default function Tasks() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { data: staffProfiles = [] } = useStaffMembers();
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
@@ -263,7 +265,7 @@ export default function Tasks() {
             setIsCreateOpen(v);
             if (!v) setQuickAddStatus(undefined);
           }}
-          onCreated={() => refetch()}
+          onCreated={() => queryClient.invalidateQueries({ queryKey: ["tasks"] })}
           defaultStatus={quickAddStatus}
         />
 
@@ -277,14 +279,14 @@ export default function Tasks() {
           kanbanMode === "team" ? (
             <TaskTeamBoard
               tasks={filteredTasks}
-              onRefresh={refetch}
+              onRefresh={() => queryClient.invalidateQueries({ queryKey: ["tasks"] })}
               priorityFilter={priorityFilter}
               onPersonClick={handlePersonDrillDown}
             />
           ) : (
             <TaskKanbanBoard
               tasks={filteredTasks}
-              profiles={[]}
+              profiles={staffProfiles}
               assignments={filteredTasks.flatMap((t: any) =>
                 (t.task_assignments || []).map((a: any) => ({ ...a, task_id: t.id })),
               )}
@@ -295,7 +297,7 @@ export default function Tasks() {
                 .filter(Boolean)}
               onStatusChange={handleStatusChange}
               onArchive={handleArchive}
-              onRefresh={refetch}
+              onRefresh={() => queryClient.invalidateQueries({ queryKey: ["tasks"] })}
               onLexoRankUpdate={handleLexoRankUpdate}
               onQuickAdd={(status) => {
                 setQuickAddStatus(status);

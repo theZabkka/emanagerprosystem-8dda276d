@@ -20,13 +20,16 @@ export default function TaskArchive() {
   const { data: tasks, isLoading } = useQuery({
     queryKey: ["archived-tasks"],
     queryFn: async () => {
-
       const { data, error } = await supabase
         .from("tasks")
-        .select("id, title, description, client_id, project_id, updated_at, due_date, status, clients(name), projects(name), task_assignments(user_id, role, profiles:user_id(full_name))")
+        .select(
+          "id, title, description, client_id, project_id, updated_at, due_date, status, clients(name), projects(name), task_assignments(user_id, role, profiles:user_id(full_name))",
+        )
         .eq("is_archived", true)
         .order("updated_at", { ascending: false });
+
       if (error) throw error;
+
       return (data || []).map((t: any) => ({
         ...t,
         client_name: t.clients?.name || null,
@@ -34,6 +37,8 @@ export default function TaskArchive() {
         assignee_name: t.task_assignments?.find((a: any) => a.role === "primary")?.profiles?.full_name || null,
       }));
     },
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // Fetch clients and projects for filters
@@ -41,16 +46,26 @@ export default function TaskArchive() {
     queryKey: ["archive-clients"],
     queryFn: async () => {
       const { data } = await supabase.from("clients").select("id, name").order("name");
+
       return data || [];
     },
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: allProjects } = useQuery({
     queryKey: ["archive-projects"],
     queryFn: async () => {
-      const { data } = await supabase.from("projects").select("id, name, client_id").eq("is_archived", false).order("name");
+      const { data } = await supabase
+        .from("projects")
+        .select("id, name, client_id")
+        .eq("is_archived", false)
+        .order("name");
+
       return data || [];
     },
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // Filter projects based on selected client
@@ -68,8 +83,8 @@ export default function TaskArchive() {
     if (projectFilter !== "all") result = result.filter((t: any) => t.project_id === projectFilter);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
-      result = result.filter((t: any) =>
-        t.title?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q)
+      result = result.filter(
+        (t: any) => t.title?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q),
       );
     }
     return result;
@@ -100,7 +115,7 @@ export default function TaskArchive() {
                   type="search"
                   placeholder="Szukaj zadań..."
                   value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9 w-[250px]"
                 />
               </div>
@@ -111,7 +126,9 @@ export default function TaskArchive() {
                 <SelectContent>
                   <SelectItem value="all">Wszyscy klienci</SelectItem>
                   {clients?.map((c: any) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -123,7 +140,9 @@ export default function TaskArchive() {
                 <SelectContent>
                   <SelectItem value="all">Wszystkie projekty</SelectItem>
                   {filteredProjects.map((p: any) => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -135,7 +154,10 @@ export default function TaskArchive() {
             ) : filteredTasks.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <Archive className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                <p>Brak zamkniętych zadań{clientFilter !== "all" || projectFilter !== "all" ? " dla wybranych filtrów" : ""}.</p>
+                <p>
+                  Brak zamkniętych zadań
+                  {clientFilter !== "all" || projectFilter !== "all" ? " dla wybranych filtrów" : ""}.
+                </p>
               </div>
             ) : (
               <div className="rounded-md border">
@@ -153,11 +175,12 @@ export default function TaskArchive() {
                   <TableBody>
                     {filteredTasks.map((task: any) => (
                       <TableRow key={task.id} className="hover:bg-muted/50">
-                        <TableCell className="font-mono text-xs text-muted-foreground">
-                          {task.id.slice(0, 8)}
-                        </TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">{task.id.slice(0, 8)}</TableCell>
                         <TableCell>
-                          <Link to={`/tasks/${task.id}`} className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
+                          <Link
+                            to={`/tasks/${task.id}`}
+                            className="text-sm font-medium text-primary hover:underline flex items-center gap-1"
+                          >
                             {task.title}
                             <ExternalLink className="h-3 w-3 opacity-50" />
                           </Link>
@@ -175,9 +198,7 @@ export default function TaskArchive() {
               </div>
             )}
 
-            <p className="text-xs text-muted-foreground">
-              Wyświetlono {filteredTasks.length} zamkniętych zadań
-            </p>
+            <p className="text-xs text-muted-foreground">Wyświetlono {filteredTasks.length} zamkniętych zadań</p>
           </CardContent>
         </Card>
       </div>

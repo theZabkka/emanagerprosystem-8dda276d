@@ -39,9 +39,7 @@ const PRIORITY_CONFIG: Record<string, { label: string; border: string; bg: strin
   low: { label: "NISKI", border: "border-border", bg: "bg-muted", text: "text-muted-foreground" },
 };
 
-const AVATAR_COLORS = [
-  "bg-green-600", "bg-blue-600", "bg-purple-600", "bg-orange-600", "bg-pink-600", "bg-teal-600",
-];
+const AVATAR_COLORS = ["bg-green-600", "bg-blue-600", "bg-purple-600", "bg-orange-600", "bg-pink-600", "bg-teal-600"];
 
 interface TaskKanbanBoardProps {
   tasks: any[];
@@ -58,8 +56,17 @@ interface TaskKanbanBoardProps {
 }
 
 export default function TaskKanbanBoard({
-  tasks, profiles, assignments, clients, onStatusChange, onArchive, onRefresh,
-  onLexoRankUpdate, onQuickAdd, sortField = "manual", sortDirection = "asc",
+  tasks,
+  profiles,
+  assignments,
+  clients,
+  onStatusChange,
+  onArchive,
+  onRefresh,
+  onLexoRankUpdate,
+  onQuickAdd,
+  sortField = "manual",
+  sortDirection = "asc",
 }: TaskKanbanBoardProps) {
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
@@ -79,54 +86,90 @@ export default function TaskKanbanBoard({
     setOptimisticTasks(tasks);
   }, [tasks]);
 
-  const { data: allProfiles } = useStaffMembers();
+  // Usuń tę linię — używaj props.profiles zamiast
 
   const { data: allChecklists } = useQuery({
-    queryKey: ["kanban-checklists"],
+    queryKey: [
+      "kanban-checklists",
+      tasks
+        .map((t) => t.id)
+        .sort()
+        .join(","),
+    ],
     queryFn: async () => {
-      const { data } = await supabase.from("checklists").select("task_id, checklist_items(is_completed, is_na)");
+      if (tasks.length === 0) return [];
+      const taskIds = tasks.map((t) => t.id);
+      const { data } = await supabase
+        .from("checklists")
+        .select("task_id, checklist_items(is_completed, is_na)")
+        .in("task_id", taskIds);
       return data || [];
     },
+    enabled: tasks.length > 0,
+    staleTime: 2 * 60 * 1000,
   });
 
-  const isChecklistComplete = useCallback((taskId: string) => {
-    if (!allChecklists) return true;
-    const taskChecklists = allChecklists.filter((cl: any) => cl.task_id === taskId);
-    if (taskChecklists.length === 0) return true;
-    for (const cl of taskChecklists) {
-      const items = (cl as any).checklist_items || [];
-      if (items.length === 0) continue;
-      const allDone = items.every((i: any) => i.is_completed || i.is_na);
-      if (!allDone) return false;
-    }
-    return true;
-  }, [allChecklists]);
+  const isChecklistComplete = useCallback(
+    (taskId: string) => {
+      if (!allChecklists) return true;
+      const taskChecklists = allChecklists.filter((cl: any) => cl.task_id === taskId);
+      if (taskChecklists.length === 0) return true;
+      for (const cl of taskChecklists) {
+        const items = (cl as any).checklist_items || [];
+        if (items.length === 0) continue;
+        const allDone = items.every((i: any) => i.is_completed || i.is_na);
+        if (!allDone) return false;
+      }
+      return true;
+    },
+    [allChecklists],
+  );
 
-  const getAssignee = useCallback((taskId: string) => {
-    const a = assignments.find((a: any) => a.task_id === taskId && a.role === "primary");
-    if (!a) return null;
-    return profiles.find((p: any) => p.id === a.user_id)
-      || (allProfiles || []).find((p: any) => p.id === a.user_id)
-      || (a.profiles ? { id: a.user_id, full_name: a.profiles.full_name } : null);
-  }, [assignments, profiles, allProfiles]);
+  const getAssignee = useCallback(
+    (taskId: string) => {
+      const a = assignments.find((a: any) => a.task_id === taskId && a.role === "primary");
+      if (!a) return null;
 
-  const getAllAssignees = useCallback((taskId: string) => {
-    const taskAssigns = assignments.filter((a: any) => a.task_id === taskId);
-    return taskAssigns.map((a: any) => {
-      const profile = profiles.find((p: any) => p.id === a.user_id)
-        || (allProfiles || []).find((p: any) => p.id === a.user_id)
-        || (a.profiles ? { id: a.user_id, full_name: a.profiles.full_name } : null);
-      return profile ? { ...profile, assignRole: a.role } : null;
-    }).filter(Boolean);
-  }, [assignments, profiles, allProfiles]);
+      return (
+        profiles.find((p: any) => p.id === a.user_id) ||
+        (a.profiles ? { id: a.user_id, full_name: a.profiles.full_name } : null)
+      );
+    },
+    [assignments, profiles],
+  );
 
-  const getClient = useCallback((clientId: string | null) => {
-    if (!clientId) return null;
-    return clients.find((c: any) => c.id === clientId) || null;
-  }, [clients]);
+  const getAllAssignees = useCallback(
+    (taskId: string) => {
+      const taskAssigns = assignments.filter((a: any) => a.task_id === taskId);
+
+      return taskAssigns
+        .map((a: any) => {
+          const profile =
+            profiles.find((p: any) => p.id === a.user_id) ||
+            (a.profiles ? { id: a.user_id, full_name: a.profiles.full_name } : null);
+
+          return profile ? { ...profile, assignRole: a.role } : null;
+        })
+        .filter(Boolean);
+    },
+    [assignments, profiles],
+  );
+
+  const getClient = useCallback(
+    (clientId: string | null) => {
+      if (!clientId) return null;
+      return clients.find((c: any) => c.id === clientId) || null;
+    },
+    [clients],
+  );
 
   const getInitials = (name: string) =>
-    name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+    name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
 
   const getAvatarColor = (userId: string) => {
     let hash = 0;
@@ -143,9 +186,12 @@ export default function TaskKanbanBoard({
     return null;
   };
 
-  const getTaskAssignments = useCallback((taskId: string) => {
-    return assignments.filter((a: any) => a.task_id === taskId);
-  }, [assignments]);
+  const getTaskAssignments = useCallback(
+    (taskId: string) => {
+      return assignments.filter((a: any) => a.task_id === taskId);
+    },
+    [assignments],
+  );
 
   const handleRejectionConfirm = async (category: string, comment: string) => {
     if (!pendingRejectionTaskId || !user?.id) return;
@@ -237,9 +283,12 @@ export default function TaskKanbanBoard({
     return derived;
   }, [tasksByColumnRaw, sortField, sortDirection]);
 
-  const getColumnTasks = useCallback((columnKey: string) => {
-    return tasksByColumn[columnKey] || [];
-  }, [tasksByColumn]);
+  const getColumnTasks = useCallback(
+    (columnKey: string) => {
+      return tasksByColumn[columnKey] || [];
+    },
+    [tasksByColumn],
+  );
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -271,9 +320,11 @@ export default function TaskKanbanBoard({
       }
 
       // Optimistic update — useMemo will auto-sort by active sortField
-      setOptimisticTasks((prev) => prev.map((task: any) =>
-        task.id === draggableId ? { ...task, lexo_rank: newRank, status: destination.droppableId } : task
-      ));
+      setOptimisticTasks((prev) =>
+        prev.map((task: any) =>
+          task.id === draggableId ? { ...task, lexo_rank: newRank, status: destination.droppableId } : task,
+        ),
+      );
 
       onLexoRankUpdate?.(draggableId, newRank);
       validateAndMove(draggableId, destination.droppableId);
@@ -290,7 +341,7 @@ export default function TaskKanbanBoard({
     const targetColumnTasks = isSameColumn ? sourceColumnTasks : destinationColumnTasks;
     const destinationIndex = Math.max(0, Math.min(destination.index, targetColumnTasks.length));
 
-    const rankAbove = destinationIndex > 0 ? targetColumnTasks[destinationIndex - 1]?.lexo_rank ?? null : null;
+    const rankAbove = destinationIndex > 0 ? (targetColumnTasks[destinationIndex - 1]?.lexo_rank ?? null) : null;
     const rankBelow = targetColumnTasks[destinationIndex]?.lexo_rank ?? null;
 
     let newRank: string;
@@ -308,9 +359,7 @@ export default function TaskKanbanBoard({
     const optimisticMovedTask = { ...movedTask, lexo_rank: newRank };
     targetColumnTasks.splice(destinationIndex, 0, optimisticMovedTask);
 
-    setOptimisticTasks((prev) => prev.map((task: any) => (
-      task.id === draggableId ? optimisticMovedTask : task
-    )));
+    setOptimisticTasks((prev) => prev.map((task: any) => (task.id === draggableId ? optimisticMovedTask : task)));
 
     onLexoRankUpdate?.(draggableId, newRank);
 
@@ -319,58 +368,60 @@ export default function TaskKanbanBoard({
     }
   };
 
-  const handleToggleAssign = useCallback(async (taskId: string, userId: string) => {
-    // Snapshot all task queries for rollback
-    const allTaskQueries = queryClient.getQueriesData<any[]>({ queryKey: ["tasks"] });
+  const handleToggleAssign = useCallback(
+    async (taskId: string, userId: string) => {
+      // Snapshot all task queries for rollback
+      const allTaskQueries = queryClient.getQueriesData<any[]>({ queryKey: ["tasks"] });
 
-    // Check if user is already assigned
-    const task = (optimisticTasks || []).find((t: any) => t.id === taskId);
-    const currentAssignments: any[] = task?.task_assignments || [];
-    const isAlreadyAssigned = currentAssignments.some((a: any) => a.user_id === userId);
+      // Check if user is already assigned
+      const task = (optimisticTasks || []).find((t: any) => t.id === taskId);
+      const currentAssignments: any[] = task?.task_assignments || [];
+      const isAlreadyAssigned = currentAssignments.some((a: any) => a.user_id === userId);
 
-    const applyOptimistic = (updater: (t: any) => any) => {
-      queryClient.setQueriesData<any[]>({ queryKey: ["tasks"] }, (old) =>
-        (old || []).map((t) => t.id === taskId ? updater(t) : t)
-      );
-    };
+      const applyOptimistic = (updater: (t: any) => any) => {
+        queryClient.setQueriesData<any[]>({ queryKey: ["tasks"] }, (old) =>
+          (old || []).map((t) => (t.id === taskId ? updater(t) : t)),
+        );
+      };
 
-    if (isAlreadyAssigned) {
-      applyOptimistic((t) => ({
-        ...t,
-        task_assignments: (t.task_assignments || []).filter((a: any) => a.user_id !== userId),
-      }));
-      const { error } = await supabase.from("task_assignments").delete()
-        .eq("task_id", taskId).eq("user_id", userId);
-      if (error) {
-        allTaskQueries.forEach(([key, data]) => queryClient.setQueryData(key, data));
-        toast.error("Błąd usuwania przypisania");
-        return;
+      if (isAlreadyAssigned) {
+        applyOptimistic((t) => ({
+          ...t,
+          task_assignments: (t.task_assignments || []).filter((a: any) => a.user_id !== userId),
+        }));
+        const { error } = await supabase.from("task_assignments").delete().eq("task_id", taskId).eq("user_id", userId);
+        if (error) {
+          allTaskQueries.forEach(([key, data]) => queryClient.setQueryData(key, data));
+          toast.error("Błąd usuwania przypisania");
+          return;
+        }
+        toast.success("Usunięto przypisanie");
+      } else {
+        const role = currentAssignments.length === 0 ? "primary" : "collaborator";
+        const staffProfile = (allProfiles || []).find((p: any) => p.id === userId);
+        applyOptimistic((t) => ({
+          ...t,
+          task_assignments: [
+            ...(t.task_assignments || []),
+            { user_id: userId, role, profiles: { full_name: staffProfile?.full_name || "?" } },
+          ],
+        }));
+        const { error } = await supabase.from("task_assignments").insert({
+          task_id: taskId,
+          user_id: userId,
+          role: role as any,
+        });
+        if (error) {
+          allTaskQueries.forEach(([key, data]) => queryClient.setQueryData(key, data));
+          toast.error("Błąd przypisania");
+          return;
+        }
+        toast.success("Przypisano osobę");
       }
-      toast.success("Usunięto przypisanie");
-    } else {
-      const role = currentAssignments.length === 0 ? "primary" : "collaborator";
-      const staffProfile = (allProfiles || []).find((p: any) => p.id === userId);
-      applyOptimistic((t) => ({
-        ...t,
-        task_assignments: [
-          ...(t.task_assignments || []),
-          { user_id: userId, role, profiles: { full_name: staffProfile?.full_name || "?" } },
-        ],
-      }));
-      const { error } = await supabase.from("task_assignments").insert({
-        task_id: taskId,
-        user_id: userId,
-        role: role as any,
-      });
-      if (error) {
-        allTaskQueries.forEach(([key, data]) => queryClient.setQueryData(key, data));
-        toast.error("Błąd przypisania");
-        return;
-      }
-      toast.success("Przypisano osobę");
-    }
-    onRefresh?.();
-  }, [onRefresh, optimisticTasks, allProfiles, queryClient]);
+      onRefresh?.();
+    },
+    [onRefresh, optimisticTasks, allProfiles, queryClient],
+  );
 
   const handleOpenDeleteModal = useCallback((task: any) => {
     setTaskToDelete(task);
@@ -391,7 +442,10 @@ export default function TaskKanbanBoard({
       <ChecklistBlockModal open={checklistBlockOpen} onOpenChange={setChecklistBlockOpen} />
       <RejectionModal
         open={rejectionOpen}
-        onOpenChange={(v) => { setRejectionOpen(v); if (!v) setPendingRejectionTaskId(null); }}
+        onOpenChange={(v) => {
+          setRejectionOpen(v);
+          if (!v) setPendingRejectionTaskId(null);
+        }}
         onConfirm={handleRejectionConfirm}
       />
       <ResponsibilityModal
@@ -417,12 +471,15 @@ export default function TaskKanbanBoard({
             const isEmpty = columnTasks.length === 0;
             return (
               <div key={col.key} className="w-72 flex-shrink-0 self-stretch flex flex-col">
-                <div className={`flex flex-col flex-1 min-h-0 rounded-xl border border-dashed ${isEmpty ? "border-muted-foreground/20" : "border-destructive/30"} bg-card/50`}>
+                <div
+                  className={`flex flex-col flex-1 min-h-0 rounded-xl border border-dashed ${isEmpty ? "border-muted-foreground/20" : "border-destructive/30"} bg-card/50`}
+                >
                   <div className="px-4 pt-3 pb-2 flex items-start justify-between">
                     <div>
                       <h3 className="text-xs font-extrabold tracking-wider text-foreground">{col.label}</h3>
                       <span className="text-[11px] text-muted-foreground">
-                        {columnTasks.length} {columnTasks.length === 1 ? "zadanie" : columnTasks.length < 5 ? "zadania" : "zadań"}
+                        {columnTasks.length}{" "}
+                        {columnTasks.length === 1 ? "zadanie" : columnTasks.length < 5 ? "zadania" : "zadań"}
                       </span>
                     </div>
                     {onQuickAdd && (
@@ -444,33 +501,31 @@ export default function TaskKanbanBoard({
                         {...provided.droppableProps}
                         className={`flex-1 overflow-y-auto px-2 pb-2 space-y-1.5 transition-colors ${snapshot.isDraggingOver ? "bg-destructive/5" : ""}`}
                       >
-                          {columnTasks.map((task: any, index: number) => (
-                            <Draggable key={task.id} draggableId={task.id} index={index}>
-                              {(provided, snapshot) => (
-                                <KanbanCard
-                                  task={task}
-                                  provided={provided}
-                                  isDragging={snapshot.isDragging}
-                                  columnKey={col.key}
-                                  getAssignee={getAssignee}
-                                  getAllAssignees={getAllAssignees}
-                                  getClient={getClient}
-                                  getInitials={getInitials}
-                                  getAvatarColor={getAvatarColor}
-                                  getWaitingTime={getWaitingTime}
-                                  allProfiles={allProfiles || []}
-                                  onAssign={handleToggleAssign}
-                                  onArchive={onArchive}
-                                  onOpenDeleteModal={handleOpenDeleteModal}
-                                  isSuperAdmin={isSuperAdmin}
-                                />
-                              )}
-                            </Draggable>
-                          ))}
-                          {provided.placeholder}
-                          {isEmpty && (
-                            <p className="text-xs text-muted-foreground text-center py-8">Pusto</p>
-                          )}
+                        {columnTasks.map((task: any, index: number) => (
+                          <Draggable key={task.id} draggableId={task.id} index={index}>
+                            {(provided, snapshot) => (
+                              <KanbanCard
+                                task={task}
+                                provided={provided}
+                                isDragging={snapshot.isDragging}
+                                columnKey={col.key}
+                                getAssignee={getAssignee}
+                                getAllAssignees={getAllAssignees}
+                                getClient={getClient}
+                                getInitials={getInitials}
+                                getAvatarColor={getAvatarColor}
+                                getWaitingTime={getWaitingTime}
+                                allProfiles={allProfiles || []}
+                                onAssign={handleToggleAssign}
+                                onArchive={onArchive}
+                                onOpenDeleteModal={handleOpenDeleteModal}
+                                isSuperAdmin={isSuperAdmin}
+                              />
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                        {isEmpty && <p className="text-xs text-muted-foreground text-center py-8">Pusto</p>}
                       </div>
                     )}
                   </Droppable>
@@ -503,9 +558,21 @@ interface KanbanCardProps {
 }
 
 const KanbanCard = React.memo(function KanbanCard({
-  task, provided, isDragging, columnKey, getAssignee, getAllAssignees, getClient,
-  getInitials, getAvatarColor, getWaitingTime, allProfiles, onAssign, onArchive,
-  onOpenDeleteModal, isSuperAdmin,
+  task,
+  provided,
+  isDragging,
+  columnKey,
+  getAssignee,
+  getAllAssignees,
+  getClient,
+  getInitials,
+  getAvatarColor,
+  getWaitingTime,
+  allProfiles,
+  onAssign,
+  onArchive,
+  onOpenDeleteModal,
+  isSuperAdmin,
 }: KanbanCardProps) {
   const taskAssignees = getAllAssignees(task.id);
   const client = getClient(task.client_id);
@@ -529,17 +596,24 @@ const KanbanCard = React.memo(function KanbanCard({
               <div className="flex items-center gap-1 mt-0.5">
                 <p className="text-[9px] text-muted-foreground truncate">{client.name}</p>
                 {client.has_retainer && (
-                  <Badge className="text-[7px] h-3 px-1 bg-amber-500/90 text-white border-0 shrink-0">STAŁA OPIEKA</Badge>
+                  <Badge className="text-[7px] h-3 px-1 bg-amber-500/90 text-white border-0 shrink-0">
+                    STAŁA OPIEKA
+                  </Badge>
                 )}
               </div>
             )}
           </div>
           <div className="flex flex-col items-end gap-0.5 flex-shrink-0 pt-px">
-            <Badge variant="outline" className={`text-[8px] h-3.5 px-1 font-bold border ${priority.border} ${priority.bg} ${priority.text} rounded whitespace-nowrap`}>
+            <Badge
+              variant="outline"
+              className={`text-[8px] h-3.5 px-1 font-bold border ${priority.border} ${priority.bg} ${priority.text} rounded whitespace-nowrap`}
+            >
               {priority.label}
             </Badge>
             {task.due_date && (
-              <span className={`text-[9px] font-semibold whitespace-nowrap ${new Date(task.due_date) < new Date() ? "text-destructive" : "text-muted-foreground"}`}>
+              <span
+                className={`text-[9px] font-semibold whitespace-nowrap ${new Date(task.due_date) < new Date() ? "text-destructive" : "text-muted-foreground"}`}
+              >
                 {new Date(task.due_date).toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit" })}
               </span>
             )}
@@ -548,10 +622,16 @@ const KanbanCard = React.memo(function KanbanCard({
 
         {(task.is_misunderstood || task.not_understood || task.correction_severity) && (
           <div className="flex items-center gap-1 mt-0.5">
-            {task.is_misunderstood && <Badge className="text-[7px] h-3 px-0.5 bg-amber-500 text-white">⚠️ Niezrozumiałe</Badge>}
-            {task.not_understood && !task.is_misunderstood && <Badge className="text-[7px] h-3 px-0.5 bg-warning text-warning-foreground">❓</Badge>}
+            {task.is_misunderstood && (
+              <Badge className="text-[7px] h-3 px-0.5 bg-amber-500 text-white">⚠️ Niezrozumiałe</Badge>
+            )}
+            {task.not_understood && !task.is_misunderstood && (
+              <Badge className="text-[7px] h-3 px-0.5 bg-warning text-warning-foreground">❓</Badge>
+            )}
             {task.correction_severity && (
-              <Badge className={`text-[7px] h-3 px-0.5 ${task.correction_severity === "critical" ? "bg-destructive text-destructive-foreground" : "bg-warning/15 text-warning border-warning/30"}`}>
+              <Badge
+                className={`text-[7px] h-3 px-0.5 ${task.correction_severity === "critical" ? "bg-destructive text-destructive-foreground" : "bg-warning/15 text-warning border-warning/30"}`}
+              >
                 {task.correction_severity === "critical" ? "KRYT" : "POPR"}
               </Badge>
             )}
@@ -560,7 +640,8 @@ const KanbanCard = React.memo(function KanbanCard({
 
         {waitingTime && (
           <div className="flex items-center gap-0.5 text-[8px] text-destructive-foreground font-semibold mt-1 bg-destructive rounded px-1 py-0.5 w-fit">
-            <Clock className="h-2 w-2" />{waitingTime}
+            <Clock className="h-2 w-2" />
+            {waitingTime}
           </div>
         )}
       </Link>
@@ -568,20 +649,19 @@ const KanbanCard = React.memo(function KanbanCard({
       <div className="px-2 pb-1.5 flex items-end justify-between">
         <div className="flex items-center gap-0.5">
           {taskAssignees.map((person: any) => (
-            <TooltipProvider key={person.id} delayDuration={200}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Avatar className="h-4 w-4 -ml-0.5 first:ml-0 ring-1 ring-background">
-                    <AvatarFallback className={`text-[7px] text-white font-bold ${getAvatarColor(person.id)}`}>
-                      {getInitials(person.full_name || "?")}
-                    </AvatarFallback>
-                  </Avatar>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">
-                  {person.full_name}{person.assignRole !== "primary" ? ` (${person.assignRole})` : ""}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip key={person.id} delayDuration={200}>
+              <TooltipTrigger asChild>
+                <Avatar className="h-4 w-4 -ml-0.5 first:ml-0 ring-1 ring-background">
+                  <AvatarFallback className={`text-[7px] text-white font-bold ${getAvatarColor(person.id)}`}>
+                    {getInitials(person.full_name || "?")}
+                  </AvatarFallback>
+                </Avatar>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                {person.full_name}
+                {person.assignRole !== "primary" ? ` (${person.assignRole})` : ""}
+              </TooltipContent>
+            </Tooltip>
           ))}
           <AssignPopover
             taskId={task.id}
@@ -596,7 +676,8 @@ const KanbanCard = React.memo(function KanbanCard({
         <div className="flex items-end gap-1">
           {task.estimated_time > 0 && task.logged_time > 0 && (
             <span className="flex items-center gap-0.5 text-[9px] text-muted-foreground">
-              <Clock className="h-2 w-2" />{(task.logged_time / 60).toFixed(1)}h
+              <Clock className="h-2 w-2" />
+              {(task.logged_time / 60).toFixed(1)}h
             </span>
           )}
           {(columnKey === "closed" || (isSuperAdmin && onOpenDeleteModal)) && (
@@ -613,7 +694,8 @@ const KanbanCard = React.memo(function KanbanCard({
                     onArchive(task.id);
                   }}
                 >
-                  <Archive className="h-2 w-2" />Archiwizuj
+                  <Archive className="h-2 w-2" />
+                  Archiwizuj
                 </Button>
               )}
               {isSuperAdmin && onOpenDeleteModal && (
@@ -628,7 +710,8 @@ const KanbanCard = React.memo(function KanbanCard({
                     onOpenDeleteModal(task);
                   }}
                 >
-                  <Trash2 className="h-2 w-2" />Usuń
+                  <Trash2 className="h-2 w-2" />
+                  Usuń
                 </Button>
               )}
             </div>
@@ -639,12 +722,20 @@ const KanbanCard = React.memo(function KanbanCard({
   );
 });
 
-
 function AssignPopover({
-  taskId, assignedUserIds = [], allProfiles, getInitials, getAvatarColor, onAssign, showAvatarInTrigger = true,
+  taskId,
+  assignedUserIds = [],
+  allProfiles,
+  getInitials,
+  getAvatarColor,
+  onAssign,
+  showAvatarInTrigger = true,
 }: {
-  taskId: string; assignedUserIds: string[]; allProfiles: any[];
-  getInitials: (name: string) => string; getAvatarColor: (id: string) => string;
+  taskId: string;
+  assignedUserIds: string[];
+  allProfiles: any[];
+  getInitials: (name: string) => string;
+  getAvatarColor: (id: string) => string;
   onAssign: (taskId: string, userId: string) => void;
   showAvatarInTrigger?: boolean;
 }) {

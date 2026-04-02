@@ -39,15 +39,26 @@ export default function TaskListView({ tasks, isLoading }: TaskListViewProps) {
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Ładowanie...</TableCell></TableRow>
+            <TableRow>
+              <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                Ładowanie...
+              </TableCell>
+            </TableRow>
           ) : tasks.length === 0 ? (
-            <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Brak zadań</TableCell></TableRow>
+            <TableRow>
+              <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                Brak zadań
+              </TableCell>
+            </TableRow>
           ) : (
             tasks.map((task: any) => {
               const assignee = task.task_assignments?.find((a: any) => a.role === "primary");
               const isUnassigned = !assignee;
               return (
-                <TableRow key={task.id} className={`cursor-pointer hover:bg-muted/50 ${isUnassigned ? "bg-destructive/15 animate-pulse" : ""}`}>
+                <TableRow
+                  key={task.id}
+                  className={`cursor-pointer hover:bg-muted/50 ${isUnassigned ? "bg-destructive/10 border-l-2 border-l-destructive" : ""}`}
+                >
                   <TableCell>
                     <Link to={`/tasks/${task.id}`} className="block">
                       <p className="text-xs text-muted-foreground">{task.id.slice(0, 8)}</p>
@@ -59,7 +70,9 @@ export default function TaskListView({ tasks, isLoading }: TaskListViewProps) {
                       {statusLabels[task.status] || task.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{timeSince(task.updated_at || task.created_at, task.status)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {timeSince(task.updated_at || task.created_at, task.status)}
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="text-xs">
                       {priorityLabels[task.priority] || task.priority}
@@ -69,13 +82,25 @@ export default function TaskListView({ tasks, isLoading }: TaskListViewProps) {
                     {assignee ? (
                       <div className="flex items-center gap-1.5">
                         <Avatar className="h-6 w-6">
-                          <AvatarFallback className={`text-[10px] ${assignee.profiles?.full_name ? "bg-muted" : "bg-muted/60 text-muted-foreground"}`}>{assignee.profiles?.full_name?.[0] || "?"}</AvatarFallback>
+                          <AvatarFallback
+                            className={`text-[10px] ${assignee.profiles?.full_name ? "bg-muted" : "bg-muted/60 text-muted-foreground"}`}
+                          >
+                            {assignee.profiles?.full_name?.[0] || "?"}
+                          </AvatarFallback>
                         </Avatar>
-                        <span className={`text-sm ${assignee.profiles?.full_name ? "" : "text-muted-foreground italic"}`}>{assignee.profiles?.full_name || "Usunięty użytkownik"}</span>
+                        <span
+                          className={`text-sm ${assignee.profiles?.full_name ? "" : "text-muted-foreground italic"}`}
+                        >
+                          {assignee.profiles?.full_name || "Usunięty użytkownik"}
+                        </span>
                       </div>
-                    ) : <span className="text-sm text-muted-foreground">—</span>}
+                    ) : (
+                      <span className="text-sm text-muted-foreground">—</span>
+                    )}
                   </TableCell>
-                  <TableCell className="text-sm">{task.due_date ? new Date(task.due_date).toLocaleDateString("pl-PL") : "—"}</TableCell>
+                  <TableCell className="text-sm">
+                    {task.due_date ? new Date(task.due_date).toLocaleDateString("pl-PL") : "—"}
+                  </TableCell>
                   <TableCell className="text-sm">{task.clients?.name || "—"}</TableCell>
                 </TableRow>
               );

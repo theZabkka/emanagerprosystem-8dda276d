@@ -14,7 +14,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -75,7 +82,11 @@ export default function TaskDetail() {
   const { data: task, isLoading } = useQuery({
     queryKey: ["task", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("tasks").select("*, clients(name), projects(name)").eq("id", id!).single();
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*, clients(name), projects(name), task_assignments(*, profiles:user_id(full_name, avatar_url))")
+        .eq("id", id!)
+        .single();
       if (error) throw error;
       return data;
     },
@@ -84,27 +95,25 @@ export default function TaskDetail() {
 
   const { data: allClients } = useQuery({
     queryKey: ["all-clients-picker"],
+    staleTime: 30 * 60 * 1000, // 30 minut
     queryFn: async () => {
       const { data } = await supabase.from("clients").select("id, name").order("name");
       return data || [];
     },
   });
 
-  const { data: assignments } = useQuery({
-    queryKey: ["task-assignments", id],
-    queryFn: async () => {
-      const { data } = await supabase.from("task_assignments").select("*, profiles:user_id(full_name, avatar_url)").eq("task_id", id!);
-      return data || [];
-    },
-    enabled: !!id,
-  });
+  const assignments = task?.task_assignments || [];
 
   const { data: allProfiles } = useStaffMembers();
 
   const { data: comments } = useQuery({
     queryKey: ["comments", id],
     queryFn: async () => {
-      const { data } = await supabase.from("comments").select("*, profiles:user_id(full_name, role)").eq("task_id", id!).order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("comments")
+        .select("*, profiles:user_id(full_name, role)")
+        .eq("task_id", id!)
+        .order("created_at", { ascending: false });
       return data || [];
     },
     enabled: !!id,
@@ -113,7 +122,11 @@ export default function TaskDetail() {
   const { data: timeLogs } = useQuery({
     queryKey: ["time-logs", id],
     queryFn: async () => {
-      const { data } = await supabase.from("time_logs").select("*, profiles:user_id(full_name)").eq("task_id", id!).order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("time_logs")
+        .select("*, profiles:user_id(full_name)")
+        .eq("task_id", id!)
+        .order("created_at", { ascending: false });
       return data || [];
     },
     enabled: !!id,
@@ -122,7 +135,11 @@ export default function TaskDetail() {
   const { data: checklists } = useQuery({
     queryKey: ["checklists", id],
     queryFn: async () => {
-      const { data: cls } = await supabase.from("checklists").select("*, checklist_items(*)").eq("task_id", id!).order("created_at");
+      const { data: cls } = await supabase
+        .from("checklists")
+        .select("*, checklist_items(*)")
+        .eq("task_id", id!)
+        .order("created_at");
       return (cls || []).map((cl: any) => ({ ...cl, items: cl.checklist_items || [] }));
     },
     enabled: !!id,
@@ -131,7 +148,11 @@ export default function TaskDetail() {
   const { data: materials } = useQuery({
     queryKey: ["materials", id],
     queryFn: async () => {
-      const { data } = await supabase.from("task_materials").select("*, profiles:uploaded_by(full_name)").eq("task_id", id!).order("created_at");
+      const { data } = await supabase
+        .from("task_materials")
+        .select("*, profiles:uploaded_by(full_name)")
+        .eq("task_id", id!)
+        .order("created_at");
       return data || [];
     },
     enabled: !!id,
@@ -140,7 +161,11 @@ export default function TaskDetail() {
   const { data: statusHistory } = useQuery({
     queryKey: ["status-history", id],
     queryFn: async () => {
-      const { data } = await supabase.from("task_status_history").select("*, profiles:changed_by(full_name)").eq("task_id", id!).order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("task_status_history")
+        .select("*, profiles:changed_by(full_name)")
+        .eq("task_id", id!)
+        .order("created_at", { ascending: false });
       return data || [];
     },
     enabled: !!id,
@@ -149,7 +174,11 @@ export default function TaskDetail() {
   const { data: corrections } = useQuery({
     queryKey: ["task-corrections", id],
     queryFn: async () => {
-      const { data } = await supabase.from("task_corrections").select("*, profiles:created_by(full_name)").eq("task_id", id!).order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("task_corrections")
+        .select("*, profiles:created_by(full_name)")
+        .eq("task_id", id!)
+        .order("created_at", { ascending: false });
       return data || [];
     },
     enabled: !!id,
@@ -160,27 +189,52 @@ export default function TaskDetail() {
     if (!id) return;
     const channel = supabase
       .channel(`task-${id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "comments", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["comments", id] }))
-      .on("postgres_changes", { event: "*", schema: "public", table: "time_logs", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["time-logs", id] }))
-      .on("postgres_changes", { event: "*", schema: "public", table: "task_status_history", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["status-history", id] }))
-      .on("postgres_changes", { event: "*", schema: "public", table: "task_assignments", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["task-assignments", id] }))
-      .on("postgres_changes", { event: "*", schema: "public", table: "checklists", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["checklists", id] }))
-      .on("postgres_changes", { event: "*", schema: "public", table: "task_materials", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["materials", id] }))
-      .on("postgres_changes", { event: "*", schema: "public", table: "task_corrections", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["task-corrections", id] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "comments", filter: `task_id=eq.${id}` }, () =>
+        queryClient.invalidateQueries({ queryKey: ["comments", id] }),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "time_logs", filter: `task_id=eq.${id}` }, () =>
+        queryClient.invalidateQueries({ queryKey: ["time-logs", id] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "task_status_history", filter: `task_id=eq.${id}` },
+        () => queryClient.invalidateQueries({ queryKey: ["status-history", id] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "task_assignments", filter: `task_id=eq.${id}` },
+        () => queryClient.invalidateQueries({ queryKey: ["task-assignments", id] }),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "checklists", filter: `task_id=eq.${id}` }, () =>
+        queryClient.invalidateQueries({ queryKey: ["checklists", id] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "task_materials", filter: `task_id=eq.${id}` },
+        () => queryClient.invalidateQueries({ queryKey: ["materials", id] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "task_corrections", filter: `task_id=eq.${id}` },
+        () => queryClient.invalidateQueries({ queryKey: ["task-corrections", id] }),
+      )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [id, queryClient]);
 
   const timer = useTimerStore(id);
 
   // ─── Computed ───
   const totalLogged = timeLogs?.reduce((sum: number, l: any) => sum + l.duration, 0) || 0;
-  const isOverdue = task?.due_date && new Date(task.due_date) < new Date() && task.status !== "done" && task.status !== "cancelled";
+  const isOverdue =
+    task?.due_date && new Date(task.due_date) < new Date() && task.status !== "done" && task.status !== "cancelled";
   const hasNoAssignment = !assignments || assignments.length === 0;
   const canEditInline = !isClient && !isPreviewMode;
   const briefFilledCount = useMemo(() => {
     if (!task) return 0;
-    return briefFields.filter(f => (task as any)[f.key]).length;
+    return briefFields.filter((f) => (task as any)[f.key]).length;
   }, [task]);
   const unassignedProfiles = useMemo(() => {
     if (!allProfiles || !assignments) return [];
@@ -191,17 +245,31 @@ export default function TaskDetail() {
   // ─── Actions ───
   async function handleStatusChange(newStatus: string) {
     if (!task || newStatus === task.status) return;
-    if ((assignments || []).length === 0) { toast.error("Przypisz najpierw osobę do tego zadania."); return; }
+    if ((assignments || []).length === 0) {
+      toast.error("Przypisz najpierw osobę do tego zadania.");
+      return;
+    }
     if (task.status === "in_progress" && newStatus === "review") {
-      const allComplete = checklists?.every((cl: any) => (cl.items || []).length === 0 || (cl.items || []).every((i: any) => i.is_completed || i.is_na)) ?? true;
-      if (!allComplete) { setChecklistBlockOpen(true); return; }
+      const allComplete =
+        checklists?.every(
+          (cl: any) => (cl.items || []).length === 0 || (cl.items || []).every((i: any) => i.is_completed || i.is_na),
+        ) ?? true;
+      if (!allComplete) {
+        setChecklistBlockOpen(true);
+        return;
+      }
     }
     if (newStatus === "client_review" && task.status !== "review" && task.status !== "corrections") {
-      toast.error("Zadanie może trafić do akceptacji klienta tylko ze statusu Weryfikacja lub Poprawki"); return;
+      toast.error("Zadanie może trafić do akceptacji klienta tylko ze statusu Weryfikacja lub Poprawki");
+      return;
     }
     if ((task.status === "review" || task.status === "corrections") && newStatus === "client_review") {
-      if (totalLogged <= 0) { toast.error("Brak zalogowanego czasu. Musisz zalogować czas pracy przed wysłaniem zadania do klienta."); return; }
-      setVerificationSendOpen(true); return;
+      if (totalLogged <= 0) {
+        toast.error("Brak zalogowanego czasu. Musisz zalogować czas pracy przed wysłaniem zadania do klienta.");
+        return;
+      }
+      setVerificationSendOpen(true);
+      return;
     }
     await executeStatusChange(newStatus);
   }
@@ -212,8 +280,15 @@ export default function TaskDetail() {
       const totalSecs = timer.stop();
       if (totalSecs >= 60) await logTime(Math.round(totalSecs / 60));
     }
-    const { error } = await supabase.rpc("change_task_status", { _task_id: task.id, _new_status: newStatus as any, _changed_by: user?.id! });
-    if (error) { toast.error(error.message); return; }
+    const { error } = await supabase.rpc("change_task_status", {
+      _task_id: task.id,
+      _new_status: newStatus as any,
+      _changed_by: user?.id!,
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     queryClient.invalidateQueries({ queryKey: ["status-history", id] });
     refreshAfterVerification();
@@ -222,9 +297,35 @@ export default function TaskDetail() {
 
   async function handleNotUnderstood(reason: string) {
     if (!task || !user) return;
-    await supabase.from("tasks").update({ not_understood: true, not_understood_at: new Date().toISOString(), is_misunderstood: true, misunderstood_by: user.id, misunderstood_reason: reason || null } as any).eq("id", task.id);
-    await supabase.from("activity_log").insert({ user_id: user.id, action: "misunderstood_reported", entity_type: "task", entity_id: task.id, entity_name: task.title, details: { reason: reason || null } });
-    if (reason.trim()) await supabase.from("comments").insert({ task_id: task.id, user_id: user.id, content: `❓ Nie rozumiem polecenia: ${reason}`, type: "internal" });
+    await supabase
+      .from("tasks")
+      .update({
+        not_understood: true,
+        not_understood_at: new Date().toISOString(),
+        is_misunderstood: true,
+        misunderstood_by: user.id,
+        misunderstood_reason: reason || null,
+      } as any)
+      .eq("id", task.id);
+    await supabase
+      .from("activity_log")
+      .insert({
+        user_id: user.id,
+        action: "misunderstood_reported",
+        entity_type: "task",
+        entity_id: task.id,
+        entity_name: task.title,
+        details: { reason: reason || null },
+      });
+    if (reason.trim())
+      await supabase
+        .from("comments")
+        .insert({
+          task_id: task.id,
+          user_id: user.id,
+          content: `❓ Nie rozumiem polecenia: ${reason}`,
+          type: "internal",
+        });
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     queryClient.invalidateQueries({ queryKey: ["comments", id] });
     toast.success("Zgłoszono niezrozumienie zadania");
@@ -232,16 +333,40 @@ export default function TaskDetail() {
 
   async function clearNotUnderstood() {
     if (!task || !user) return;
-    await supabase.from("tasks").update({ not_understood: false, not_understood_at: null, is_misunderstood: false, misunderstood_by: null, misunderstood_reason: null } as any).eq("id", task.id);
-    await supabase.from("activity_log").insert({ user_id: user.id, action: "misunderstood_resolved", entity_type: "task", entity_id: task.id, entity_name: task.title });
+    await supabase
+      .from("tasks")
+      .update({
+        not_understood: false,
+        not_understood_at: null,
+        is_misunderstood: false,
+        misunderstood_by: null,
+        misunderstood_reason: null,
+      } as any)
+      .eq("id", task.id);
+    await supabase
+      .from("activity_log")
+      .insert({
+        user_id: user.id,
+        action: "misunderstood_resolved",
+        entity_type: "task",
+        entity_id: task.id,
+        entity_name: task.title,
+      });
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     toast.success("Oznaczono jako wyjaśnione");
   }
 
   async function handleClientAccept() {
     if (!task) return;
-    const { error } = await supabase.rpc("change_task_status", { _task_id: task.id, _new_status: "client_verified" as any, _changed_by: user?.id! });
-    if (error) { toast.error(error.message); return; }
+    const { error } = await supabase.rpc("change_task_status", {
+      _task_id: task.id,
+      _new_status: "client_verified" as any,
+      _changed_by: user?.id!,
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     queryClient.invalidateQueries({ queryKey: ["status-history", id] });
     refreshAfterVerification();
@@ -249,27 +374,63 @@ export default function TaskDetail() {
   }
 
   async function handleClientReject() {
-    if (!task || !correctionText.trim()) { toast.error("Opisz co wymaga poprawki"); return; }
-    await supabase.from("task_corrections").insert({ task_id: task.id, created_by: user?.id, severity: correctionSeverity, description: correctionText });
-    await supabase.from("tasks").update({ correction_severity: correctionSeverity } as any).eq("id", task.id);
-    const { error } = await supabase.rpc("change_task_status", { _task_id: task.id, _new_status: "corrections" as any, _changed_by: user?.id! });
-    if (error) { toast.error(error.message); return; }
+    if (!task || !correctionText.trim()) {
+      toast.error("Opisz co wymaga poprawki");
+      return;
+    }
+    await supabase
+      .from("task_corrections")
+      .insert({ task_id: task.id, created_by: user?.id, severity: correctionSeverity, description: correctionText });
+    await supabase
+      .from("tasks")
+      .update({ correction_severity: correctionSeverity } as any)
+      .eq("id", task.id);
+    const { error } = await supabase.rpc("change_task_status", {
+      _task_id: task.id,
+      _new_status: "corrections" as any,
+      _changed_by: user?.id!,
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     queryClient.invalidateQueries({ queryKey: ["task-corrections", id] });
     queryClient.invalidateQueries({ queryKey: ["status-history", id] });
     refreshAfterVerification();
-    setClientReviewOpen(false); setCorrectionText(""); setCorrectionSeverity("normal");
+    setClientReviewOpen(false);
+    setCorrectionText("");
+    setCorrectionSeverity("normal");
     toast.success("Poprawki zgłoszone");
   }
 
   async function handleRejectFromReview(category: string, comment: string) {
     if (!task || !user?.id) return;
     const primaryAssign = (assignments || []).find((a: any) => a.role === "primary");
-    await supabase.from("task_rejections").insert({ task_id: task.id, project_id: task.project_id || null, rejected_by: user.id, assigned_to: primaryAssign?.user_id || null, reason_category: category, comment: comment || null } as any);
+    await supabase
+      .from("task_rejections")
+      .insert({
+        task_id: task.id,
+        project_id: task.project_id || null,
+        rejected_by: user.id,
+        assigned_to: primaryAssign?.user_id || null,
+        reason_category: category,
+        comment: comment || null,
+      } as any);
     const commentContent = `🔴 Odrzucono: [${category}]${comment ? ` — ${comment}` : ""}`;
-    await supabase.from("comments").insert({ task_id: task.id, user_id: user.id, content: commentContent, type: "internal" });
-    const { error } = await supabase.rpc("change_task_status", { _task_id: task.id, _new_status: "corrections" as any, _changed_by: user.id, _note: commentContent });
-    if (error) { toast.error(error.message); return; }
+    await supabase
+      .from("comments")
+      .insert({ task_id: task.id, user_id: user.id, content: commentContent, type: "internal" });
+    const { error } = await supabase.rpc("change_task_status", {
+      _task_id: task.id,
+      _new_status: "corrections" as any,
+      _changed_by: user.id,
+      _note: commentContent,
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     queryClient.invalidateQueries({ queryKey: ["comments", id] });
     queryClient.invalidateQueries({ queryKey: ["status-history", id] });
@@ -281,23 +442,36 @@ export default function TaskDetail() {
   function openBriefEditor() {
     if (!task) return;
     const form: Record<string, string> = {};
-    briefFields.forEach(f => { form[f.key] = (task as any)[f.key] || ""; });
+    briefFields.forEach((f) => {
+      form[f.key] = (task as any)[f.key] || "";
+    });
     setBriefForm(form);
     setBriefOpen(true);
   }
 
   async function saveBrief() {
     if (!task) return;
-    const { error } = await supabase.from("tasks").update(briefForm as any).eq("id", task.id);
-    if (error) { toast.error(error.message); return; }
+    const { error } = await supabase
+      .from("tasks")
+      .update(briefForm as any)
+      .eq("id", task.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     setBriefOpen(false);
     toast.success("Brief zapisany");
   }
 
   async function addAssignment(userId: string, role: string = "collaborator") {
-    const { error } = await supabase.from("task_assignments").insert({ task_id: id!, user_id: userId, role: role as any });
-    if (error) { toast.error(error.message); return; }
+    const { error } = await supabase
+      .from("task_assignments")
+      .insert({ task_id: id!, user_id: userId, role: role as any });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ["task-assignments", id] });
     toast.success("Osoba przypisana");
   }
@@ -311,7 +485,10 @@ export default function TaskDetail() {
   async function addChecklist() {
     if (!newChecklistName.trim()) return;
     const { error } = await supabase.from("checklists").insert({ task_id: id!, title: newChecklistName });
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     setNewChecklistName("");
     queryClient.invalidateQueries({ queryKey: ["checklists", id] });
   }
@@ -321,7 +498,7 @@ export default function TaskDetail() {
     if (!text) return;
     await supabase.from("checklist_items").insert({ checklist_id: checklistId, title: text });
     queryClient.invalidateQueries({ queryKey: ["checklists", id] });
-    setNewChecklistItemTexts(prev => ({ ...prev, [checklistId]: "" }));
+    setNewChecklistItemTexts((prev) => ({ ...prev, [checklistId]: "" }));
   }
 
   async function toggleChecklistItem(itemId: string, completed: boolean) {
@@ -333,18 +510,27 @@ export default function TaskDetail() {
     if (!user) return;
     const filePath = `${id}/${Date.now()}-${file.name}`;
     const { error: uploadError } = await supabase.storage.from("task_materials").upload(filePath, file);
-    if (uploadError) { toast.error(uploadError.message); return; }
+    if (uploadError) {
+      toast.error(uploadError.message);
+      return;
+    }
     const { data: urlData } = supabase.storage.from("task_materials").getPublicUrl(filePath);
-    await supabase.from("task_materials").insert({ task_id: id!, name: file.name, type: "file", url: urlData.publicUrl, uploaded_by: user.id });
+    await supabase
+      .from("task_materials")
+      .insert({ task_id: id!, name: file.name, type: "file", url: urlData.publicUrl, uploaded_by: user.id });
     queryClient.invalidateQueries({ queryKey: ["materials", id] });
     toast.success("Plik przesłany");
   }
 
   async function addLinkMaterial() {
     if (!linkName.trim() || !linkUrl.trim() || !user) return;
-    await supabase.from("task_materials").insert({ task_id: id!, name: linkName, type: "link", url: linkUrl, uploaded_by: user.id });
+    await supabase
+      .from("task_materials")
+      .insert({ task_id: id!, name: linkName, type: "link", url: linkUrl, uploaded_by: user.id });
     queryClient.invalidateQueries({ queryKey: ["materials", id] });
-    setLinkDialogOpen(false); setLinkName(""); setLinkUrl("");
+    setLinkDialogOpen(false);
+    setLinkName("");
+    setLinkUrl("");
     toast.success("Link dodany");
   }
 
@@ -354,22 +540,34 @@ export default function TaskDetail() {
   }
 
   async function toggleMaterialVisibility(materialId: string, visible: boolean) {
-    const { error } = await supabase.from("task_materials").update({ is_visible_to_client: visible } as any).eq("id", materialId);
-    if (error) { toast.error(error.message); return; }
+    const { error } = await supabase
+      .from("task_materials")
+      .update({ is_visible_to_client: visible } as any)
+      .eq("id", materialId);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ["materials", id] });
   }
 
   async function logTime(minutes: number) {
     if (minutes <= 0 || !user) return;
     const { error } = await supabase.from("time_logs").insert({ task_id: id!, user_id: user.id, duration: minutes });
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ["time-logs", id] });
     toast.success(`Zalogowano ${minutes} min`);
   }
 
   function logManualTime() {
     const mins = parseInt(manualMinutes);
-    if (isNaN(mins) || mins <= 0) { toast.error("Podaj poprawną liczbę minut"); return; }
+    if (isNaN(mins) || mins <= 0) {
+      toast.error("Podaj poprawną liczbę minut");
+      return;
+    }
     logTime(mins);
     setManualMinutes("");
   }
@@ -382,22 +580,34 @@ export default function TaskDetail() {
 
   async function addComment() {
     if (!commentText.trim() || !user) return;
-    const { error } = await supabase.from("comments").insert({ task_id: id!, user_id: user.id, content: commentText, type: commentType });
-    if (error) { toast.error(error.message); return; }
+    const { error } = await supabase
+      .from("comments")
+      .insert({ task_id: id!, user_id: user.id, content: commentText, type: commentType });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     setCommentText("");
     queryClient.invalidateQueries({ queryKey: ["comments", id] });
   }
 
   async function handleClientComment() {
     if (!commentText.trim() || !user) return;
-    const { error } = await supabase.from("comments").insert({ task_id: id!, user_id: user.id, content: commentText, type: "client" });
-    if (error) { toast.error(error.message); return; }
+    const { error } = await supabase
+      .from("comments")
+      .insert({ task_id: id!, user_id: user.id, content: commentText, type: "client" });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     setCommentText("");
     queryClient.invalidateQueries({ queryKey: ["comments", id] });
   }
 
   function formatTimer(s: number) {
-    const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); const sec = s % 60;
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
     return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
   }
 
@@ -410,8 +620,14 @@ export default function TaskDetail() {
 
   async function handleClientChange(newClientId: string | null) {
     if (!task) return;
-    const { error } = await supabase.from("tasks").update({ client_id: newClientId, updated_at: new Date().toISOString() } as any).eq("id", task.id);
-    if (error) { toast.error("Błąd aktualizacji klienta"); return; }
+    const { error } = await supabase
+      .from("tasks")
+      .update({ client_id: newClientId, updated_at: new Date().toISOString() } as any)
+      .eq("id", task.id);
+    if (error) {
+      toast.error("Błąd aktualizacji klienta");
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     setClientPickerOpen(false);
     toast.success(newClientId ? "Klient przypisany" : "Powiązanie usunięte");
@@ -420,11 +636,20 @@ export default function TaskDetail() {
   const saveTitle = useCallback(async () => {
     if (!task || isSavingTitle) return;
     const trimmed = titleValue.trim();
-    if (!trimmed || trimmed === task.title) { setIsEditingTitle(false); return; }
+    if (!trimmed || trimmed === task.title) {
+      setIsEditingTitle(false);
+      return;
+    }
     setIsSavingTitle(true);
-    const { error } = await supabase.from("tasks").update({ title: trimmed, updated_at: new Date().toISOString() } as any).eq("id", task.id);
+    const { error } = await supabase
+      .from("tasks")
+      .update({ title: trimmed, updated_at: new Date().toISOString() } as any)
+      .eq("id", task.id);
     setIsSavingTitle(false);
-    if (error) { toast.error("Błąd zapisu tytułu"); return; }
+    if (error) {
+      toast.error("Błąd zapisu tytułu");
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ["task", id] });
     setIsEditingTitle(false);
     toast.success("Tytuł zaktualizowany");
@@ -432,48 +657,135 @@ export default function TaskDetail() {
 
   async function handlePriorityChange(newPriority: string) {
     if (!task || newPriority === task.priority) return;
-    const { error } = await supabase.from("tasks").update({ priority: newPriority as any, updated_at: new Date().toISOString() } as any).eq("id", task.id);
-    if (error) { toast.error("Błąd"); return; }
+    const { error } = await supabase
+      .from("tasks")
+      .update({ priority: newPriority as any, updated_at: new Date().toISOString() } as any)
+      .eq("id", task.id);
+    if (error) {
+      toast.error("Błąd");
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ["task", id] });
   }
 
   async function handleDeadlineChange(newDate: Date | undefined) {
     if (!task) return;
-    const { error } = await supabase.from("tasks").update({
-      due_date: newDate ? `${newDate.getFullYear()}-${String(newDate.getMonth() + 1).padStart(2, '0')}-${String(newDate.getDate()).padStart(2, '0')}` : null,
-      updated_at: new Date().toISOString(),
-    } as any).eq("id", task.id);
-    if (error) { toast.error("Błąd"); return; }
+    const { error } = await supabase
+      .from("tasks")
+      .update({
+        due_date: newDate
+          ? `${newDate.getFullYear()}-${String(newDate.getMonth() + 1).padStart(2, "0")}-${String(newDate.getDate()).padStart(2, "0")}`
+          : null,
+        updated_at: new Date().toISOString(),
+      } as any)
+      .eq("id", task.id);
+    if (error) {
+      toast.error("Błąd");
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ["task", id] });
   }
 
   // ─── Loading / Error ───
-  if (isLoading) return <AppLayout title="Zadanie"><div className="p-8 text-muted-foreground">Ładowanie...</div></AppLayout>;
-  if (!task) return <AppLayout title="Zadanie"><div className="p-8 text-muted-foreground">Nie znaleziono zadania.</div></AppLayout>;
+  if (isLoading)
+    return (
+      <AppLayout title="Zadanie">
+        <div className="p-8 text-muted-foreground">Ładowanie...</div>
+      </AppLayout>
+    );
+  if (!task)
+    return (
+      <AppLayout title="Zadanie">
+        <div className="p-8 text-muted-foreground">Nie znaleziono zadania.</div>
+      </AppLayout>
+    );
 
   const showAssignOverlay = hasNoAssignment && !isClient && !isPreviewMode;
 
   // ─── Context object ───
   const ctx = {
-    task, id, user, isClient, isPreviewMode, setIsPreviewMode, canEditInline,
-    assignments, comments, timeLogs, checklists, materials, statusHistory, corrections,
-    allProfiles, allClients, unassignedProfiles,
-    totalLogged, isOverdue, hasNoAssignment, briefFilledCount,
-    isEditingTitle, setIsEditingTitle, titleValue, setTitleValue, isSavingTitle, saveTitle, titleInputRef,
-    handleStatusChange, handlePriorityChange, handleDeadlineChange, handleClientChange,
-    addAssignment, removeAssignment, assignOpen, setAssignOpen, clientPickerOpen, setClientPickerOpen,
-    setVerificationSendOpen, setRejectReviewOpen, setNotUnderstoodOpen, clearNotUnderstood,
-    handleClientAccept, clientReviewOpen, setClientReviewOpen,
-    correctionSeverity, setCorrectionSeverity, correctionText, setCorrectionText, handleClientReject,
-    commentText, setCommentText, commentType, setCommentType, addComment, handleClientComment,
-    newChecklistName, setNewChecklistName, newChecklistItemTexts, setNewChecklistItemTexts,
-    addChecklist, addChecklistItem, toggleChecklistItem,
-    fileInputRef, uploadFile, addLinkMaterial, deleteMaterial, toggleMaterialVisibility,
-    linkDialogOpen, setLinkDialogOpen,
-    timer, formatTimer, formatDuration, logTime, logManualTime, stopTimer,
-    manualMinutes, setManualMinutes,
-    openBriefEditor, queryClient,
-    statusLabels, statusColors,
+    task,
+    id,
+    user,
+    isClient,
+    isPreviewMode,
+    setIsPreviewMode,
+    canEditInline,
+    assignments,
+    comments,
+    timeLogs,
+    checklists,
+    materials,
+    statusHistory,
+    corrections,
+    allProfiles,
+    allClients,
+    unassignedProfiles,
+    totalLogged,
+    isOverdue,
+    hasNoAssignment,
+    briefFilledCount,
+    isEditingTitle,
+    setIsEditingTitle,
+    titleValue,
+    setTitleValue,
+    isSavingTitle,
+    saveTitle,
+    titleInputRef,
+    handleStatusChange,
+    handlePriorityChange,
+    handleDeadlineChange,
+    handleClientChange,
+    addAssignment,
+    removeAssignment,
+    assignOpen,
+    setAssignOpen,
+    clientPickerOpen,
+    setClientPickerOpen,
+    setVerificationSendOpen,
+    setRejectReviewOpen,
+    setNotUnderstoodOpen,
+    clearNotUnderstood,
+    handleClientAccept,
+    clientReviewOpen,
+    setClientReviewOpen,
+    correctionSeverity,
+    setCorrectionSeverity,
+    correctionText,
+    setCorrectionText,
+    handleClientReject,
+    commentText,
+    setCommentText,
+    commentType,
+    setCommentType,
+    addComment,
+    handleClientComment,
+    newChecklistName,
+    setNewChecklistName,
+    newChecklistItemTexts,
+    setNewChecklistItemTexts,
+    addChecklist,
+    addChecklistItem,
+    toggleChecklistItem,
+    fileInputRef,
+    uploadFile,
+    addLinkMaterial,
+    deleteMaterial,
+    toggleMaterialVisibility,
+    linkDialogOpen,
+    setLinkDialogOpen,
+    timer,
+    formatTimer,
+    formatDuration,
+    logTime,
+    logManualTime,
+    stopTimer,
+    manualMinutes,
+    setManualMinutes,
+    openBriefEditor,
+    queryClient,
+    statusLabels,
+    statusColors,
   };
 
   return (
@@ -489,9 +801,20 @@ export default function TaskDetail() {
               </div>
               <div className="flex flex-wrap gap-1">
                 {(allProfiles || []).map((p: any) => (
-                  <button key={p.id} onClick={() => addAssignment(p.id, "primary")}
-                    className="flex items-center gap-1 px-2 py-1 text-[10px] border rounded-full hover:bg-accent bg-background">
-                    <Avatar className="h-3.5 w-3.5"><AvatarFallback className="text-[7px] bg-primary/10 text-primary font-bold">{p.full_name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2) || "?"}</AvatarFallback></Avatar>
+                  <button
+                    key={p.id}
+                    onClick={() => addAssignment(p.id, "primary")}
+                    className="flex items-center gap-1 px-2 py-1 text-[10px] border rounded-full hover:bg-accent bg-background"
+                  >
+                    <Avatar className="h-3.5 w-3.5">
+                      <AvatarFallback className="text-[7px] bg-primary/10 text-primary font-bold">
+                        {p.full_name
+                          ?.split(" ")
+                          .map((n: string) => n[0])
+                          .join("")
+                          .slice(0, 2) || "?"}
+                      </AvatarFallback>
+                    </Avatar>
                     {p.full_name}
                   </button>
                 ))}
@@ -504,22 +827,52 @@ export default function TaskDetail() {
       {/* Preview banner */}
       {isPreviewMode && (
         <div className="flex items-center justify-between gap-3 bg-orange-500 text-white rounded-lg px-4 py-2 mb-3">
-          <div className="flex items-center gap-2"><Eye className="h-4 w-4" /><span className="text-xs font-semibold">Tryb podglądu klienta</span></div>
-          <Button size="sm" className="bg-amber-400 hover:bg-amber-300 text-amber-950 font-bold text-[10px] h-6" onClick={() => setIsPreviewMode(false)}>Wyjdź</Button>
+          <div className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            <span className="text-xs font-semibold">Tryb podglądu klienta</span>
+          </div>
+          <Button
+            size="sm"
+            className="bg-amber-400 hover:bg-amber-300 text-amber-950 font-bold text-[10px] h-6"
+            onClick={() => setIsPreviewMode(false)}
+          >
+            Wyjdź
+          </Button>
         </div>
       )}
 
       {/* Breadcrumbs */}
       <div className="mb-3">
         {isClient ? (
-          <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80">
-            <ArrowLeft className="h-3.5 w-3.5" />Wróć do panelu
+          <Link
+            to="/dashboard"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Wróć do panelu
           </Link>
         ) : (
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Link to="/tasks" className="hover:text-foreground flex items-center gap-1"><ArrowLeft className="h-3 w-3" />Zadania</Link>
-            {task.client_id && (task as any).clients?.name && (<><ChevronRight className="h-3 w-3" /><Link to={`/clients/${task.client_id}`} className="hover:text-foreground truncate max-w-[150px]">{(task as any).clients.name}</Link></>)}
-            {task.project_id && (task as any).projects?.name && (<><ChevronRight className="h-3 w-3" /><Link to={`/projects/${task.project_id}`} className="hover:text-foreground truncate max-w-[150px]">{(task as any).projects.name}</Link></>)}
+            <Link to="/tasks" className="hover:text-foreground flex items-center gap-1">
+              <ArrowLeft className="h-3 w-3" />
+              Zadania
+            </Link>
+            {task.client_id && (task as any).clients?.name && (
+              <>
+                <ChevronRight className="h-3 w-3" />
+                <Link to={`/clients/${task.client_id}`} className="hover:text-foreground truncate max-w-[150px]">
+                  {(task as any).clients.name}
+                </Link>
+              </>
+            )}
+            {task.project_id && (task as any).projects?.name && (
+              <>
+                <ChevronRight className="h-3 w-3" />
+                <Link to={`/projects/${task.project_id}`} className="hover:text-foreground truncate max-w-[150px]">
+                  {(task as any).projects.name}
+                </Link>
+              </>
+            )}
             <ChevronRight className="h-3 w-3" />
             <span className="text-foreground/60 truncate max-w-[200px]">{task.title}</span>
           </div>
@@ -555,7 +908,10 @@ export default function TaskDetail() {
       <Sheet open={commSheetOpen} onOpenChange={setCommSheetOpen}>
         <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
           <SheetHeader className="px-4 py-3 border-b">
-            <SheetTitle className="text-sm flex items-center gap-2"><MessageSquare className="h-4 w-4" />Komunikacja</SheetTitle>
+            <SheetTitle className="text-sm flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Komunikacja
+            </SheetTitle>
           </SheetHeader>
           <div className="flex-1 overflow-hidden">
             <CommPanel ctx={ctx} />
@@ -566,18 +922,27 @@ export default function TaskDetail() {
       {/* Dialogs */}
       <Dialog open={briefOpen} onOpenChange={setBriefOpen}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
-          <DialogHeader><DialogTitle>Edytuj brief zadania</DialogTitle><DialogDescription>Uzupełnij pola briefu.</DialogDescription></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Edytuj brief zadania</DialogTitle>
+            <DialogDescription>Uzupełnij pola briefu.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-3 overflow-y-auto flex-1 px-1 py-1">
-            {briefFields.map(f => (
+            {briefFields.map((f) => (
               <div key={f.key} className="space-y-1">
                 <Label className="text-sm">{f.label}</Label>
-                <Textarea value={briefForm[f.key] || ""} onChange={e => setBriefForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                  placeholder={`Wpisz ${f.label.toLowerCase()}...`} className="min-h-[60px] text-sm w-full" />
+                <Textarea
+                  value={briefForm[f.key] || ""}
+                  onChange={(e) => setBriefForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                  placeholder={`Wpisz ${f.label.toLowerCase()}...`}
+                  className="min-h-[60px] text-sm w-full"
+                />
               </div>
             ))}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setBriefOpen(false)}>Anuluj</Button>
+            <Button variant="outline" onClick={() => setBriefOpen(false)}>
+              Anuluj
+            </Button>
             <Button onClick={saveBrief}>Zapisz brief</Button>
           </DialogFooter>
         </DialogContent>
@@ -585,21 +950,52 @@ export default function TaskDetail() {
 
       <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Dodaj link</DialogTitle><DialogDescription>Podaj nazwę i adres URL.</DialogDescription></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Dodaj link</DialogTitle>
+            <DialogDescription>Podaj nazwę i adres URL.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-1"><Label className="text-sm">Nazwa</Label><Input value={linkName} onChange={e => setLinkName(e.target.value)} placeholder="Nazwa" className="text-sm" /></div>
-            <div className="space-y-1"><Label className="text-sm">URL</Label><Input value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder="https://..." className="text-sm" /></div>
+            <div className="space-y-1">
+              <Label className="text-sm">Nazwa</Label>
+              <Input
+                value={linkName}
+                onChange={(e) => setLinkName(e.target.value)}
+                placeholder="Nazwa"
+                className="text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm">URL</Label>
+              <Input
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                placeholder="https://..."
+                className="text-sm"
+              />
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setLinkDialogOpen(false)}>Anuluj</Button>
+            <Button variant="outline" onClick={() => setLinkDialogOpen(false)}>
+              Anuluj
+            </Button>
             <Button onClick={addLinkMaterial}>Dodaj link</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <NotUnderstoodModal open={notUnderstoodOpen} onOpenChange={setNotUnderstoodOpen} onConfirm={handleNotUnderstood} />
+      <NotUnderstoodModal
+        open={notUnderstoodOpen}
+        onOpenChange={setNotUnderstoodOpen}
+        onConfirm={handleNotUnderstood}
+      />
       <ChecklistBlockModal open={checklistBlockOpen} onOpenChange={setChecklistBlockOpen} />
-      <VerificationSendModal open={verificationSendOpen} onOpenChange={setVerificationSendOpen} taskId={task.id} timeLogs={timeLogs || []} totalMinutes={totalLogged} />
+      <VerificationSendModal
+        open={verificationSendOpen}
+        onOpenChange={setVerificationSendOpen}
+        taskId={task.id}
+        timeLogs={timeLogs || []}
+        totalMinutes={totalLogged}
+      />
       <RejectionModal open={rejectReviewOpen} onOpenChange={setRejectReviewOpen} onConfirm={handleRejectFromReview} />
     </AppLayout>
   );

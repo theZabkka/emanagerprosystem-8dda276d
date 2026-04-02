@@ -17,30 +17,24 @@ export default function MyDay() {
   const { data: myTasks = [] } = useQuery({
     queryKey: ["my-day-tasks", user?.id],
     queryFn: async () => {
-
       if (!user) return [];
-      const { data: assignments } = await supabase
-        .from("task_assignments")
-        .select("task_id")
-        .eq("user_id", user.id);
-      const taskIds = (assignments || []).map((a) => a.task_id);
-      if (taskIds.length === 0) return [];
+      // Jedno zapytanie z join przez task_assignments
       const { data } = await supabase
-        .from("tasks")
-        .select("id, title, status, priority, due_date, type, clients:client_id(name)")
-        .in("id", taskIds)
-        .not("status", "in", "(done,cancelled)")
-        .order("priority")
+        .from("task_assignments")
+        .select("tasks!inner(id, title, status, priority, due_date, type, clients:client_id(name))")
+        .eq("user_id", user.id)
+        .not("tasks.status", "in", "(done,cancelled)")
+        .eq("tasks.is_archived", false)
         .limit(50);
-      return data || [];
+      return (data || []).map((a: any) => a.tasks).filter(Boolean);
     },
     enabled: !!user,
+    staleTime: 2 * 60 * 1000,
   });
 
   const { data: todayLogs = [] } = useQuery({
     queryKey: ["my-day-logs", user?.id, today],
     queryFn: async () => {
-
       if (!user) return [];
       const { data } = await supabase
         .from("time_logs")
@@ -59,7 +53,10 @@ export default function MyDay() {
   const todayMinutes = todayLogs.reduce((s: number, l: any) => s + (l.duration || 0), 0);
 
   const priorityLabel: Record<string, string> = {
-    critical: "PILNY", high: "WYSOKI", medium: "ŚREDNI", low: "NISKI",
+    critical: "PILNY",
+    high: "WYSOKI",
+    medium: "ŚREDNI",
+    low: "NISKI",
   };
   const priorityColor: Record<string, string> = {
     critical: "bg-destructive text-destructive-foreground",
@@ -94,7 +91,10 @@ export default function MyDay() {
               </div>
             </CardContent>
           </Card>
-          <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate("/tasks?filter=today")}>
+          <Card
+            className="cursor-pointer hover:border-primary/50 transition-colors"
+            onClick={() => navigate("/tasks?filter=today")}
+          >
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <Calendar className="h-8 w-8 text-primary" />
@@ -105,7 +105,10 @@ export default function MyDay() {
               </div>
             </CardContent>
           </Card>
-          <Card className="cursor-pointer hover:border-destructive/50 transition-colors" onClick={() => navigate("/tasks?filter=overdue")}>
+          <Card
+            className="cursor-pointer hover:border-destructive/50 transition-colors"
+            onClick={() => navigate("/tasks?filter=overdue")}
+          >
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <AlertTriangle className="h-8 w-8 text-destructive" />
@@ -134,14 +137,18 @@ export default function MyDay() {
         {/* Overdue */}
         {overdue.length > 0 && (
           <Card className="border-destructive/50">
-            <CardHeader><CardTitle className="text-base text-destructive">⚠️ Zaległe zadania</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle className="text-base text-destructive">⚠️ Zaległe zadania</CardTitle>
+            </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 {overdue.map((t: any) => (
                   <div key={t.id} className="flex items-center justify-between p-2 rounded bg-destructive/5">
                     <span className="text-sm font-medium text-foreground">{t.title}</span>
                     <div className="flex items-center gap-2">
-                      <Badge className={priorityColor[t.priority] || ""}>{priorityLabel[t.priority] || t.priority}</Badge>
+                      <Badge className={priorityColor[t.priority] || ""}>
+                        {priorityLabel[t.priority] || t.priority}
+                      </Badge>
                       <span className="text-xs text-muted-foreground">Termin: {t.due_date}</span>
                     </div>
                   </div>
@@ -153,7 +160,9 @@ export default function MyDay() {
 
         {/* In progress */}
         <Card>
-          <CardHeader><CardTitle className="text-base">W trakcie ({inProgress.length})</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base">W trakcie ({inProgress.length})</CardTitle>
+          </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {inProgress.length === 0 && <p className="text-sm text-muted-foreground">Brak zadań w trakcie</p>}
@@ -162,7 +171,9 @@ export default function MyDay() {
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-foreground">{t.title}</span>
                     {(t.clients as any)?.name && (
-                      <Badge variant="outline" className="text-[10px]">{(t.clients as any).name}</Badge>
+                      <Badge variant="outline" className="text-[10px]">
+                        {(t.clients as any).name}
+                      </Badge>
                     )}
                   </div>
                   <Badge className={priorityColor[t.priority] || ""}>{priorityLabel[t.priority] || t.priority}</Badge>
@@ -174,7 +185,9 @@ export default function MyDay() {
 
         {/* All my tasks */}
         <Card>
-          <CardHeader><CardTitle className="text-base">Wszystkie moje zadania ({myTasks.length})</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base">Wszystkie moje zadania ({myTasks.length})</CardTitle>
+          </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {myTasks.length === 0 && <p className="text-sm text-muted-foreground">Brak przypisanych zadań</p>}
@@ -184,7 +197,9 @@ export default function MyDay() {
                     <span className="text-sm text-foreground">{t.title}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-[10px]">{t.status}</Badge>
+                    <Badge variant="secondary" className="text-[10px]">
+                      {t.status}
+                    </Badge>
                     {t.due_date && <span className="text-xs text-muted-foreground">{t.due_date}</span>}
                   </div>
                 </div>
