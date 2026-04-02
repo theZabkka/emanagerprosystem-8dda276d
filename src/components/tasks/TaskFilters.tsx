@@ -2,12 +2,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Search, LayoutGrid, List, Layers, ArrowUpDown, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
+import { Plus, Search, LayoutGrid, List, Layers, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Users2 } from "lucide-react";
 
 const priorityLabels: Record<string, string> = { critical: "Pilny", high: "Wysoki", medium: "Średni", low: "Niski" };
 
 export type SortField = "created_at" | "status_updated_at" | "due_date" | "priority" | "manual";
 export type SortDirection = "asc" | "desc";
+export type KanbanMode = "status" | "team";
 
 interface TaskFiltersProps {
   search: string;
@@ -23,6 +24,8 @@ interface TaskFiltersProps {
   onSortFieldChange: (value: SortField) => void;
   sortDirection: SortDirection;
   onSortDirectionToggle: () => void;
+  kanbanMode?: KanbanMode;
+  onKanbanModeChange?: (mode: KanbanMode) => void;
 }
 
 const sortOptions: { value: SortField; label: string }[] = [
