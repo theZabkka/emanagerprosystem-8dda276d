@@ -138,7 +138,7 @@ export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
         <div className="flex-1 overflow-y-auto p-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/50 [&::-webkit-scrollbar-track]:bg-transparent">
           <div className="space-y-4">
             {editing ? (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="space-y-2">
                   <Label>Tytuł</Label>
                   <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
