@@ -244,36 +244,33 @@ export default function CrmBoard() {
   return (
     <AppLayout title="Lejek sprzedaży">
       <div className="flex flex-col h-[calc(100vh-4rem)]">
-        {/* Top bar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3 border-b border-border bg-card">
-          <h1 className="text-lg font-bold text-foreground">Lejek sprzedaży</h1>
+        {/* Consolidated toolbar */}
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 mb-2">
           <div className="flex items-center gap-2">
-            <Button onClick={() => setCreateOpen(true)} className="bg-primary text-primary-foreground hover:bg-primary/90">
-              <Plus className="h-4 w-4 mr-1" /> Nowa karta
-            </Button>
-            <Button variant="outline" onClick={() => setLabelManagerOpen(true)}>
-              <Tag className="h-4 w-4 mr-1" /> Etykiety
-            </Button>
-            <Button variant="outline" onClick={() => setArchiveOpen(true)}>
-              <Archive className="h-4 w-4 mr-1" /> Archiwum
+            <div className="relative w-56">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Szukaj kart..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-8 rounded-lg text-xs bg-muted/40 border-border/50"
+              />
+            </div>
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setCreateColumnOpen(true)}>
+              <Plus className="h-3.5 w-3.5 mr-1" /> Kolumna
             </Button>
           </div>
-        </div>
-
-        {/* Filters */}
-        <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border bg-card/50">
-          <div className="relative max-w-xs flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Szukaj kart..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 rounded-full h-9 text-sm"
-            />
+          <div className="flex items-center gap-2">
+            <Button size="sm" className="h-8 text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => setCreateOpen(true)}>
+              <Plus className="h-3.5 w-3.5 mr-1" /> Nowa karta
+            </Button>
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setLabelManagerOpen(true)}>
+              <Tag className="h-3.5 w-3.5 mr-1" /> Etykiety
+            </Button>
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setArchiveOpen(true)}>
+              <Archive className="h-3.5 w-3.5 mr-1" /> Archiwum
+            </Button>
           </div>
-          <Button variant="outline" size="sm" className="h-9 rounded-full text-sm" onClick={() => setCreateColumnOpen(true)}>
-            <Plus className="h-3.5 w-3.5 mr-1" /> Kolumna
-          </Button>
         </div>
 
         {/* Kanban board */}
