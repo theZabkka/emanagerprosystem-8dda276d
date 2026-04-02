@@ -220,6 +220,7 @@ export default function Tasks() {
           sortField={sortField} onSortFieldChange={setSortField}
           sortDirection={sortDirection} onSortDirectionToggle={() => setSortDirection(d => d === "asc" ? "desc" : "asc")}
           kanbanMode={kanbanMode} onKanbanModeChange={setKanbanMode}
+          assigneeFilter={assigneeFilter} onAssigneeChange={setAssigneeFilter}
         />
 
         <CreateTaskDialog
