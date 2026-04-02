@@ -318,20 +318,58 @@ export default function TaskKanbanBoard({
     }
   };
 
-  const handleAssign = useCallback(async (taskId: string, userId: string) => {
-    await supabase.from("task_assignments").delete().eq("task_id", taskId).eq("role", "primary" as any);
-    const { error } = await supabase.from("task_assignments").insert({
-      task_id: taskId,
-      user_id: userId,
-      role: "primary" as any,
-    });
-    if (error) {
-      toast.error("Błąd przypisania");
-      return;
+  const handleToggleAssign = useCallback(async (taskId: string, userId: string) => {
+    const queryKey = ["tasks", priorityFilter];
+    const previousTasks = queryClient.getQueryData<any[]>(queryKey);
+
+    // Check if user is already assigned
+    const task = (optimisticTasks || []).find((t: any) => t.id === taskId);
+    const currentAssignments: any[] = task?.task_assignments || [];
+    const isAlreadyAssigned = currentAssignments.some((a: any) => a.user_id === userId);
+
+    if (isAlreadyAssigned) {
+      // Optimistic remove
+      queryClient.setQueryData<any[]>(queryKey, (old) =>
+        (old || []).map((t) => t.id !== taskId ? t : {
+          ...t,
+          task_assignments: (t.task_assignments || []).filter((a: any) => a.user_id !== userId),
+        })
+      );
+      const { error } = await supabase.from("task_assignments").delete()
+        .eq("task_id", taskId).eq("user_id", userId);
+      if (error) {
+        queryClient.setQueryData(queryKey, previousTasks);
+        toast.error("Błąd usuwania przypisania");
+        return;
+      }
+      toast.success("Usunięto przypisanie");
+    } else {
+      // Optimistic add — first person gets "primary", rest get "collaborator"
+      const role = currentAssignments.length === 0 ? "primary" : "collaborator";
+      const staffProfile = (allProfiles || []).find((p: any) => p.id === userId);
+      queryClient.setQueryData<any[]>(queryKey, (old) =>
+        (old || []).map((t) => t.id !== taskId ? t : {
+          ...t,
+          task_assignments: [
+            ...(t.task_assignments || []),
+            { user_id: userId, role, profiles: { full_name: staffProfile?.full_name || "?" } },
+          ],
+        })
+      );
+      const { error } = await supabase.from("task_assignments").insert({
+        task_id: taskId,
+        user_id: userId,
+        role: role as any,
+      });
+      if (error) {
+        queryClient.setQueryData(queryKey, previousTasks);
+        toast.error("Błąd przypisania");
+        return;
+      }
+      toast.success("Przypisano osobę");
     }
-    toast.success("Przypisano osobę");
     onRefresh?.();
-  }, [onRefresh]);
+  }, [onRefresh, optimisticTasks, allProfiles]);
 
   const handleOpenDeleteModal = useCallback((task: any) => {
     setTaskToDelete(task);
