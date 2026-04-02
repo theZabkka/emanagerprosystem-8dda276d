@@ -89,6 +89,7 @@ export default function TaskDetail() {
   const [briefForm, setBriefForm] = useState<Record<string, string>>({});
   const [assignOpen, setAssignOpen] = useState(false);
   const [newChecklistName, setNewChecklistName] = useState("");
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [newChecklistItemTexts, setNewChecklistItemTexts] = useState<Record<string, string>>({});
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkName, setLinkName] = useState("");
