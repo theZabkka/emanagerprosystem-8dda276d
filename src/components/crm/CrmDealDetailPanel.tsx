@@ -145,7 +145,7 @@ export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
                 </div>
                 <div className="space-y-2">
                   <Label>Opis</Label>
-                  <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={4} />
+                  <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="min-h-[60px] max-h-[120px] resize-y" />
                 </div>
                 <div className="space-y-2">
                   <Label>Termin (data i godzina)</Label>
