@@ -86,13 +86,19 @@ export default function Tasks() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tasks")
-        .select("...")
+        .select(
+          "id, title, status, priority, due_date, lexo_rank, client_id, project_id, type, " +
+            "parent_task_id, not_understood, not_understood_at, is_misunderstood, correction_severity, " +
+            "is_archived, estimated_time, logged_time, updated_at, created_at, status_updated_at, " +
+            "clients(name, has_retainer), projects(name), task_assignments(user_id, role, profiles:user_id(full_name))",
+        )
         .eq("is_archived", false)
         .order("lexo_rank" as any, { ascending: true })
         .limit(500);
       if (error) throw error;
       return data || [];
     },
+    staleTime: 2 * 60 * 1000,
   });
 
   const today = new Date().toISOString().split("T")[0];
