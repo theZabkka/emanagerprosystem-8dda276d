@@ -698,7 +698,7 @@ export default function TaskDetail() {
                 {canEditInline && <Edit3 className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity inline-block ml-1" />}
               </div>
             )}
-            {task.clients?.name && <p className="text-xs text-muted-foreground">{(task as any).clients.name} {task.projects?.name && `• ${(task as any).projects.name}`}</p>}
+            
 
             {/* Action buttons */}
             <div className="flex flex-wrap gap-1.5">
