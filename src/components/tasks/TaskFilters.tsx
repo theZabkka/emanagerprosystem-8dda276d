@@ -118,6 +118,25 @@ export function TaskFilters({
             Pokaż podzadania
           </button>
 
+          {viewMode === "kanban" && onKanbanModeChange && (
+            <div className="flex items-center rounded-lg overflow-hidden border">
+              <button
+                onClick={() => onKanbanModeChange("status")}
+                className={`p-2 transition-colors ${kanbanMode === "status" ? "bg-destructive text-destructive-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}
+                title="Grupuj wg statusów"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => onKanbanModeChange("team")}
+                className={`p-2 transition-colors ${kanbanMode === "team" ? "bg-destructive text-destructive-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}
+                title="Grupuj wg osób"
+              >
+                <Users2 className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
           <div className="flex items-center rounded-lg overflow-hidden border">
             <button
               onClick={() => onViewModeChange("list")}

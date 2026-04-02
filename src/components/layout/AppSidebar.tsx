@@ -42,7 +42,6 @@ const sections = [
       { title: "Archiwum", url: "/tasks/archive", icon: Archive },
       { title: "Projekty", url: "/projects", icon: FolderKanban },
       { title: "Tablica operacyjna", url: "/operational", icon: Columns3 },
-      { title: "Tablica zespołu", url: "/team-board", icon: Users2 },
       { title: "Rutyny", url: "/routines", icon: RotateCcw },
     ],
   },

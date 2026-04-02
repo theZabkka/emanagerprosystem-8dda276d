@@ -126,7 +126,7 @@ const App = () => (
             <Route path="/messenger" element={<ProtectedRoute><Messenger /></ProtectedRoute>} />
             <Route path="/okr" element={<ProtectedRoute><OKR /></ProtectedRoute>} />
             <Route path="/operational" element={<ProtectedRoute><OperationalBoard /></ProtectedRoute>} />
-            <Route path="/team-board" element={<ProtectedRoute><TeamBoard /></ProtectedRoute>} />
+            <Route path="/team-board" element={<Navigate to="/tasks" replace />} />
             <Route path="/team/calendar" element={<ProtectedRoute><TeamCalendar /></ProtectedRoute>} />
             <Route path="/reports/time" element={<ProtectedRoute><TimeReports /></ProtectedRoute>} />
             <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
