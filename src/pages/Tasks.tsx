@@ -31,6 +31,7 @@ export default function Tasks() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [overdueFilter, setOverdueFilter] = useState(false);
   const [unassignedFilter, setUnassignedFilter] = useState(false);
+  const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
   const [autoOpenTaskId, setAutoOpenTaskId] = useState<string | null>(null);
 
   const isTerminalStatus = (status?: string | null) => ["done", "cancelled", "closed"].includes(status || "");
@@ -97,6 +98,10 @@ export default function Tasks() {
     if (statusFilter !== "all" && t.status !== statusFilter) return false;
     if (overdueFilter && (!t.due_date || t.due_date >= today)) return false;
     if (unassignedFilter && !isUnassignedAlertCandidate(t)) return false;
+    if (assigneeFilter !== "all") {
+      const assigned = (t.task_assignments || []).some((a: any) => a.user_id === assigneeFilter);
+      if (!assigned) return false;
+    }
     if (typeFilter === "parent") return !(t as any).parent_task_id && (tasks || []).some((mt: any) => mt.parent_task_id === t.id);
     if (typeFilter === "subtask") return !!(t as any).parent_task_id;
     if (typeFilter === "standalone") return !(t as any).parent_task_id && !(tasks || []).some((mt: any) => mt.parent_task_id === t.id);
@@ -130,6 +135,11 @@ export default function Tasks() {
     setOverdueFilter(false);
     setUnassignedFilter(true);
   };
+
+  const handlePersonDrillDown = useCallback((userId: string) => {
+    setAssigneeFilter(userId);
+    setKanbanMode("status");
+  }, []);
 
   const handleStatusChange = useCallback(async (taskId: string, newStatus: string) => {
     const queryKey = ["tasks", priorityFilter];
@@ -210,6 +220,7 @@ export default function Tasks() {
           sortField={sortField} onSortFieldChange={setSortField}
           sortDirection={sortDirection} onSortDirectionToggle={() => setSortDirection(d => d === "asc" ? "desc" : "asc")}
           kanbanMode={kanbanMode} onKanbanModeChange={setKanbanMode}
+          assigneeFilter={assigneeFilter} onAssigneeChange={setAssigneeFilter}
         />
 
         <CreateTaskDialog
@@ -227,6 +238,7 @@ export default function Tasks() {
               tasks={filteredTasks}
               onRefresh={refetch}
               priorityFilter={priorityFilter}
+              onPersonClick={handlePersonDrillDown}
             />
           ) : (
             <TaskKanbanBoard

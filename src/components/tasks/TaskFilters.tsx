@@ -2,7 +2,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Search, LayoutGrid, List, Layers, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Users2 } from "lucide-react";
+import { Plus, Search, LayoutGrid, List, Layers, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Users2, X } from "lucide-react";
+import { useStaffMembers } from "@/hooks/useStaffMembers";
 
 const priorityLabels: Record<string, string> = { critical: "Pilny", high: "Wysoki", medium: "Średni", low: "Niski" };
 
@@ -26,6 +27,8 @@ interface TaskFiltersProps {
   onSortDirectionToggle: () => void;
   kanbanMode?: KanbanMode;
   onKanbanModeChange?: (mode: KanbanMode) => void;
+  assigneeFilter?: string;
+  onAssigneeChange?: (value: string) => void;
 }
 
 const sortOptions: { value: SortField; label: string }[] = [
@@ -45,7 +48,10 @@ export function TaskFilters({
   sortField, onSortFieldChange,
   sortDirection, onSortDirectionToggle,
   kanbanMode = "status", onKanbanModeChange,
+  assigneeFilter = "all", onAssigneeChange,
 }: TaskFiltersProps) {
+  const { data: staffMembers = [] } = useStaffMembers();
+
   return (
     <div className="[&_svg]:pointer-events-none">
       <div className="relative mb-2">
@@ -62,6 +68,32 @@ export function TaskFilters({
               {Object.entries(priorityLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
             </SelectContent>
           </Select>
+
+          {onAssigneeChange && (
+            <div className="relative">
+              <Select value={assigneeFilter} onValueChange={onAssigneeChange}>
+                <SelectTrigger className={`w-[200px] h-9 text-sm ${assigneeFilter !== "all" ? "border-primary ring-1 ring-primary/30" : ""}`}>
+                  <SelectValue placeholder="Wszystkie osoby" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Wszystkie osoby</SelectItem>
+                  {staffMembers.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.full_name || "—"}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {assigneeFilter !== "all" && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onAssigneeChange("all"); }}
+                  className="absolute right-8 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors pointer-events-auto z-10"
+                  title="Wyczyść filtr"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          )}
 
           <Select value={typeFilter} onValueChange={onTypeChange}>
             <SelectTrigger className="w-[160px] h-9 text-sm"><SelectValue placeholder="Wszystkie typy" /></SelectTrigger>
