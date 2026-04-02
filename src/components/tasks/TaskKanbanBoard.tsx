@@ -687,7 +687,7 @@ const KanbanCard = React.memo(function KanbanCard({
             showAvatarInTrigger={false}
           />
         </div>
-        <div className="flex items-end gap-1">
+        <div className="flex items-end gap-1 flex-shrink-0">
           {task.estimated_time > 0 && task.logged_time > 0 && (
             <span className="flex items-center gap-0.5 text-[9px] text-muted-foreground">
               <Clock className="h-2 w-2" />
