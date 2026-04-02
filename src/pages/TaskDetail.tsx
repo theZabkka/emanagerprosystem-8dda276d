@@ -652,18 +652,14 @@ export default function TaskDetail() {
 
       {/* ═══ 3 COLUMN LAYOUT ═══ */}
       <div className={cn(
-        "flex border-t border-border mt-2",
-        "flex-col",
-        "md:flex-row md:flex-wrap",
-        "xl:flex-nowrap xl:h-[calc(100vh-80px)] xl:overflow-hidden"
+        "flex gap-0 border-t border-border mt-2",
+        isMobile ? "flex-col overflow-y-auto" : "h-[calc(100vh-80px)] overflow-hidden"
       )}>
 
         {/* ─── LEFT COLUMN: Control Panel ─── */}
         <div className={cn(
-          "border-border",
-          "w-full border-b",
-          "md:w-[30%] md:border-b-0 md:border-r md:max-h-[calc(100vh-80px)] md:overflow-y-auto md:min-h-0",
-          "xl:w-[26%] xl:min-w-[260px] xl:max-w-[340px] xl:h-full"
+          "border-r border-border",
+          isMobile ? "w-full border-r-0 border-b" : "w-[26%] min-w-[260px] max-w-[340px] h-full overflow-y-auto min-h-0"
         )}>
           <div className="p-4 space-y-4">
             {/* Breadcrumbs */}
@@ -972,13 +968,12 @@ export default function TaskDetail() {
 
         {/* ─── MIDDLE COLUMN: Workspace with Tabs ─── */}
         <div className={cn(
-          "w-full",
-          "md:flex-1 md:max-h-[calc(100vh-80px)] md:overflow-y-auto md:min-h-0",
-          "xl:h-full"
+          "flex-1",
+          isMobile ? "w-full" : "h-full overflow-y-auto min-h-0"
         )}>
           <div className="p-4">
             <Tabs defaultValue="description" className="w-full">
-              <TabsList className="w-full justify-start bg-muted/50 mb-4 overflow-x-auto whitespace-nowrap">
+              <TabsList className="w-full justify-start bg-muted/50 mb-4">
                 <TabsTrigger value="description" className="text-xs">Opis</TabsTrigger>
                 <TabsTrigger value="plan" className="text-xs">Plan działania</TabsTrigger>
                 <TabsTrigger value="materials" className="text-xs">Materiały</TabsTrigger>
@@ -1411,10 +1406,8 @@ export default function TaskDetail() {
 
         {/* ─── RIGHT COLUMN: Communication ─── */}
         <div className={cn(
-          "border-border flex flex-col",
-          "w-full border-t min-h-[400px]",
-          "md:w-full md:border-t md:border-l-0",
-          "xl:w-[30%] xl:min-w-[280px] xl:max-w-[400px] xl:h-full xl:min-h-0 xl:border-t-0 xl:border-l"
+          "border-l border-border flex flex-col",
+          isMobile ? "w-full border-l-0 border-t min-h-[400px]" : "w-[30%] min-w-[280px] max-w-[400px] h-full min-h-0"
         )}>
           {/* Toggle: Discussion / Logs */}
           <div className="px-4 pt-3 pb-2 border-b border-border shrink-0">
