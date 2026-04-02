@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
