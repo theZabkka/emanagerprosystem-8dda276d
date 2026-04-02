@@ -49,11 +49,14 @@ export default function CrmBoard() {
   const [editingColumnName, setEditingColumnName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
-  // New deal form
-  const [newDeal, setNewDeal] = useState({
-    title: "", column_id: "", due_date: "", client_id: "",
-    description: "", assigned_to: "", selectedLabels: [] as string[],
-  });
+  const emptyDeal = { title: "", column_id: "", due_date: "", client_id: "", description: "", assigned_to: "", selectedLabels: [] as string[] };
+  const [newDeal, setNewDeal] = useState(emptyDeal);
+
+  // Quick-add: open create modal with pre-filled column
+  const openCreateForColumn = (columnId: string) => {
+    setNewDeal({ ...emptyDeal, column_id: columnId });
+    setCreateOpen(true);
+  };
 
   // Fetch clients for picker
   const { data: clientsList = [] } = useQuery({
