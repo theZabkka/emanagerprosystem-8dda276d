@@ -1,29 +1,27 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useVerificationLock } from "@/hooks/useVerificationLock";
+import { useVerificationLock, useVerificationLockStore } from "@/hooks/useVerificationLock";
 
 export function VerificationSnoozeBanner() {
   const {
     hasPendingVerifications,
     isSnoozed,
-    snoozeRemainingMs,
     cancelSnooze,
     frozenTasks,
-    setActiveLockedTaskId,
     isExempt,
   } = useVerificationLock();
 
   const [countdown, setCountdown] = useState("");
 
   useEffect(() => {
-    if (!isSnoozed) return;
+    if (!isSnoozed) {
+      setCountdown("");
+      return;
+    }
 
     const tick = () => {
-      const remaining = Math.max(0, snoozeRemainingMs - (Date.now() - Date.now()));
-      // Recalculate from store
-      const store = (window as any).__vLockStore;
-      const snoozedUntil = store?.getState?.()?.snoozedUntil;
+      const snoozedUntil = useVerificationLockStore.getState().snoozedUntil;
       if (!snoozedUntil) {
         setCountdown("");
         return;
@@ -37,12 +35,12 @@ export function VerificationSnoozeBanner() {
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [isSnoozed, snoozeRemainingMs]);
+  }, [isSnoozed]);
 
   if (!hasPendingVerifications || !isSnoozed || isExempt) return null;
 
   return (
-    <div className="bg-yellow-500 text-yellow-950 px-4 py-2 flex items-center gap-3 text-sm font-medium z-50 relative">
+    <div className="bg-[hsl(45,100%,51%)] text-[hsl(45,100%,10%)] px-4 py-2 flex items-center gap-3 text-sm font-medium z-50 relative">
       <AlertTriangle className="h-4 w-4 shrink-0" />
       <span className="flex-1">
         Masz {frozenTasks.length} {frozenTasks.length === 1 ? "zaległe zadanie" : "zaległych zadań"} oczekujących na weryfikację. Możesz je sprawdzić w dowolnej chwili.{" "}
@@ -52,11 +50,8 @@ export function VerificationSnoozeBanner() {
       </span>
       <Button
         size="sm"
-        className="bg-yellow-900 hover:bg-yellow-800 text-yellow-50 h-7 text-xs"
-        onClick={() => {
-          cancelSnooze();
-          // The modal will re-appear automatically via isHardBlocked
-        }}
+        className="bg-[hsl(45,100%,10%)] hover:bg-[hsl(45,100%,15%)] text-[hsl(45,100%,90%)] h-7 text-xs"
+        onClick={cancelSnooze}
       >
         Zacznij Weryfikację
       </Button>
