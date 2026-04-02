@@ -42,8 +42,10 @@ function SnoozeBanner() {
       <div className="flex items-center gap-2">
         <AlertTriangle className="h-4 w-4 flex-shrink-0" />
         <span>
-          Masz zaległe zadania do weryfikacji. Zostaną wymuszone za{" "}
-          <strong className="tabular-nums">{secondsLeft}s</strong>.
+          Masz zaległe zadania do weryfikacji. Wymuszenie za{" "}
+          <strong className="tabular-nums">
+            {Math.floor(secondsLeft / 60).toString().padStart(2, "0")}:{(secondsLeft % 60).toString().padStart(2, "0")}
+          </strong>.
         </span>
       </div>
       <Button
