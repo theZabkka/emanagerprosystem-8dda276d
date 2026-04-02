@@ -26,7 +26,7 @@ const CrmBoard = lazy(() => import("./pages/CrmBoard"));
 const Messenger = lazy(() => import("./pages/Messenger"));
 const OKR = lazy(() => import("./pages/OKR"));
 const OperationalBoard = lazy(() => import("./pages/OperationalBoard"));
-const TeamBoard = lazy(() => import("./pages/TeamBoard"));
+// TeamBoard merged into Tasks page as "team" kanban mode
 const TeamCalendar = lazy(() => import("./pages/TeamCalendar"));
 const TimeReports = lazy(() => import("./pages/TimeReports"));
 const MyDay = lazy(() => import("./pages/MyDay"));
