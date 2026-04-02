@@ -972,8 +972,9 @@ export default function TaskDetail() {
 
         {/* ─── MIDDLE COLUMN: Workspace with Tabs ─── */}
         <div className={cn(
-          "flex-1",
-          isMobile ? "w-full" : "h-full overflow-y-auto min-h-0"
+          "w-full",
+          "md:flex-1 md:max-h-[calc(100vh-80px)] md:overflow-y-auto md:min-h-0",
+          "xl:h-full"
         )}>
           <div className="p-4">
             <Tabs defaultValue="description" className="w-full">
