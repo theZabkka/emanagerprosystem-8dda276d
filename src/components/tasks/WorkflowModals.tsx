@@ -1,11 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { AlertTriangle, ShieldCheck, HelpCircle } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { AlertTriangle, ShieldCheck, HelpCircle, Clock } from "lucide-react";
+import { statusLabels } from "@/lib/statusConfig";
 
 // Modal: Checklist not complete - blocks in_progress -> review
 export function ChecklistBlockModal({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
