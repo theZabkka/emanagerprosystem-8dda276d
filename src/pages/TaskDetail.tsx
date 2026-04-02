@@ -418,6 +418,26 @@ export default function TaskDetail() {
     queryClient.invalidateQueries({ queryKey: ["checklists", id] });
   }
 
+  async function addSubtask() {
+    if (!newSubtaskTitle.trim()) return;
+    const { error } = await supabase.from("subtasks").insert({ task_id: id!, title: newSubtaskTitle.trim() });
+    if (error) { toast.error(error.message); return; }
+    setNewSubtaskTitle("");
+    queryClient.invalidateQueries({ queryKey: ["subtasks", id] });
+    toast.success("Podzadanie dodane");
+  }
+
+  async function toggleSubtask(subtaskId: string, completed: boolean) {
+    await supabase.from("subtasks").update({ is_completed: !completed }).eq("id", subtaskId);
+    queryClient.invalidateQueries({ queryKey: ["subtasks", id] });
+  }
+
+  async function deleteSubtask(subtaskId: string) {
+    await supabase.from("subtasks").delete().eq("id", subtaskId);
+    queryClient.invalidateQueries({ queryKey: ["subtasks", id] });
+    toast.success("Podzadanie usunięte");
+  }
+
   async function uploadFile(file: File) {
     if (!user) return;
     const filePath = `${id}/${Date.now()}-${file.name}`;
