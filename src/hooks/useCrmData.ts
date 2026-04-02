@@ -65,7 +65,7 @@ export function useCrmDeals(archived = false) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("crm_deals" as any)
-        .select("*, profiles:assigned_to(full_name)")
+        .select("*, profiles:assigned_to(full_name), clients:client_id(id, name)")
         .eq("is_archived", archived)
         .order("lexo_rank");
       if (error) throw error;
