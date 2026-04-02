@@ -30,7 +30,8 @@ import {
   CheckCircle2, MessageCircle, History, AlertTriangle, Eye, Zap, ShieldCheck,
   Upload, Timer, UserPlus, Edit3, Bug, Lock, X, Trash2, HelpCircle, ArrowLeft, CalendarIcon, Building2
 } from "lucide-react";
-import { NotUnderstoodModal, ChecklistBlockModal, ResponsibilityModal } from "@/components/tasks/WorkflowModals";
+import { NotUnderstoodModal, ChecklistBlockModal } from "@/components/tasks/WorkflowModals";
+import { VerificationSendModal } from "@/components/tasks/VerificationSendModal";
 import { RejectionModal } from "@/components/tasks/RejectionModal";
 import { useRole } from "@/hooks/useRole";
 import { StatusTimeline } from "@/components/tasks/StatusTimeline";
@@ -93,7 +94,7 @@ export default function TaskDetail() {
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [notUnderstoodOpen, setNotUnderstoodOpen] = useState(false);
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
-  const [responsibilityOpen, setResponsibilityOpen] = useState(false);
+  const [verificationSendOpen, setVerificationSendOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const [clientReviewOpen, setClientReviewOpen] = useState(false);
   const [correctionSeverity, setCorrectionSeverity] = useState<"normal" | "critical">("normal");
@@ -250,10 +251,13 @@ export default function TaskDetail() {
       return;
     }
 
-    // Rule: review/corrections -> client_review requires responsibility confirmation
+    // Rule: review/corrections -> client_review requires time validation + combined modal
     if ((task.status === "review" || task.status === "corrections") && newStatus === "client_review") {
-      setPendingStatus(newStatus);
-      setResponsibilityOpen(true);
+      if (totalLogged <= 0) {
+        toast.error("Brak zalogowanego czasu. Musisz zalogować czas pracy przed wysłaniem zadania do klienta.");
+        return;
+      }
+      setVerificationSendOpen(true);
       return;
     }
 
@@ -727,13 +731,16 @@ export default function TaskDetail() {
 
         {/* Action buttons row */}
         <div className="flex flex-wrap items-center gap-2">
-          {!isClient && !isPreviewMode && task.status === "review" && (
+          {!isClient && !isPreviewMode && (task.status === "review" || task.status === "corrections") && (
             <Button
               size="sm"
               className="text-xs gap-1.5 bg-amber-500 hover:bg-amber-600 text-white"
               onClick={() => {
-                setPendingStatus("client_review");
-                setResponsibilityOpen(true);
+                if (totalLogged <= 0) {
+                  toast.error("Brak zalogowanego czasu. Musisz zalogować czas pracy przed wysłaniem zadania do klienta.");
+                  return;
+                }
+                setVerificationSendOpen(true);
               }}
             >
               <ShieldCheck className="h-3 w-3" />Do akceptacji klienta
@@ -1540,16 +1547,12 @@ export default function TaskDetail() {
         onConfirm={handleNotUnderstood}
       />
       <ChecklistBlockModal open={checklistBlockOpen} onOpenChange={setChecklistBlockOpen} />
-      <ResponsibilityModal
-        open={responsibilityOpen}
-        onOpenChange={setResponsibilityOpen}
-        onConfirm={async () => {
-          if (pendingStatus && task) {
-            await supabase.from("tasks").update({ accepted_responsibility_by: user?.id } as any).eq("id", task.id);
-            executeStatusChange(pendingStatus);
-            setPendingStatus(null);
-          }
-        }}
+      <VerificationSendModal
+        open={verificationSendOpen}
+        onOpenChange={setVerificationSendOpen}
+        taskId={task.id}
+        timeLogs={timeLogs || []}
+        totalMinutes={totalLogged}
       />
 
       {/* Reject from review modal — unified with Kanban */}
