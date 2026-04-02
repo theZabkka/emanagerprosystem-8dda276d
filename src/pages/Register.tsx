@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Search, ArrowLeft } from "lucide-react";
-import logoDark from "@/assets/logo-dark.png";
+import { ThemeLogo } from "@/components/ThemeLogo";
 
 const voivodeships = [
   "dolnośląskie", "kujawsko-pomorskie", "lubelskie", "lubuskie",
