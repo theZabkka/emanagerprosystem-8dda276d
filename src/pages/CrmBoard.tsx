@@ -234,7 +234,7 @@ export default function CrmBoard() {
     toast.success("Kolumna dodana");
   };
 
-
+  const handleRenameColumn = (id: string) => {
     if (!editingColumnName.trim()) return;
     mutations.updateColumn.mutate({ id, name: editingColumnName.trim() });
     setEditingColumnId(null);
