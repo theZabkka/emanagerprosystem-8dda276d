@@ -459,7 +459,7 @@ export default function TaskKanbanBoard({
                                   getAvatarColor={getAvatarColor}
                                   getWaitingTime={getWaitingTime}
                                   allProfiles={allProfiles || []}
-                                  onAssign={handleAssign}
+                                  onAssign={handleToggleAssign}
                                   onArchive={onArchive}
                                   onOpenDeleteModal={handleOpenDeleteModal}
                                   isSuperAdmin={isSuperAdmin}
