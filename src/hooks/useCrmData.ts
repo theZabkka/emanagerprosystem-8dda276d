@@ -269,6 +269,6 @@ export function useCrmMutations() {
 
   return {
     updateDealRank, updateColumnRank, createDeal, updateDeal, createColumn, updateColumn, deleteColumn,
-    archiveDeal, restoreDeal, toggleReminder, addComment, toggleLabel, createLabel,
+    archiveDeal, restoreDeal, toggleReminder, addComment, updateComment, deleteComment, toggleLabel, createLabel,
   };
 }
