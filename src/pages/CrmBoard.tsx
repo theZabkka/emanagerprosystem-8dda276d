@@ -291,7 +291,7 @@ export default function CrmBoard() {
                           <div
                             ref={colProv.innerRef}
                             {...colProv.draggableProps}
-                            className="w-[300px] flex-shrink-0 flex flex-col bg-secondary/50 rounded-xl border border-primary/20"
+                            className="w-[290px] flex-shrink-0 flex flex-col bg-muted/30 rounded-xl border border-border/40"
                           >
                             {/* Column header */}
                             <div
