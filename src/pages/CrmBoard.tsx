@@ -311,8 +311,8 @@ export default function CrmBoard() {
                                   />
                                 ) : (
                                   <div className="min-w-0 flex-1">
-                                    <h3 className="text-[10px] font-bold tracking-wide uppercase text-foreground leading-tight line-clamp-2">{col.name}</h3>
-                                    <span className="text-[10px] text-muted-foreground">{colDeals.length} kart</span>
+                                    <h3 className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground leading-tight line-clamp-2">{col.name}</h3>
+                                    <span className="text-[10px] text-muted-foreground/60">{colDeals.length}</span>
                                   </div>
                                 )}
                               </div>
