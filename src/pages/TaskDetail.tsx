@@ -732,6 +732,10 @@ export default function TaskDetail() {
               size="sm"
               className="text-xs gap-1.5 bg-amber-500 hover:bg-amber-600 text-white"
               onClick={() => {
+                if (!task.logged_time || task.logged_time <= 0) {
+                  toast.error("Brak zalogowanego czasu. Musisz zalogować czas pracy przed wysłaniem zadania do klienta.");
+                  return;
+                }
                 setPendingStatus("client_review");
                 setResponsibilityOpen(true);
               }}
