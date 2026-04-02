@@ -98,6 +98,10 @@ export default function Tasks() {
     if (statusFilter !== "all" && t.status !== statusFilter) return false;
     if (overdueFilter && (!t.due_date || t.due_date >= today)) return false;
     if (unassignedFilter && !isUnassignedAlertCandidate(t)) return false;
+    if (assigneeFilter !== "all") {
+      const assigned = (t.task_assignments || []).some((a: any) => a.user_id === assigneeFilter);
+      if (!assigned) return false;
+    }
     if (typeFilter === "parent") return !(t as any).parent_task_id && (tasks || []).some((mt: any) => mt.parent_task_id === t.id);
     if (typeFilter === "subtask") return !!(t as any).parent_task_id;
     if (typeFilter === "standalone") return !(t as any).parent_task_id && !(tasks || []).some((mt: any) => mt.parent_task_id === t.id);
