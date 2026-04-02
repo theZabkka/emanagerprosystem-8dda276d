@@ -72,7 +72,7 @@ export function CommPanel({ ctx }: { ctx: any }) {
                         <Badge variant="secondary" className="text-[8px] h-3.5 capitalize">{c.profiles.role}</Badge>
                       )}
                       {!isClient && isInternal && (
-                        <Lock className="h-2.5 w-2.5 text-amber-500" title="Wewnętrzny" />
+                        <span title="Wewnętrzny"><Lock className="h-2.5 w-2.5 text-amber-500" /></span>
                       )}
                       {!isClient && !isInternal && (
                         <Badge variant="outline" className="text-[8px] h-3.5">Klient</Badge>
