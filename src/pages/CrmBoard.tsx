@@ -521,7 +521,7 @@ export default function CrmBoard() {
   );
 }
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 
 // Helper hook: fetch labels for all visible deals in a single pass
 function useCrmLabelsForDeals(dealIds: string[]) {
