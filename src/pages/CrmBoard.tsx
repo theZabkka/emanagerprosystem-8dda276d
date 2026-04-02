@@ -40,7 +40,17 @@ export default function CrmBoard() {
   const [editingColumnName, setEditingColumnName] = useState("");
 
   // New deal form (no priority)
-  const [newDeal, setNewDeal] = useState({ title: "", column_id: "", due_date: "" });
+  const [newDeal, setNewDeal] = useState({ title: "", column_id: "", due_date: "", client_id: "" });
+
+  // Fetch clients for picker
+  const { data: clientsList = [] } = useQuery({
+    queryKey: ["clients-list-simple"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clients").select("id, name").order("name");
+      if (error) throw error;
+      return data as Array<{ id: string; name: string }>;
+    },
+  });
 
   // All labels for each deal
   const { data: allDealLabelsMap } = useCrmLabelsForDeals(deals.map(d => d.id));
@@ -172,12 +182,13 @@ export default function CrmBoard() {
       title: newDeal.title,
       column_id: newDeal.column_id,
       priority: "medium",
-      due_date: newDeal.due_date || undefined,
+      due_date: newDeal.due_date ? new Date(newDeal.due_date).toISOString() : undefined,
       lexo_rank: rank,
       reminder_active: true,
-    });
+      ...(newDeal.client_id ? { client_id: newDeal.client_id } : {}),
+    } as any);
     setCreateOpen(false);
-    setNewDeal({ title: "", column_id: "", due_date: "" });
+    setNewDeal({ title: "", column_id: "", due_date: "", client_id: "" });
     toast.success("Karta dodana");
   };
 
@@ -381,8 +392,18 @@ export default function CrmBoard() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Termin</Label>
-              <Input type="date" value={newDeal.due_date} onChange={(e) => setNewDeal({ ...newDeal, due_date: e.target.value })} />
+              <Label>Termin (data i godzina)</Label>
+              <Input type="datetime-local" value={newDeal.due_date} onChange={(e) => setNewDeal({ ...newDeal, due_date: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Klient</Label>
+              <Select value={newDeal.client_id || "__none__"} onValueChange={(v) => setNewDeal({ ...newDeal, client_id: v === "__none__" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="Wybierz klienta..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Brak</SelectItem>
+                  {clientsList.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <Button onClick={handleCreateDeal} className="w-full">Dodaj kartę</Button>
           </div>

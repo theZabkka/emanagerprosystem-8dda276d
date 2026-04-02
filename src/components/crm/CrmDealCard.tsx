@@ -56,7 +56,7 @@ export const CrmDealCard = memo(function CrmDealCard({ deal, labels, onReminderT
       {/* Date */}
       {deal.due_date && (
         <span className="text-[11px] text-muted-foreground">
-          {format(new Date(deal.due_date), "dd.MM")}
+          {format(new Date(deal.due_date), "dd.MM, HH:mm")}
         </span>
       )}
 
