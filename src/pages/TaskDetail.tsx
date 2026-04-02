@@ -30,7 +30,8 @@ import {
   CheckCircle2, MessageCircle, History, AlertTriangle, Eye, Zap, ShieldCheck,
   Upload, Timer, UserPlus, Edit3, Bug, Lock, X, Trash2, HelpCircle, ArrowLeft, CalendarIcon, Building2
 } from "lucide-react";
-import { NotUnderstoodModal, ChecklistBlockModal, ResponsibilityModal } from "@/components/tasks/WorkflowModals";
+import { NotUnderstoodModal, ChecklistBlockModal } from "@/components/tasks/WorkflowModals";
+import { VerificationSendModal } from "@/components/tasks/VerificationSendModal";
 import { RejectionModal } from "@/components/tasks/RejectionModal";
 import { useRole } from "@/hooks/useRole";
 import { StatusTimeline } from "@/components/tasks/StatusTimeline";
