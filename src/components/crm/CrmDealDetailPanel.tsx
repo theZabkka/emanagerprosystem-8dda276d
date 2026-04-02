@@ -57,7 +57,7 @@ export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
     title: "", description: "", due_date: "", assigned_to: "", client_id: "",
   });
 
-  const isAdmin = role === "superadmin" || role === "boss" || role === "admin" || role === "koordynator";
+  const isAdmin = currentRole === "superadmin" || currentRole === "boss" || currentRole === "admin" || currentRole === "koordynator";
   const currentUserId = session?.user.id;
 
   const startEdit = () => {
