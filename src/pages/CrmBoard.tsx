@@ -354,40 +354,38 @@ export default function CrmBoard() {
                             {/* Cards */}
                             <Droppable droppableId={col.id} type="CARD">
                               {(provided, snapshot) => (
-                                <ScrollArea className="flex-1">
-                                  <div
-                                    ref={provided.innerRef}
-                                    {...provided.droppableProps}
-                                    className={cn(
-                                      "p-2 space-y-2.5 min-h-[60px] transition-colors",
-                                      snapshot.isDraggingOver && "bg-accent/40"
-                                    )}
-                                  >
-                                    {colDeals.map((deal, idx) => (
-                                      <Draggable key={deal.id} draggableId={deal.id} index={idx}>
-                                        {(cardProv, cardSnap) => (
-                                          <div
-                                            ref={cardProv.innerRef}
-                                            {...cardProv.draggableProps}
-                                            {...cardProv.dragHandleProps}
-                                            className={cn(
-                                              "transition-transform",
-                                              cardSnap.isDragging && "opacity-90 rotate-1"
-                                            )}
-                                          >
-                                            <CrmDealCard
-                                              deal={deal}
-                                              labels={allDealLabelsMap?.[deal.id]}
-                                              onReminderToggle={(id, active) => mutations.toggleReminder.mutate({ id, active })}
-                                              onClick={() => setSelectedDeal(deal)}
-                                            />
-                                          </div>
-                                        )}
-                                      </Draggable>
-                                    ))}
-                                    {provided.placeholder}
-                                  </div>
-                                </ScrollArea>
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.droppableProps}
+                                  className={cn(
+                                    "flex-1 overflow-y-auto p-2 space-y-2.5 min-h-[60px] transition-colors",
+                                    snapshot.isDraggingOver && "bg-accent/40"
+                                  )}
+                                >
+                                  {colDeals.map((deal, idx) => (
+                                    <Draggable key={deal.id} draggableId={deal.id} index={idx}>
+                                      {(cardProv, cardSnap) => (
+                                        <div
+                                          ref={cardProv.innerRef}
+                                          {...cardProv.draggableProps}
+                                          {...cardProv.dragHandleProps}
+                                          className={cn(
+                                            "transition-transform",
+                                            cardSnap.isDragging && "opacity-90 rotate-1"
+                                          )}
+                                        >
+                                          <CrmDealCard
+                                            deal={deal}
+                                            labels={allDealLabelsMap?.[deal.id]}
+                                            onReminderToggle={(id, active) => mutations.toggleReminder.mutate({ id, active })}
+                                            onClick={() => setSelectedDeal(deal)}
+                                          />
+                                        </div>
+                                      )}
+                                    </Draggable>
+                                  ))}
+                                  {provided.placeholder}
+                                </div>
                               )}
                             </Droppable>
                           </div>
