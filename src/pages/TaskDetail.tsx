@@ -746,6 +746,11 @@ export default function TaskDetail() {
               <ShieldCheck className="h-3 w-3" />Do akceptacji klienta
             </Button>
           )}
+          {!isClient && !isPreviewMode && task.status === "review" && (
+            <Button variant="destructive" size="sm" className="text-xs gap-1.5" onClick={() => setRejectReviewOpen(true)}>
+              <AlertTriangle className="h-3 w-3" />Odrzuć (do poprawek)
+            </Button>
+          )}
           {!isClient && !isPreviewMode && (
             <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsPreviewMode(true)}><Eye className="h-3 w-3" />Zobacz jako klient</Button>
           )}
@@ -754,11 +759,6 @@ export default function TaskDetail() {
           {!isClient && !isPreviewMode && (task.status === "in_progress" || task.status === "todo") && !(task as any).is_misunderstood && (
             <Button variant="outline" size="sm" className="text-xs gap-1.5 border-amber-500/50 text-amber-600 hover:bg-amber-500/10" onClick={() => setNotUnderstoodOpen(true)}>
               <HelpCircle className="h-3 w-3" />Nie rozumiem polecenia
-            </Button>
-          )}
-          {!isClient && !isPreviewMode && task.status === "review" && (
-            <Button variant="outline" size="sm" className="text-xs gap-1.5 border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => setRejectReviewOpen(true)}>
-              <AlertTriangle className="h-3 w-3" />Odrzuć (do poprawek)
             </Button>
           )}
           {!isClient && !isPreviewMode && !["review", "client_review", "client_verified", "done", "closed", "cancelled"].includes(task.status || "") && (
@@ -785,7 +785,7 @@ export default function TaskDetail() {
               <CheckCircle2 className="h-3 w-3" />Przekaż do weryfikacji
             </Button>
           )}
-          {!isClient && !isPreviewMode && <Button size="sm" className="text-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={() => setIsChatOpen(true)}><MessageCircle className="h-3 w-3" />Czat zadania</Button>}
+          {!isClient && !isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5 border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => setIsChatOpen(true)}><MessageCircle className="h-3 w-3" />Czat zadania</Button>}
         </div>
 
         {/* Misunderstood task banner - hidden from clients */}
