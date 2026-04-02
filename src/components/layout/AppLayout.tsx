@@ -8,6 +8,7 @@ import { useRole } from "@/hooks/useRole";
 import { useRoutePrefetch } from "@/hooks/useRoutePrefetch";
 import { CoordinatorFreezeOverlay } from "@/components/tasks/CoordinatorFreezeOverlay";
 import { ProfileGatekeeper } from "./ProfileGatekeeper";
+import { VerificationBanner } from "./VerificationBanner";
 import { useVerificationLock } from "@/hooks/useVerificationLock";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -71,6 +72,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
         {isClient ? <ClientSidebar /> : <AppSidebar />}
         <div className="flex-1 flex flex-col min-w-0">
           <Topbar title={title} />
+          <VerificationBanner />
           <main className="flex-1 overflow-auto p-6 bg-background">
             {children}
           </main>
