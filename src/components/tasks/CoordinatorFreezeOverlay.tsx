@@ -174,7 +174,7 @@ export function CoordinatorFreezeOverlay() {
                     }}
                     className="gap-2"
                   >
-                    <Snooze className="h-4 w-4" />
+                    <TimerOff className="h-4 w-4" />
                     {isSnoozePending ? "Odkładanie..." : "Odłóż na 1h"}
                   </Button>
                 )}
