@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
@@ -5,7 +6,6 @@ import { useVerificationLock } from "@/hooks/useVerificationLock";
 import { AlertTriangle, Clock, ExternalLink, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
 
 export function CoordinatorFreezeOverlay() {
   const { user } = useAuth();
@@ -18,7 +18,6 @@ export function CoordinatorFreezeOverlay() {
     activeLockedTaskId,
     setActiveLockedTaskId,
     isExempt,
-    snoozeMutation,
   } = useVerificationLock();
 
   if (!user) return null;
@@ -87,16 +86,11 @@ export function CoordinatorFreezeOverlay() {
   if (activeLockedTaskId) {
     const isOnLockedTask = location.pathname === `/tasks/${activeLockedTaskId}`;
     if (isOnLockedTask) return null;
+    // If user somehow navigated away from locked task, show overlay again
+    // Reset activeLockedTaskId to show the full list
+    // Actually keep it set - the NavigationLock in AppLayout prevents navigation
     return null; // NavigationLock handles blocking
   }
-
-  const handleSnooze = (taskId: string) => {
-    snoozeMutation.mutate(taskId, {
-      onSuccess: () => {
-        toast.success("Weryfikacja odłożona na 1 godzinę.");
-      },
-    });
-  };
 
   // Full blocking overlay
   return (
@@ -159,32 +153,17 @@ export function CoordinatorFreezeOverlay() {
                 </div>
               )}
 
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => {
-                    setActiveLockedTaskId(t.id);
-                    navigate(`/tasks/${t.id}`);
-                  }}
-                  className="flex-1 gap-2"
-                  size="sm"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Przejdź do zadania i zweryfikuj
-                </Button>
-
-                {t.verification_snooze_count === 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    disabled={snoozeMutation.isPending}
-                    onClick={() => handleSnooze(t.id)}
-                  >
-                    <Clock className="h-4 w-4" />
-                    Odłóż na 1h
-                  </Button>
-                )}
-              </div>
+              <Button
+                onClick={() => {
+                  setActiveLockedTaskId(t.id);
+                  navigate(`/tasks/${t.id}`);
+                }}
+                className="w-full gap-2"
+                size="sm"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Przejdź do zadania i zweryfikuj
+              </Button>
             </div>
           ))}
         </div>

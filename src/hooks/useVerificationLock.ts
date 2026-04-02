@@ -1,10 +1,9 @@
 import { create } from "zustand";
 import { useEffect } from "react";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
-import { toast } from "sonner";
 
 const FREEZE_THRESHOLD_MS = 60 * 60 * 1000; // 60 min
 
@@ -26,8 +25,7 @@ export function useVerificationLock() {
 
   const isExempt = currentRole === "superadmin" || currentRole === "boss" || currentRole === "klient";
 
-  // Fetch ALL review tasks (for banner + freeze logic)
-  const { data: allReviewTasks = [], refetch } = useQuery({
+  const { data: frozenTasks = [], refetch } = useQuery({
     queryKey: ["verification-lock-tasks"],
     queryFn: async () => {
       const { data } = await supabase
@@ -37,7 +35,6 @@ export function useVerificationLock() {
           status_entered_at,
           tasks:task_id(
             id, title, priority, is_archived,
-            verification_snoozed_until, verification_snooze_count,
             clients:client_id(name),
             task_assignments(user_id, role, profiles:user_id(full_name))
           )
@@ -54,8 +51,6 @@ export function useVerificationLock() {
           is_archived: h.tasks?.is_archived,
           status_entered_at: h.status_entered_at,
           client_name: h.tasks?.clients?.name,
-          verification_snoozed_until: h.tasks?.verification_snoozed_until,
-          verification_snooze_count: h.tasks?.verification_snooze_count ?? 0,
           assignees: (h.tasks?.task_assignments || []).map((a: any) => ({
             name: a.profiles?.full_name || "Nieznany",
             role: a.role,
@@ -67,14 +62,8 @@ export function useVerificationLock() {
           return now - new Date(t.status_entered_at).getTime() >= FREEZE_THRESHOLD_MS;
         });
     },
-    refetchInterval: 60000, // check every 60s for snooze expiry
+    refetchInterval: 30000,
     enabled: !!user && !isExempt,
-  });
-
-  // frozenTasks = only those NOT snoozed (blocking tasks)
-  const frozenTasks = allReviewTasks.filter((t: any) => {
-    if (!t.verification_snoozed_until) return true; // not snoozed → blocks
-    return new Date(t.verification_snoozed_until).getTime() < Date.now(); // snooze expired → blocks
   });
 
   const hasPendingVerifications = !isExempt && frozenTasks.length > 0;
@@ -92,28 +81,6 @@ export function useVerificationLock() {
     }
   }, [frozenTasks, activeLockedTaskId, setActiveLockedTaskId]);
 
-  // Snooze mutation
-  const snoozeMutation = useMutation({
-    mutationFn: async (taskId: string) => {
-      const snoozeUntil = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-      const { error } = await supabase
-        .from("tasks")
-        .update({
-          verification_snoozed_until: snoozeUntil,
-          verification_snooze_count: 1,
-        } as any)
-        .eq("id", taskId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["verification-lock-tasks"] });
-      refetch();
-    },
-    onError: () => {
-      toast.error("Nie udało się odłożyć weryfikacji.");
-    },
-  });
-
   const refreshAfterVerification = async () => {
     await queryClient.invalidateQueries({ queryKey: ["verification-lock-tasks"] });
     await refetch();
@@ -122,11 +89,9 @@ export function useVerificationLock() {
   return {
     hasPendingVerifications,
     frozenTasks,
-    allReviewTasks,
     activeLockedTaskId,
     setActiveLockedTaskId,
     isExempt,
     refreshAfterVerification,
-    snoozeMutation,
   };
 }
