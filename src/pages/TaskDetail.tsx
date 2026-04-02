@@ -652,14 +652,18 @@ export default function TaskDetail() {
 
       {/* ═══ 3 COLUMN LAYOUT ═══ */}
       <div className={cn(
-        "flex gap-0 border-t border-border mt-2",
-        isMobile ? "flex-col overflow-y-auto" : "h-[calc(100vh-80px)] overflow-hidden"
+        "flex border-t border-border mt-2",
+        "flex-col",
+        "md:flex-row md:flex-wrap",
+        "xl:flex-nowrap xl:h-[calc(100vh-80px)] xl:overflow-hidden"
       )}>
 
         {/* ─── LEFT COLUMN: Control Panel ─── */}
         <div className={cn(
-          "border-r border-border",
-          isMobile ? "w-full border-r-0 border-b" : "w-[26%] min-w-[260px] max-w-[340px] h-full overflow-y-auto min-h-0"
+          "border-border",
+          "w-full border-b",
+          "md:w-[30%] md:border-b-0 md:border-r md:max-h-[calc(100vh-80px)] md:overflow-y-auto md:min-h-0",
+          "xl:w-[26%] xl:min-w-[260px] xl:max-w-[340px] xl:h-full"
         )}>
           <div className="p-4 space-y-4">
             {/* Breadcrumbs */}
