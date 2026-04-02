@@ -716,11 +716,6 @@ export default function TaskDetail() {
                   <AlertTriangle className="h-3 w-3" />Odrzuć
                 </Button>
               )}
-              {!isClient && !isPreviewMode && (
-                <Button variant="outline" size="sm" className="text-xs gap-1 h-7" onClick={() => setIsPreviewMode(true)}>
-                  <Eye className="h-3 w-3" />Podgląd
-                </Button>
-              )}
               {!isClient && !isPreviewMode && !["review", "client_review", "client_verified", "done", "closed", "cancelled"].includes(task.status || "") && (
                 <Button variant="outline" size="sm" className="text-xs gap-1 h-7 border-emerald-500/50 text-emerald-600 hover:bg-emerald-500/10"
                   onClick={async () => {
