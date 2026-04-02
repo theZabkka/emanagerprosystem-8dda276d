@@ -203,6 +203,15 @@ export default function TaskDetail() {
     enabled: !!id,
   });
 
+  const { data: subtasks } = useQuery({
+    queryKey: ["subtasks", id],
+    queryFn: async () => {
+      const { data } = await supabase.from("subtasks").select("*, profiles:assigned_to(full_name)").eq("task_id", id!).order("created_at");
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
   // Real-time
   useEffect(() => {
     if (!id) return;
