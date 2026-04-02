@@ -8,6 +8,7 @@ import { useRole } from "@/hooks/useRole";
 import { useRoutePrefetch } from "@/hooks/useRoutePrefetch";
 import { CoordinatorFreezeOverlay } from "@/components/tasks/CoordinatorFreezeOverlay";
 import { ProfileGatekeeper } from "./ProfileGatekeeper";
+import { VerificationBanner } from "./VerificationBanner";
 import { useVerificationLock } from "@/hooks/useVerificationLock";
 import { useLocation, useNavigate } from "react-router-dom";
 
