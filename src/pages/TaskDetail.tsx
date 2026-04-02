@@ -1287,8 +1287,6 @@ export default function TaskDetail() {
                     currentStatus={task?.status || "new"}
                     taskId={id}
                   />
-
-                  {/* Time comparison */}
                   <Card>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-semibold">Czas: Estymacja vs Rzeczywistość</CardTitle>
@@ -1315,6 +1313,89 @@ export default function TaskDetail() {
                           <Progress value={Math.min((totalLogged / task.estimated_time) * 100, 100)} className="h-2" />
                         </div>
                       )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              )}
+
+              {/* TAB 6: Client Preview */}
+              {!isClient && (
+                <TabsContent value="preview" className="space-y-4 mt-0">
+                  <div className="flex items-center gap-2 bg-orange-500/10 border border-orange-500/30 rounded-lg px-4 py-3 mb-4">
+                    <Eye className="h-4 w-4 text-orange-600" />
+                    <span className="text-sm font-medium text-orange-700 dark:text-orange-400">Podgląd — tak widzi to klient</span>
+                  </div>
+                  <DescriptionCard
+                    description={task.description}
+                    taskId={task.id}
+                    canEdit={false}
+                    onSaved={() => {}}
+                  />
+                  {briefFilledCount > 0 && (
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-semibold">Brief zadania</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid gap-2">
+                          {briefFields.map(f => {
+                            const val = (task as any)[f.key];
+                            if (!val) return null;
+                            return (
+                              <div key={f.key}>
+                                <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">{f.label}</Label>
+                                <p className="text-sm">{val}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  {(() => {
+                    const clientMaterials = (materials || []).filter((m: any) => m.is_visible_to_client);
+                    if (clientMaterials.length === 0) return null;
+                    return (
+                      <Card>
+                        <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Materiały</CardTitle></CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            {clientMaterials.map((m: any) => (
+                              <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer"
+                                className="flex items-center gap-2 text-sm text-primary hover:underline">
+                                {m.type === "link" ? <LinkIcon className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
+                                {m.name}
+                              </a>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })()}
+                  {/* Client-visible comments */}
+                  <Card>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Komentarze</CardTitle></CardHeader>
+                    <CardContent>
+                      {(() => {
+                        const clientComments = (comments || []).filter((c: any) => c.type !== "internal");
+                        if (clientComments.length === 0) return <p className="text-sm text-muted-foreground">Brak komentarzy widocznych dla klienta.</p>;
+                        return (
+                          <div className="space-y-3">
+                            {[...clientComments].reverse().map((c: any) => (
+                              <div key={c.id} className="flex gap-2">
+                                <Avatar className="h-6 w-6 shrink-0"><AvatarFallback className="text-[9px] bg-primary/10 text-primary font-bold">{(c.profiles?.full_name || "?").split(" ").map((n: string) => n[0]).join("")}</AvatarFallback></Avatar>
+                                <div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs font-medium">{c.profiles?.full_name || "?"}</span>
+                                    <span className="text-[10px] text-muted-foreground">{new Date(c.created_at).toLocaleString("pl-PL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
+                                  </div>
+                                  <p className="text-sm mt-0.5 whitespace-pre-wrap">{c.content}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </CardContent>
                   </Card>
                 </TabsContent>
