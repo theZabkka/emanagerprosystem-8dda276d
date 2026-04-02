@@ -94,7 +94,7 @@ export default function TaskDetail() {
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [notUnderstoodOpen, setNotUnderstoodOpen] = useState(false);
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
-  const [responsibilityOpen, setResponsibilityOpen] = useState(false);
+  const [verificationSendOpen, setVerificationSendOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const [clientReviewOpen, setClientReviewOpen] = useState(false);
   const [correctionSeverity, setCorrectionSeverity] = useState<"normal" | "critical">("normal");
