@@ -230,6 +230,22 @@ export function useCrmMutations() {
     onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ["crm-deal-comments", vars.deal_id] }),
   });
 
+  const updateComment = useMutation({
+    mutationFn: async ({ id, content }: { id: string; content: string }) => {
+      const { error } = await supabase.from("crm_deal_comments" as any).update({ content } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-deal-comments"] }),
+  });
+
+  const deleteComment = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("crm_deal_comments" as any).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-deal-comments"] }),
+  });
+
   const toggleLabel = useMutation({
     mutationFn: async ({ deal_id, label_id, attach }: { deal_id: string; label_id: string; attach: boolean }) => {
       if (attach) {
