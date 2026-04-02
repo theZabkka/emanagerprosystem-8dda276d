@@ -60,7 +60,7 @@ export function ClientNotesCard({ clientId, onShowAll }: ClientNotesCardProps) {
     enabled: !!clientId,
   });
 
-  import { useStaffMembers } from "@/hooks/useStaffMembers";
+  
 
   // ...
 
