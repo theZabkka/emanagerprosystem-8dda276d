@@ -46,12 +46,12 @@ export function MiddleTabs({ ctx }: { ctx: any }) {
 
   return (
     <Tabs defaultValue="description" className="h-full flex flex-col">
-      <TabsList className="w-full justify-start overflow-x-auto shrink-0 bg-muted/50 rounded-none border-b h-9">
-        <TabsTrigger value="description" className="text-[11px] px-3 py-1 data-[state=active]:bg-background">Opis i Brief</TabsTrigger>
-        <TabsTrigger value="execution" className="text-[11px] px-3 py-1 data-[state=active]:bg-background">Realizacja</TabsTrigger>
-        {showTimeTab && <TabsTrigger value="time" className="text-[11px] px-3 py-1 data-[state=active]:bg-background">Czas pracy</TabsTrigger>}
-        <TabsTrigger value="materials" className="text-[11px] px-3 py-1 data-[state=active]:bg-background">Materiały</TabsTrigger>
-        {showHistoryTab && <TabsTrigger value="history" className="text-[11px] px-3 py-1 data-[state=active]:bg-background">Historia</TabsTrigger>}
+      <TabsList className="w-full justify-start overflow-x-auto shrink-0 bg-transparent rounded-none border-b border-border h-9 gap-1 p-0">
+        <TabsTrigger value="description" className="text-[11px] px-3 py-1 rounded-none border-b-2 border-transparent text-muted-foreground hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-destructive data-[state=active]:border-destructive data-[state=active]:shadow-none">Opis i Brief</TabsTrigger>
+        <TabsTrigger value="execution" className="text-[11px] px-3 py-1 rounded-none border-b-2 border-transparent text-muted-foreground hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-destructive data-[state=active]:border-destructive data-[state=active]:shadow-none">Realizacja</TabsTrigger>
+        {showTimeTab && <TabsTrigger value="time" className="text-[11px] px-3 py-1 rounded-none border-b-2 border-transparent text-muted-foreground hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-destructive data-[state=active]:border-destructive data-[state=active]:shadow-none">Czas pracy</TabsTrigger>}
+        <TabsTrigger value="materials" className="text-[11px] px-3 py-1 rounded-none border-b-2 border-transparent text-muted-foreground hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-destructive data-[state=active]:border-destructive data-[state=active]:shadow-none">Materiały</TabsTrigger>
+        {showHistoryTab && <TabsTrigger value="history" className="text-[11px] px-3 py-1 rounded-none border-b-2 border-transparent text-muted-foreground hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-destructive data-[state=active]:border-destructive data-[state=active]:shadow-none">Historia</TabsTrigger>}
       </TabsList>
 
       <div className="flex-1 overflow-y-auto p-3 lg:p-4">
