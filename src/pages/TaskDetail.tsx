@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -28,7 +29,8 @@ import { Calendar } from "@/components/ui/calendar";
 import {
   ChevronRight, Plus, Send, Clock, Play, FileText, Link as LinkIcon,
   CheckCircle2, MessageCircle, History, AlertTriangle, Eye, Zap, ShieldCheck,
-  Upload, Timer, UserPlus, Edit3, Bug, Lock, X, Trash2, HelpCircle, ArrowLeft, CalendarIcon, Building2
+  Upload, Timer, UserPlus, Edit3, Bug, Lock, X, Trash2, HelpCircle, ArrowLeft, CalendarIcon, Building2,
+  PanelRightClose, Activity
 } from "lucide-react";
 import { NotUnderstoodModal, ChecklistBlockModal } from "@/components/tasks/WorkflowModals";
 import { VerificationSendModal } from "@/components/tasks/VerificationSendModal";
@@ -41,6 +43,7 @@ import { useTimerStore } from "@/hooks/useTimerStore";
 import { useVerificationLock } from "@/hooks/useVerificationLock";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const priorityLabels: Record<string, string> = { critical: "PILNY", high: "WYSOKI", medium: "ŚREDNI", low: "NISKI" };
 const priorityColors: Record<string, string> = {
@@ -73,12 +76,36 @@ function linkifyText(text: string): React.ReactNode[] {
   );
 }
 
+// ─── AvatarGroup ───────────────────────────────────────────────────
+function AvatarGroup({ assignments, max = 3 }: { assignments: any[]; max?: number }) {
+  const visible = assignments.slice(0, max);
+  const remaining = assignments.length - max;
+
+  return (
+    <div className="flex items-center -space-x-2">
+      {visible.map((a: any) => (
+        <Avatar key={a.user_id} className="h-7 w-7 border-2 border-background">
+          <AvatarFallback className="text-[9px] bg-primary/10 text-primary font-bold">
+            {a.profiles?.full_name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2) || "?"}
+          </AvatarFallback>
+        </Avatar>
+      ))}
+      {remaining > 0 && (
+        <div className="h-7 w-7 rounded-full border-2 border-background bg-muted flex items-center justify-center">
+          <span className="text-[9px] font-bold text-muted-foreground">+{remaining}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Demo state store (mutable for demo interactivity) ────────────
 export default function TaskDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { isClient, currentRole } = useRole();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [commentText, setCommentText] = useState("");
   const [commentType, setCommentType] = useState("internal");
   const [commentFilter, setCommentFilter] = useState("all");
@@ -109,12 +136,13 @@ export default function TaskDetail() {
   const [isSavingTitle, setIsSavingTitle] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const { refreshAfterVerification } = useVerificationLock();
+  const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState<"discussion" | "activity">("discussion");
 
   // ─── Queries ─────────────────────────────────────────────────────
   const { data: task, isLoading } = useQuery({
     queryKey: ["task", id],
     queryFn: async () => {
-
       const { data, error } = await supabase.from("tasks").select("*, clients(name), projects(name)").eq("id", id!).single();
       if (error) throw error;
       return data;
@@ -140,7 +168,6 @@ export default function TaskDetail() {
   });
 
   const { data: allProfiles } = useStaffMembers();
-
 
   const { data: comments } = useQuery({
     queryKey: ["comments", id],
@@ -187,7 +214,6 @@ export default function TaskDetail() {
     enabled: !!id,
   });
 
-  // Corrections
   const { data: corrections } = useQuery({
     queryKey: ["task-corrections", id],
     queryFn: async () => {
@@ -207,7 +233,6 @@ export default function TaskDetail() {
     const channel = supabase
       .channel(`task-${id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "comments", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["comments", id] }))
-      .on("postgres_changes", { event: "*", schema: "public", table: "comments", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["comments", id] }))
       .on("postgres_changes", { event: "*", schema: "public", table: "time_logs", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["time-logs", id] }))
       .on("postgres_changes", { event: "*", schema: "public", table: "task_status_history", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["status-history", id] }))
       .on("postgres_changes", { event: "*", schema: "public", table: "task_assignments", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["task-assignments", id] }))
@@ -218,23 +243,17 @@ export default function TaskDetail() {
     return () => { supabase.removeChannel(channel); };
   }, [id, queryClient]);
 
-  // Persistent timer via localStorage
   const timer = useTimerStore(id);
 
   // ─── Actions ─────────────────────────────────────────────────────
 
-  // 1. Status change with workflow validation
   async function handleStatusChange(newStatus: string) {
     if (!task || newStatus === task.status) return;
-
-    // Rule: unassigned tasks cannot change status
     const taskAssigns = assignments || [];
     if (taskAssigns.length === 0) {
       toast.error("Nie można zmienić statusu! Przypisz najpierw osobę do tego zadania.");
       return;
     }
-
-    // Rule: in_progress -> review requires complete checklist
     if (task.status === "in_progress" && newStatus === "review") {
       const allComplete = checklists?.every((cl: any) =>
         (cl.items || []).length === 0 || (cl.items || []).every((i: any) => i.is_completed || i.is_na)
@@ -244,14 +263,10 @@ export default function TaskDetail() {
         return;
       }
     }
-
-    // Rule: client_review only from review or corrections
     if (newStatus === "client_review" && task.status !== "review" && task.status !== "corrections") {
       toast.error("Zadanie może trafić do akceptacji klienta tylko ze statusu Weryfikacja lub Poprawki");
       return;
     }
-
-    // Rule: review/corrections -> client_review requires time validation + combined modal
     if ((task.status === "review" || task.status === "corrections") && newStatus === "client_review") {
       if (totalLogged <= 0) {
         toast.error("Brak zalogowanego czasu. Musisz zalogować czas pracy przed wysłaniem zadania do klienta.");
@@ -260,14 +275,11 @@ export default function TaskDetail() {
       setVerificationSendOpen(true);
       return;
     }
-
     await executeStatusChange(newStatus);
   }
 
   async function executeStatusChange(newStatus: string) {
     if (!task) return;
-
-    // Auto-stop timer when closing/cancelling
     if ((newStatus === "closed" || newStatus === "cancelled" || newStatus === "done") && timer.isRunning) {
       const totalSecs = timer.stop();
       if (totalSecs >= 60) {
@@ -275,7 +287,6 @@ export default function TaskDetail() {
         await logTime(minutes);
       }
     }
-
     const { error } = await supabase.rpc("change_task_status", {
       _task_id: task.id,
       _new_status: newStatus as any,
@@ -288,7 +299,6 @@ export default function TaskDetail() {
     toast.success(`Status zmieniony na ${statusLabels[newStatus]}`);
   }
 
-  // "Not understood" / "Misunderstood" handler
   async function handleNotUnderstood(reason: string) {
     if (!task || !user) return;
     await supabase.from("tasks").update({
@@ -298,7 +308,6 @@ export default function TaskDetail() {
       misunderstood_by: user.id,
       misunderstood_reason: reason || null,
     } as any).eq("id", task.id);
-    // Log to activity_log
     await supabase.from("activity_log").insert({
       user_id: user.id,
       action: "misunderstood_reported",
@@ -307,7 +316,6 @@ export default function TaskDetail() {
       entity_name: task.title,
       details: { reason: reason || null },
     });
-    // Add a comment about the confusion
     if (reason.trim()) {
       await supabase.from("comments").insert({
         task_id: task.id, user_id: user.id, content: `❓ Nie rozumiem polecenia: ${reason}`, type: "internal",
@@ -327,7 +335,6 @@ export default function TaskDetail() {
       misunderstood_by: null,
       misunderstood_reason: null,
     } as any).eq("id", task.id);
-    // Log to activity_log
     await supabase.from("activity_log").insert({
       user_id: user.id,
       action: "misunderstood_resolved",
@@ -339,7 +346,6 @@ export default function TaskDetail() {
     toast.success("Oznaczono jako wyjaśnione");
   }
 
-  // Client accept task
   async function handleClientAccept() {
     if (!task) return;
     const { error } = await supabase.rpc("change_task_status", {
@@ -352,13 +358,11 @@ export default function TaskDetail() {
     toast.success("Zadanie zaakceptowane!");
   }
 
-  // Client reject task (request corrections)
   async function handleClientReject() {
     if (!task || !correctionText.trim()) { toast.error("Opisz co wymaga poprawki"); return; }
     await supabase.from("task_corrections").insert({
       task_id: task.id, created_by: user?.id, severity: correctionSeverity, description: correctionText,
     });
-    // Update task status + correction severity directly, then use RPC for status transition
     await supabase.from("tasks").update({ correction_severity: correctionSeverity } as any).eq("id", task.id);
     const { error } = await supabase.rpc("change_task_status", {
       _task_id: task.id, _new_status: "corrections" as any, _changed_by: user?.id!,
@@ -374,13 +378,9 @@ export default function TaskDetail() {
     toast.success("Poprawki zgłoszone");
   }
 
-  // Staff reject from review -> corrections (unified with Kanban)
   async function handleRejectFromReview(category: string, comment: string) {
     if (!task || !user?.id) return;
-
     const primaryAssign = (assignments || []).find((a: any) => a.role === "primary");
-
-    // 1. Insert rejection analytics record
     await supabase.from("task_rejections").insert({
       task_id: task.id,
       project_id: task.project_id || null,
@@ -389,8 +389,6 @@ export default function TaskDetail() {
       reason_category: category,
       comment: comment || null,
     } as any);
-
-    // 2. Add comment with rejection reason
     const commentContent = `🔴 Odrzucono: [${category}]${comment ? ` — ${comment}` : ""}`;
     await supabase.from("comments").insert({
       task_id: task.id,
@@ -398,8 +396,6 @@ export default function TaskDetail() {
       content: commentContent,
       type: "internal",
     });
-
-    // 3. Change status to corrections
     const { error } = await supabase.rpc("change_task_status", {
       _task_id: task.id,
       _new_status: "corrections" as any,
@@ -415,7 +411,6 @@ export default function TaskDetail() {
     toast.success("Zadanie odrzucone — przeniesiono do POPRAWEK");
   }
 
-  // 2. Brief editing
   function openBriefEditor() {
     if (!task) return;
     const form: Record<string, string> = {};
@@ -433,7 +428,6 @@ export default function TaskDetail() {
     toast.success("Brief zapisany");
   }
 
-  // 3. Assignments
   async function addAssignment(userId: string, role: string = "collaborator") {
     const { error } = await supabase.from("task_assignments").insert({ task_id: id!, user_id: userId, role: role as any });
     if (error) { toast.error(error.message); return; }
@@ -447,11 +441,8 @@ export default function TaskDetail() {
     toast.success("Osoba usunięta");
   }
 
-
-  // 5. Checklists
   async function addChecklist() {
     if (!newChecklistName.trim()) return;
-
     const { error } = await supabase.from("checklists").insert({ task_id: id!, title: newChecklistName });
     if (error) { toast.error(error.message); return; }
     setNewChecklistName("");
@@ -462,7 +453,6 @@ export default function TaskDetail() {
   async function addChecklistItem(checklistId: string) {
     const text = newChecklistItemTexts[checklistId]?.trim();
     if (!text) return;
-
     await supabase.from("checklist_items").insert({ checklist_id: checklistId, title: text });
     queryClient.invalidateQueries({ queryKey: ["checklists", id] });
     setNewChecklistItemTexts(prev => ({ ...prev, [checklistId]: "" }));
@@ -473,9 +463,7 @@ export default function TaskDetail() {
     queryClient.invalidateQueries({ queryKey: ["checklists", id] });
   }
 
-  // 6. Materials
   async function uploadFile(file: File) {
-
     if (!user) return;
     const filePath = `${id}/${Date.now()}-${file.name}`;
     const { error: uploadError } = await supabase.storage.from("task_materials").upload(filePath, file);
@@ -490,7 +478,6 @@ export default function TaskDetail() {
 
   async function addLinkMaterial() {
     if (!linkName.trim() || !linkUrl.trim()) return;
-
     if (!user) return;
     await supabase.from("task_materials").insert({
       task_id: id!, name: linkName, type: "link", url: linkUrl, uploaded_by: user.id,
@@ -513,10 +500,8 @@ export default function TaskDetail() {
     toast.success(visible ? "Materiał widoczny dla klienta" : "Materiał ukryty przed klientem");
   }
 
-  // 7. Time logging
   async function logTime(minutes: number) {
     if (minutes <= 0) return;
-
     if (!user) return;
     const { error } = await supabase.from("time_logs").insert({ task_id: id!, user_id: user.id, duration: minutes });
     if (error) { toast.error(error.message); return; }
@@ -538,10 +523,8 @@ export default function TaskDetail() {
     await logTime(minutes);
   }
 
-  // 8. Comments
   async function addComment() {
     if (!commentText.trim()) return;
-
     if (!user) return;
     const { error } = await supabase.from("comments").insert({ task_id: id!, user_id: user.id, content: commentText, type: commentType });
     if (error) { toast.error(error.message); return; }
@@ -559,8 +542,6 @@ export default function TaskDetail() {
     toast.success("Wiadomość wysłana");
   }
 
-  // (toggleClientVisible removed — visibility is now controlled by status)
-
   function formatTimer(s: number) {
     const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); const sec = s % 60;
     return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
@@ -573,7 +554,6 @@ export default function TaskDetail() {
     return m > 0 ? `${h}h ${m}min` : `${h}h`;
   }
 
-  // ─── Inline edit: Priority & Deadline ─────────────────────────────
   const canEditInline = !isClient && !isPreviewMode;
 
   async function handleClientChange(newClientId: string | null) {
@@ -617,7 +597,6 @@ export default function TaskDetail() {
     toast.success(newDate ? `Termin ustawiony na ${format(newDate, "dd.MM.yyyy")}` : "Termin usunięty");
   }
 
-
   const briefFilledCount = useMemo(() => {
     if (!task) return 0;
     return briefFields.filter(f => (task as any)[f.key]).length;
@@ -642,35 +621,200 @@ export default function TaskDetail() {
   if (isLoading) return <AppLayout title="Zadanie"><div className="p-8 text-muted-foreground">Ładowanie...</div></AppLayout>;
   if (!task) return <AppLayout title="Zadanie"><div className="p-8 text-muted-foreground">Nie znaleziono zadania.</div></AppLayout>;
 
-  // Show assignment overlay for unassigned tasks (staff only, not client)
   const showAssignOverlay = hasNoAssignment && !isClient && !isPreviewMode;
+  const isWideScreen = !isMobile; // We'll use CSS for the 1280px breakpoint
+
+  // ─── Comments section (reusable for both inline & sheet) ────────
+  const commentsContent = (
+    <div className="flex flex-col h-full">
+      {/* Filter tabs */}
+      <div className="flex items-center gap-1 p-3 border-b border-border shrink-0">
+        <button
+          onClick={() => setRightPanelTab("discussion")}
+          className={cn(
+            "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+            rightPanelTab === "discussion" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"
+          )}
+        >
+          <MessageCircle className="h-3 w-3 inline mr-1" />Dyskusja
+        </button>
+        <button
+          onClick={() => setRightPanelTab("activity")}
+          className={cn(
+            "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+            rightPanelTab === "activity" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"
+          )}
+        >
+          <Activity className="h-3 w-3 inline mr-1" />Aktywność
+        </button>
+        {!isPreviewMode && !isClient && (
+          <div className="ml-auto flex gap-1">
+            {["all", "internal", "client"].map(f => (
+              <Button key={f} variant={commentFilter === f ? "default" : "ghost"} size="sm" className="text-[10px] h-6 px-2"
+                onClick={() => setCommentFilter(f)}>
+                {f === "all" ? "Wszystkie" : f === "internal" ? "Wewnętrzne" : "Klient"}
+              </Button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Comments / Activity list */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-3 scrollbar-thin">
+        {rightPanelTab === "discussion" ? (
+          <>
+            {(() => {
+              let displayComments = filteredComments;
+              if (isClient) {
+                displayComments = (comments || []).filter((c: any) => c.type !== "internal");
+              } else if (isPreviewMode) {
+                displayComments = filteredComments.filter((c: any) => c.type !== "internal");
+              }
+              return displayComments.length > 0 ? displayComments.map((c: any) => (
+                <div key={c.id} className="space-y-1.5">
+                  <div className="flex gap-2.5">
+                    <Avatar className="h-6 w-6 mt-0.5 shrink-0">
+                      <AvatarFallback className="text-[9px] bg-primary/10 text-primary font-bold">
+                        {(c.profiles?.full_name || "?").split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-semibold">{c.profiles?.full_name || "?"}</span>
+                        {!isClient && c.profiles?.role && (
+                          <Badge variant="secondary" className="text-[8px] h-3.5 capitalize px-1">{c.profiles.role}</Badge>
+                        )}
+                        {!isClient && (
+                          <Badge variant={c.type === "client" ? "default" : "outline"} className="text-[8px] h-3.5 px-1">
+                            {c.type === "client" ? "Klient" : "Wew."}
+                          </Badge>
+                        )}
+                        <span className="text-[10px] text-muted-foreground ml-auto">{new Date(c.created_at).toLocaleString("pl-PL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
+                      </div>
+                      <p className="text-sm mt-0.5">{c.content}</p>
+                      {c.client_reply && (
+                        <div className="mt-1.5 bg-primary/5 border border-primary/20 rounded-md px-2.5 py-1.5">
+                          <p className="text-[10px] font-semibold text-primary uppercase mb-0.5">Odpowiedź klienta</p>
+                          <p className="text-xs">{c.client_reply}</p>
+                        </div>
+                      )}
+                      {isClient && c.requires_client_reply && !c.client_reply && (
+                        <ClientReplyInput commentId={c.id} taskId={id!} />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )) : (
+                <p className="text-xs text-muted-foreground py-6 text-center">Brak komentarzy.</p>
+              );
+            })()}
+          </>
+        ) : (
+          /* Activity tab - show status history + corrections */
+          <div className="space-y-3">
+            {statusHistory && statusHistory.length > 0 ? (
+              [...statusHistory].reverse().map((h: any) => (
+                <div key={h.id} className="flex items-start gap-2 text-xs">
+                  <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <Clock className="h-2.5 w-2.5 text-primary/60" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <Badge className={`text-[8px] ${statusColors[h.old_status] || "bg-muted"}`}>
+                        {statusLabels[h.old_status] || h.old_status || "—"}
+                      </Badge>
+                      <span className="text-muted-foreground">→</span>
+                      <Badge className={`text-[8px] ${statusColors[h.new_status] || "bg-muted"}`}>
+                        {statusLabels[h.new_status] || h.new_status}
+                      </Badge>
+                    </div>
+                    <p className="text-muted-foreground mt-0.5">
+                      {h.profiles?.full_name || "?"} • {new Date(h.created_at).toLocaleString("pl-PL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                    {h.note && <p className="text-muted-foreground italic mt-0.5">{h.note}</p>}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-muted-foreground py-6 text-center">Brak aktywności.</p>
+            )}
+            {corrections && corrections.length > 0 && (
+              <div className="pt-2 border-t border-border space-y-2">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Poprawki</p>
+                {corrections.map((c: any) => (
+                  <div key={c.id} className={cn(
+                    "rounded-md border p-2 text-xs space-y-1",
+                    c.severity === "critical" ? "border-destructive/40 bg-destructive/5" : "border-amber-400/40 bg-amber-500/5"
+                  )}>
+                    <div className="flex items-center gap-1.5">
+                      <Badge className={cn("text-[8px]", c.severity === "critical" ? "bg-destructive text-destructive-foreground" : "bg-amber-500/15 text-amber-700 border-amber-400/40")}>
+                        {c.severity === "critical" ? "KRYTYCZNE" : "Drobne"}
+                      </Badge>
+                      <span className="text-[10px] text-muted-foreground ml-auto">{new Date(c.created_at).toLocaleString("pl-PL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
+                    </div>
+                    <p>{c.description}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Sticky comment input at bottom */}
+      {!isPreviewMode && (
+        <div className="border-t border-border p-3 shrink-0 bg-background">
+          {!isClient ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <Checkbox id="internal-comment-panel" checked={commentType === "internal"} onCheckedChange={(v) => setCommentType(v ? "internal" : "client")} className="h-3.5 w-3.5" />
+                  <Label htmlFor="internal-comment-panel" className="text-[10px] flex items-center gap-1 cursor-pointer">
+                    <Lock className="h-2.5 w-2.5 text-amber-500" />Wewnętrzny
+                  </Label>
+                </div>
+              </div>
+              <div className="flex gap-2 items-end">
+                <Textarea value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Napisz komentarz..."
+                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); addComment(); } }}
+                  className="min-h-[44px] max-h-[100px] resize-none text-sm flex-1" />
+                <Button size="icon" onClick={addComment} disabled={!commentText.trim()} className="h-9 w-9 shrink-0"><Send className="h-3.5 w-3.5" /></Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex gap-2 items-end">
+              <Textarea value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Napisz wiadomość..."
+                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleClientComment(); } }}
+                className="min-h-[44px] max-h-[100px] resize-none text-sm flex-1" />
+              <Button size="icon" onClick={handleClientComment} disabled={!commentText.trim()} className="h-9 w-9 shrink-0"><Send className="h-3.5 w-3.5" /></Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <AppLayout title={task.title}>
-      <div className="max-w-5xl mx-auto space-y-5 relative">
-        {/* Unassigned task overlay */}
-        {showAssignOverlay && (
-          <div className="sticky top-0 z-50 mb-4">
-            <Card className="border-2 border-destructive bg-destructive/5 shadow-lg">
-              <CardContent className="pt-5 pb-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 rounded-full bg-destructive/10">
-                    <UserPlus className="h-5 w-5 text-destructive" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-destructive">Zadanie nie ma przypisanej osoby!</p>
-                    <p className="text-xs text-muted-foreground">Przypisz osobę, aby odblokować pełną edycję i zmianę statusu.</p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
+      {/* Full-height container - cancel parent padding, block global scroll */}
+      <div className="-m-6 flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden">
+
+        {/* ─── Top Header Bar ─── */}
+        <div className="shrink-0 border-b border-border bg-background px-4 py-2.5 space-y-2">
+          {/* Unassigned overlay */}
+          {showAssignOverlay && (
+            <div className="flex items-center gap-3 p-2.5 rounded-lg border-2 border-destructive bg-destructive/5">
+              <div className="p-1.5 rounded-full bg-destructive/10">
+                <UserPlus className="h-4 w-4 text-destructive" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-destructive">Zadanie nie ma przypisanej osoby!</p>
+                <div className="flex flex-wrap gap-1 mt-1.5">
                   {(allProfiles || []).map((p: any) => (
-                    <button
-                      key={p.id}
-                      onClick={() => addAssignment(p.id, "primary")}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs border rounded-full hover:bg-accent transition-colors bg-background"
-                    >
-                      <Avatar className="h-4 w-4">
-                        <AvatarFallback className="text-[8px] bg-primary/10 text-primary font-bold">
+                    <button key={p.id} onClick={() => addAssignment(p.id, "primary")}
+                      className="flex items-center gap-1 px-2 py-1 text-[10px] border rounded-full hover:bg-accent transition-colors bg-background">
+                      <Avatar className="h-3.5 w-3.5">
+                        <AvatarFallback className="text-[7px] bg-primary/10 text-primary font-bold">
                           {p.full_name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2) || "?"}
                         </AvatarFallback>
                       </Avatar>
@@ -678,820 +822,720 @@ export default function TaskDetail() {
                     </button>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Client Preview Banner */}
-        {isPreviewMode && (
-          <div className="flex items-center justify-between gap-4 bg-orange-500 text-white rounded-lg px-5 py-3">
-            <div className="flex items-center gap-2">
-              <Eye className="h-5 w-5" />
-              <span className="text-sm font-semibold">Tryb podglądu klienta — widzisz dokładnie to co widzi klient. Żadne zmiany nie są zapisywane.</span>
+              </div>
             </div>
-            <Button size="sm" className="bg-amber-400 hover:bg-amber-300 text-amber-950 font-bold text-xs" onClick={() => setIsPreviewMode(false)}>
-              Wyjdź z trybu podglądu
-            </Button>
-          </div>
-        )}
-
-        {/* Breadcrumbs / Client back button */}
-        {isClient ? (
-          <Link to="/dashboard" className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors">
-            <ArrowLeft className="h-4 w-4" />
-            Wróć do panelu klienta
-          </Link>
-        ) : (
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Link to="/tasks" className="hover:text-foreground hover:underline transition-colors flex items-center gap-1">
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Zadania
-            </Link>
-            {task.client_id && (task as any).clients?.name && (
-              <>
-                <ChevronRight className="h-3 w-3 shrink-0" />
-                <Link to={`/clients/${task.client_id}`} className="hover:text-foreground hover:underline transition-colors truncate max-w-[200px]">
-                  {(task as any).clients.name}
-                </Link>
-              </>
-            )}
-            {task.project_id && (task as any).projects?.name && (
-              <>
-                <ChevronRight className="h-3 w-3 shrink-0" />
-                <Link to={`/projects/${task.project_id}`} className="hover:text-foreground hover:underline transition-colors truncate max-w-[200px]">
-                  {(task as any).projects.name}
-                </Link>
-              </>
-            )}
-            <ChevronRight className="h-3 w-3 shrink-0" />
-            <span className="text-foreground/60 truncate max-w-[300px]">{task.title}</span>
-          </div>
           )}
 
-        {/* Action buttons row */}
-        <div className="flex flex-wrap items-center gap-2">
-          {!isClient && !isPreviewMode && (task.status === "review" || task.status === "corrections") && (
-            <Button
-              size="sm"
-              className="text-xs gap-1.5 bg-amber-500 hover:bg-amber-600 text-white"
-              onClick={() => {
-                if (totalLogged <= 0) {
-                  toast.error("Brak zalogowanego czasu. Musisz zalogować czas pracy przed wysłaniem zadania do klienta.");
-                  return;
-                }
-                setVerificationSendOpen(true);
-              }}
-            >
-              <ShieldCheck className="h-3 w-3" />Do akceptacji klienta
-            </Button>
+          {/* Preview banner */}
+          {isPreviewMode && (
+            <div className="flex items-center justify-between gap-4 bg-orange-500 text-white rounded-lg px-4 py-2">
+              <div className="flex items-center gap-2">
+                <Eye className="h-4 w-4" />
+                <span className="text-xs font-semibold">Tryb podglądu klienta</span>
+              </div>
+              <Button size="sm" className="bg-amber-400 hover:bg-amber-300 text-amber-950 font-bold text-[10px] h-7" onClick={() => setIsPreviewMode(false)}>
+                Wyjdź z podglądu
+              </Button>
+            </div>
           )}
-          {!isClient && !isPreviewMode && task.status === "review" && (
-            <Button variant="destructive" size="sm" className="text-xs gap-1.5" onClick={() => setRejectReviewOpen(true)}>
-              <AlertTriangle className="h-3 w-3" />Odrzuć (do poprawek)
-            </Button>
-          )}
-          {!isClient && !isPreviewMode && (
-            <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsPreviewMode(true)}><Eye className="h-3 w-3" />Zobacz jako klient</Button>
-          )}
-          {!isClient && !isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><FileText className="h-3 w-3" />Zastosuj szablon</Button>}
-          {!isClient && !isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5"><Zap className="h-3 w-3" />Uruchom automatyzację</Button>}
-          {!isClient && !isPreviewMode && (task.status === "in_progress" || task.status === "todo") && !(task as any).is_misunderstood && (
-            <Button variant="outline" size="sm" className="text-xs gap-1.5 border-amber-500/50 text-amber-600 hover:bg-amber-500/10" onClick={() => setNotUnderstoodOpen(true)}>
-              <HelpCircle className="h-3 w-3" />Nie rozumiem polecenia
-            </Button>
-          )}
-          {!isClient && !isPreviewMode && !["review", "client_review", "client_verified", "done", "closed", "cancelled"].includes(task.status || "") && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs gap-1.5 border-emerald-500/50 text-emerald-600 hover:bg-emerald-500/10"
-              onClick={async () => {
-                try {
-                  const { error } = await supabase.rpc("change_task_status", {
-                    _task_id: task.id,
-                    _new_status: "review",
-                    _changed_by: user?.id,
-                    _note: "Przekazano do weryfikacji (quick action)",
-                  });
-                  if (error) throw error;
-                  toast.success("Zadanie przekazane do weryfikacji");
-                  queryClient.invalidateQueries({ queryKey: ["task"] });
-                } catch (err: any) {
-                  toast.error("Błąd: " + (err.message || "Nie udało się zmienić statusu"));
-                }
-              }}
-            >
-              <CheckCircle2 className="h-3 w-3" />Przekaż do weryfikacji
-            </Button>
-          )}
-          {!isClient && !isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5 border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => setIsChatOpen(true)}><MessageCircle className="h-3 w-3" />Czat zadania</Button>}
-        </div>
 
-        {/* Misunderstood task banner - hidden from clients */}
-        {(task as any).is_misunderstood && !isPreviewMode && !isClient && (
-          <MisunderstoodBanner
-            task={task}
-            onResolve={clearNotUnderstood}
-          />
-        )}
+          {/* Misunderstood banner */}
+          {(task as any).is_misunderstood && !isPreviewMode && !isClient && (
+            <MisunderstoodBanner task={task} onResolve={clearNotUnderstood} />
+          )}
 
-        {/* Tags row with status dropdown */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline" className="text-xs font-mono">#{task.id.slice(0, 8)}</Badge>
-          {!isPreviewMode && !isClient ? (
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="cursor-pointer">
-                  <Badge className={`text-[10px] font-bold ${statusColors[task.status] || "bg-muted"} hover:opacity-80 transition-opacity`}>
-                    {statusLabels[task.status] || task.status}
-                  </Badge>
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-48 p-1" align="start">
-                {Object.entries(statusLabels).map(([k, v]) => (
-                  <button key={k} onClick={() => handleStatusChange(k)}
-                    className={`w-full text-left px-3 py-1.5 text-sm rounded-sm hover:bg-accent transition-colors ${k === task.status ? "font-bold bg-accent/50" : ""}`}>
-                    <Badge className={`text-[9px] ${statusColors[k]}`}>{v}</Badge>
-                  </button>
-                ))}
-              </PopoverContent>
-            </Popover>
-          ) : (
-            <Badge className={`text-[10px] font-bold ${statusColors[task.status] || "bg-muted"}`}>
-              {statusLabels[task.status] || task.status}
-            </Badge>
-          )}
-          {/* Priority - inline editable for staff */}
-          {canEditInline ? (
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="cursor-pointer">
-                  <Badge className={`text-[10px] font-bold border ${priorityColors[task.priority] || ""} hover:opacity-80 transition-opacity`}>
-                    {priorityLabels[task.priority] || task.priority} ▾
-                  </Badge>
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-36 p-1" align="start">
-                {Object.entries(priorityLabels).map(([k, v]) => (
-                  <button key={k} onClick={() => handlePriorityChange(k)}
-                    className={`w-full text-left px-3 py-1.5 text-sm rounded-sm hover:bg-accent transition-colors ${k === task.priority ? "font-bold bg-accent/50" : ""}`}>
-                    <Badge className={`text-[9px] border ${priorityColors[k]}`}>{v}</Badge>
-                  </button>
-                ))}
-              </PopoverContent>
-            </Popover>
-          ) : (
-            <Badge className={`text-[10px] font-bold border ${priorityColors[task.priority] || ""}`}>{priorityLabels[task.priority] || task.priority}</Badge>
-          )}
-          {hasNoAssignment && <Badge className="bg-destructive text-destructive-foreground text-[10px] font-bold">NIEPRZYPISANE!</Badge>}
-          {isOverdue && <Badge className="bg-destructive text-destructive-foreground text-[10px] font-bold">PO TERMINIE</Badge>}
-          {task.type && <Badge variant="secondary" className="text-[10px]">{task.type}</Badge>}
-          {/* Client picker - inline editable for staff */}
-          {canEditInline ? (
-            <Popover open={clientPickerOpen} onOpenChange={setClientPickerOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="text-xs gap-1.5 h-7">
-                  <Building2 className="h-3 w-3" />
-                  {task.client_id && (task as any).clients?.name ? (task as any).clients.name : "+ Klient"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64 p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Szukaj klienta..." />
-                  <CommandList>
-                    <CommandEmpty>Nie znaleziono klienta</CommandEmpty>
-                    <CommandGroup>
-                      <CommandItem onSelect={() => handleClientChange(null)} className="text-muted-foreground">
-                        <X className="h-3 w-3 mr-2" /> Brak klienta
-                      </CommandItem>
-                      {(allClients || []).map((c: any) => (
-                        <CommandItem key={c.id} value={c.name} onSelect={() => handleClientChange(c.id)}>
-                          <Building2 className="h-3 w-3 mr-2" />
-                          {c.name}
-                          {c.id === task.client_id && <CheckCircle2 className="h-3 w-3 ml-auto text-primary" />}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          ) : task.client_id && (task as any).clients?.name ? (
-            <Badge variant="outline" className="text-[10px] gap-1"><Building2 className="h-3 w-3" />{(task as any).clients.name}</Badge>
-          ) : null}
-          {/* Deadline - inline editable for staff */}
-          <div className="ml-auto">
-            {canEditInline ? (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className={cn("text-xs gap-1.5 h-7", isOverdue && "border-destructive text-destructive")}>
-                    <CalendarIcon className="h-3 w-3" />
-                    {task.due_date ? format(new Date(task.due_date), "dd.MM.yyyy") : "Brak terminu"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  <Calendar
-                    mode="single"
-                    selected={task.due_date ? new Date(task.due_date) : undefined}
-                    onSelect={(date) => handleDeadlineChange(date)}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                  {task.due_date && (
-                    <div className="px-3 pb-3">
-                      <Button variant="ghost" size="sm" className="w-full text-xs text-destructive" onClick={() => handleDeadlineChange(undefined)}>
-                        <X className="h-3 w-3 mr-1" /> Usuń termin
-                      </Button>
-                    </div>
-                  )}
-                </PopoverContent>
-              </Popover>
+          {/* Breadcrumbs */}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            {isClient ? (
+              <Link to="/dashboard" className="inline-flex items-center gap-1 text-primary hover:text-primary/80 font-medium">
+                <ArrowLeft className="h-3 w-3" />Wróć
+              </Link>
             ) : (
-              task.due_date ? (
-                <span className={`text-sm font-semibold ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
-                  Termin: {new Date(task.due_date).toLocaleDateString("pl-PL")}
-                </span>
-              ) : (
-                <span className="text-sm text-muted-foreground">Brak terminu</span>
-              )
+              <>
+                <Link to="/tasks" className="hover:text-foreground transition-colors flex items-center gap-1">
+                  <ArrowLeft className="h-3 w-3" />Zadania
+                </Link>
+                {task.client_id && (task as any).clients?.name && (
+                  <>
+                    <ChevronRight className="h-2.5 w-2.5 shrink-0" />
+                    <Link to={`/clients/${task.client_id}`} className="hover:text-foreground hover:underline truncate max-w-[150px]">{(task as any).clients.name}</Link>
+                  </>
+                )}
+                {task.project_id && (task as any).projects?.name && (
+                  <>
+                    <ChevronRight className="h-2.5 w-2.5 shrink-0" />
+                    <Link to={`/projects/${task.project_id}`} className="hover:text-foreground hover:underline truncate max-w-[150px]">{(task as any).projects.name}</Link>
+                  </>
+                )}
+              </>
             )}
           </div>
-        </div>
 
-        {/* Title & description */}
-        <div>
-          {canEditInline && isEditingTitle ? (
-            <Input
-              ref={titleInputRef}
-              autoFocus
-              value={titleValue}
-              onChange={(e) => setTitleValue(e.target.value)}
-              disabled={isSavingTitle}
-              className="text-xl font-bold h-auto py-1 px-2"
-              onBlur={saveTitle}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") { e.preventDefault(); saveTitle(); }
-                if (e.key === "Escape") { setIsEditingTitle(false); setTitleValue(task.title); }
-              }}
-            />
-          ) : (
-            <div
-              className={cn("group flex items-center gap-2", canEditInline && "cursor-pointer")}
-              onClick={() => {
-                if (!canEditInline) return;
-                setTitleValue(task.title);
-                setIsEditingTitle(true);
-              }}
-            >
-              <h1 className="text-xl font-bold">{task.title}</h1>
-              {canEditInline && <Edit3 className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
+          {/* Title row + Assignees + Deadline */}
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Title */}
+            <div className="flex-1 min-w-0">
+              {canEditInline && isEditingTitle ? (
+                <Input
+                  ref={titleInputRef}
+                  autoFocus
+                  value={titleValue}
+                  onChange={(e) => setTitleValue(e.target.value)}
+                  disabled={isSavingTitle}
+                  className="text-lg font-bold h-auto py-0.5 px-1.5"
+                  onBlur={saveTitle}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); saveTitle(); }
+                    if (e.key === "Escape") { setIsEditingTitle(false); setTitleValue(task.title); }
+                  }}
+                />
+              ) : (
+                <div
+                  className={cn("group flex items-center gap-1.5", canEditInline && "cursor-pointer")}
+                  onClick={() => {
+                    if (!canEditInline) return;
+                    setTitleValue(task.title);
+                    setIsEditingTitle(true);
+                  }}
+                >
+                  <h1 className="text-lg font-bold truncate">{task.title}</h1>
+                  {canEditInline && <Edit3 className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />}
+                </div>
+              )}
             </div>
-          )}
-          {task.clients?.name && <p className="text-sm text-muted-foreground mt-0.5">{(task as any).clients.name} {task.projects?.name && `• ${(task as any).projects.name}`}</p>}
-        </div>
 
-        {/* Description Card */}
-        <DescriptionCard
-          description={task.description}
-          taskId={task.id}
-          canEdit={canEditInline}
-          onSaved={() => queryClient.invalidateQueries({ queryKey: ["task", id] })}
-        />
-
-        {/* Cards grid */}
-        <div className="space-y-4">
-
-          {/* Brief - hidden in preview, read-only for clients */}
-          {/* Brief - visible always, edit only for staff outside preview */}
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold">Brief zadania</CardTitle>
-                {!isClient && !isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={openBriefEditor}><Edit3 className="h-3 w-3" />Edytuj brief</Button>}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {!isClient && !isPreviewMode && (
-              <div className="flex items-center gap-3">
-                <Progress value={(briefFilledCount / briefFields.length) * 100} className="h-2 flex-1" />
-                <span className={`text-xs font-semibold ${briefFilledCount === 0 ? "text-destructive" : briefFilledCount < briefFields.length ? "text-amber-600" : "text-green-600"}`}>
-                  {briefFilledCount}/{briefFields.length} pól
-                </span>
-              </div>
-              )}
-              {!isClient && !isPreviewMode && briefFilledCount === 0 && (
-                <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 rounded-md px-3 py-2">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  Brief jest pusty! Uzupełnij go, aby zespół wiedział, co robić.
-                </div>
-              )}
-              {briefFilledCount > 0 && (
-                <div className="grid gap-2">
-                  {briefFields.map(f => {
-                    const val = (task as any)[f.key];
-                    if (!val) return null;
-                    return (
-                      <div key={f.key}>
-                        <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">{f.label}</Label>
-                        <p className="text-sm">{val}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Assigned people - hidden in preview and for clients */}
-          {!isPreviewMode && !isClient && <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold">Przypisane osoby</CardTitle>
-                <Popover open={assignOpen} onOpenChange={setAssignOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className="text-xs gap-1.5"><UserPlus className="h-3 w-3" />Dodaj</Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-64 p-2" align="end">
-                    <p className="text-xs font-semibold mb-2">Wybierz osobę</p>
-                    <div className="max-h-48 overflow-y-auto space-y-1">
-                      {unassignedProfiles.map((p: any) => (
-                        <button key={p.id} onClick={() => { addAssignment(p.id); setAssignOpen(false); }}
-                          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent transition-colors text-left">
-                          <Avatar className="h-5 w-5">
-                            <AvatarFallback className="text-[9px] bg-primary/10 text-primary font-bold">
-                              {p.full_name?.split(" ").map((n: string) => n[0]).join("") || "?"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm">{p.full_name}</span>
-                        </button>
-                      ))}
-                      {unassignedProfiles.length === 0 && <p className="text-xs text-muted-foreground py-2">Wszyscy są już przypisani</p>}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {assignments && assignments.length > 0 ? (
-                <div className="flex flex-wrap gap-3">
-                  {assignments.map((a: any) => (
-                    <div key={a.user_id} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-1.5 group relative">
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-bold">
-                          {a.profiles?.full_name?.split(" ").map((n: string) => n[0]).join("") || "?"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="text-sm font-medium leading-none">{a.profiles?.full_name}</p>
-                        <p className="text-[10px] text-muted-foreground">{roleLabels[a.role] || a.role}</p>
-                      </div>
-                      <button onClick={() => removeAssignment(a.user_id)}
-                        className="opacity-0 group-hover:opacity-100 absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center transition-opacity">
-                        <X className="h-2.5 w-2.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-destructive font-medium">Brak przypisanych osób!</p>
-              )}
-            </CardContent>
-          </Card>}
-
-          {/* Bug / Workflow status */}
-          {(task as any).bug_severity && (
-            <Card className="border-destructive">
-              <CardHeader className="pb-2">
-                <div className="flex items-center gap-2">
-                  <Bug className="h-4 w-4 text-destructive" />
-                  <CardTitle className="text-sm font-semibold text-destructive">
-                    {(task as any).bug_severity === "critical" ? "Poważny błąd" : "Zgłoszony błąd"}
-                  </CardTitle>
-                  <Badge className="bg-destructive text-destructive-foreground text-[10px] ml-auto">{(task as any).bug_severity === "critical" ? "KRYTYCZNY" : "NORMALNY"}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {(task as any).bug_reason && (
-                  <div className="bg-destructive/5 rounded-md px-3 py-2 text-sm">
-                    <span className="font-medium text-destructive">Powód od klienta: </span>
-                    {(task as any).bug_reason}
-                  </div>
-                )}
-                {(task as any).bug_description && (
-                  <p className="text-sm text-muted-foreground">{(task as any).bug_description}</p>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-
-          {/* Checklists - read-only for clients */}
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold">Lista kontrolna</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {checklists && checklists.length > 0 && (
-                <div className="space-y-4">
-                  {checklists.map((cl: any) => (
-                    <div key={cl.id} className="space-y-2">
-                      <p className="text-sm font-medium">{cl.title}</p>
-                      {(cl.items || []).map((item: any) => (
-                        <div key={item.id} className="flex items-center gap-2 pl-2">
-                          <Checkbox checked={item.is_completed} disabled={item.is_na || isPreviewMode || isClient}
-                            onCheckedChange={() => !isPreviewMode && !isClient && toggleChecklistItem(item.id, item.is_completed)} />
-                          <span className={`text-sm ${item.is_completed ? "line-through text-muted-foreground" : ""} ${item.is_na ? "text-muted-foreground italic" : ""}`}>
-                            {item.title}
-                          </span>
-                          {item.is_na && <Badge variant="outline" className="text-[9px] h-4">N/A</Badge>}
-                        </div>
-                      ))}
-                      {!isClient && (
-                      <div className="flex gap-2 pl-2">
-                        <Input placeholder="Dodaj element..." value={newChecklistItemTexts[cl.id] || ""}
-                          onChange={e => setNewChecklistItemTexts(prev => ({ ...prev, [cl.id]: e.target.value }))}
-                          onKeyDown={e => e.key === "Enter" && addChecklistItem(cl.id)} className="text-sm h-7" />
-                        <Button size="sm" variant="ghost" onClick={() => addChecklistItem(cl.id)} className="h-7 w-7 p-0"><Plus className="h-3 w-3" /></Button>
-                      </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-              {(!checklists || checklists.length === 0) && (
-                <p className="text-sm text-muted-foreground">Brak list kontrolnych.</p>
-              )}
-              {!isClient && (
-              <>
-              <Separator />
-              <div className="flex gap-2">
-                <Input placeholder="Nazwa nowej listy kontrolnej..." value={newChecklistName}
-                  onChange={e => setNewChecklistName(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && addChecklist()} className="text-sm h-8" />
-                <Button variant="outline" size="sm" className="text-xs gap-1.5 h-8" onClick={addChecklist}><Plus className="h-3 w-3" />Dodaj listę</Button>
-              </div>
-              </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Client visible toggle removed — visibility controlled by status */}
-
-          {/* Materials */}
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold">Materiały <span className="text-muted-foreground font-normal">({((isPreviewMode || isClient) ? materials?.filter((m: any) => m.is_visible_to_client) : materials)?.length || 0})</span></CardTitle>
-                {!isPreviewMode && !isClient && (
-                <div className="flex gap-1.5">
-                  <input ref={fileInputRef} type="file" className="hidden" onChange={e => { if (e.target.files?.[0]) uploadFile(e.target.files[0]); e.target.value = ""; }} />
-                  <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => fileInputRef.current?.click()}><Upload className="h-3 w-3" />Plik</Button>
-                  <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setLinkDialogOpen(true)}><LinkIcon className="h-3 w-3" />Link</Button>
-                </div>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              {(() => {
-                const filteredMats = (isPreviewMode || isClient) ? (materials || []).filter((m: any) => m.is_visible_to_client) : (materials || []);
-                return filteredMats.length > 0 ? (
-                <div className="space-y-2">
-                  {filteredMats.map((m: any) => (
-                    <div key={m.id} className="flex items-center gap-2 p-2 rounded-md border bg-muted/30 group">
-                      {m.type === "link" ? <LinkIcon className="h-4 w-4 text-blue-500" /> : <FileText className="h-4 w-4 text-muted-foreground" />}
-                      <div className="flex-1 min-w-0">
-                        {m.url ? (
-                          <a href={m.url} target="_blank" rel="noopener noreferrer" className="text-sm truncate block hover:underline text-primary">{m.name}</a>
-                        ) : (
-                          <span className="text-sm truncate block">{m.name}</span>
-                        )}
-                        <span className="text-[10px] text-muted-foreground">
-                          {m.profiles?.full_name} • {new Date(m.created_at).toLocaleDateString("pl-PL")}
-                        </span>
-                      </div>
-                      {!isPreviewMode && !isClient && (
-                        <label className="flex items-center gap-1.5 cursor-pointer shrink-0" title={m.is_visible_to_client ? "Widoczne dla klienta" : "Ukryte przed klientem"}>
-                          <Checkbox
-                            checked={!!m.is_visible_to_client}
-                            onCheckedChange={(checked) => toggleMaterialVisibility(m.id, !!checked)}
-                            className="h-3.5 w-3.5"
-                          />
-                          <Eye className={`h-3.5 w-3.5 ${m.is_visible_to_client ? "text-emerald-600" : "text-muted-foreground/40"}`} />
-                        </label>
-                      )}
-                      {!isPreviewMode && !isClient && (
-                      <button onClick={() => deleteMaterial(m.id)}
-                        className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive/80 transition-opacity">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Brak materiałów.</p>
-              );
-              })()}
-            </CardContent>
-          </Card>
-
-          {/* Time tracking - hidden in preview and for clients */}
-          {!isPreviewMode && !isClient && (<Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">Czas pracy</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Łącznie zalogowany</p>
-                  <p className="text-lg font-bold">{formatDuration(totalLogged)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Szacowany</p>
-                  <p className="text-lg font-bold">{task.estimated_time ? formatDuration(task.estimated_time) : "—"}</p>
-                </div>
-              </div>
-              {task.estimated_time > 0 && (
-                <Progress value={Math.min((totalLogged / task.estimated_time) * 100, 100)} className="h-2" />
-              )}
-              <div className="flex flex-wrap gap-1.5">
-                {[5, 15, 30, 60, 120].map(m => (
-                  <Button key={m} variant="outline" size="sm" className="text-xs h-7" onClick={() => logTime(m)}>
-                    +{m >= 60 ? `${m / 60} godz` : `${m} min`}
-                  </Button>
-                ))}
-              </div>
-              <div className="flex gap-2 items-center">
-                <Input type="number" placeholder="Minuty..." value={manualMinutes}
-                  onChange={e => setManualMinutes(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && logManualTime()}
-                  className="text-sm h-8 w-28" min={1} />
-                <Button size="sm" variant="outline" className="text-xs h-8" onClick={logManualTime}>
-                  <Clock className="h-3 w-3 mr-1" />Zaloguj
-                </Button>
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <span className="text-lg font-mono font-bold">{formatTimer(timer.elapsed)}</span>
-                {!timer.isRunning ? (
-                  <Button size="sm" variant="outline" onClick={() => timer.start()} className="gap-1.5 text-xs">
-                    <Play className="h-3 w-3" />Uruchom stoper
-                  </Button>
-                ) : (
-                  <Button size="sm" variant="destructive" onClick={stopTimer} className="gap-1.5 text-xs">
-                    <Timer className="h-3 w-3" />Zatrzymaj i zaloguj
-                  </Button>
-                )}
-              </div>
-              {timeLogs && timeLogs.length > 0 && (
-                <>
-                  <Separator />
-                  <p className="text-xs font-semibold text-muted-foreground">Historia logowania czasu</p>
-                  <div className="space-y-2">
-                    {timeLogs.map((l: any) => (
-                      <div key={l.id} className="flex items-center gap-2 text-sm">
+            {/* Assignees AvatarGroup */}
+            {!isClient && !isPreviewMode && assignments && assignments.length > 0 && (
+              <Popover open={assignOpen} onOpenChange={setAssignOpen}>
+                <PopoverTrigger asChild>
+                  <button className="cursor-pointer shrink-0">
+                    <AvatarGroup assignments={assignments} />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-2" align="end">
+                  <p className="text-xs font-semibold mb-2">Przypisane osoby</p>
+                  <div className="space-y-1 mb-2">
+                    {assignments.map((a: any) => (
+                      <div key={a.user_id} className="flex items-center gap-2 px-2 py-1 rounded-sm group">
                         <Avatar className="h-5 w-5">
                           <AvatarFallback className="text-[9px] bg-primary/10 text-primary font-bold">
-                            {(l.profiles?.full_name)?.split(" ").map((n: string) => n[0]).join("") || "?"}
+                            {a.profiles?.full_name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2) || "?"}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="font-medium">{l.profiles?.full_name}</span>
-                        <span className="text-muted-foreground">—</span>
-                        <span className="font-semibold">{formatDuration(l.duration)}</span>
-                        <span className="ml-auto text-xs text-muted-foreground">{new Date(l.created_at).toLocaleString("pl-PL")}</span>
+                        <span className="text-sm flex-1">{a.profiles?.full_name}</span>
+                        <span className="text-[10px] text-muted-foreground">{roleLabels[a.role] || a.role}</span>
+                        <button onClick={() => removeAssignment(a.user_id)}
+                          className="opacity-0 group-hover:opacity-100 text-destructive transition-opacity">
+                          <X className="h-3 w-3" />
+                        </button>
                       </div>
                     ))}
                   </div>
-                </>
-              )}
-            </CardContent>
-          </Card>)}
-
-          {/* Client Review Actions - only for clients when task is in client_review */}
-          {isClient && task.status === "client_review" && (
-            <Card className="border-2 border-primary/30 bg-primary/5">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary" />
-                  Akcja wymagana — przejrzyj i zaakceptuj lub zgłoś poprawki
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {!clientReviewOpen ? (
-                  <div className="flex gap-3">
-                    <Button onClick={handleClientAccept} className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
-                      <CheckCircle2 className="h-4 w-4" /> Akceptuję — wszystko OK
-                    </Button>
-                    <Button onClick={() => setClientReviewOpen(true)} variant="destructive" className="flex-1 gap-2">
-                      <AlertTriangle className="h-4 w-4" /> Do poprawy
-                    </Button>
+                  <Separator className="my-2" />
+                  <p className="text-xs font-semibold mb-1.5">Dodaj osobę</p>
+                  <div className="max-h-32 overflow-y-auto space-y-1">
+                    {unassignedProfiles.map((p: any) => (
+                      <button key={p.id} onClick={() => { addAssignment(p.id); setAssignOpen(false); }}
+                        className="w-full flex items-center gap-2 px-2 py-1 rounded-sm hover:bg-accent transition-colors text-left text-sm">
+                        <Avatar className="h-4 w-4">
+                          <AvatarFallback className="text-[8px] bg-primary/10 text-primary font-bold">
+                            {p.full_name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2) || "?"}
+                          </AvatarFallback>
+                        </Avatar>
+                        {p.full_name}
+                      </button>
+                    ))}
+                    {unassignedProfiles.length === 0 && <p className="text-[10px] text-muted-foreground py-1">Wszyscy przypisani</p>}
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-sm font-semibold">Rodzaj poprawek</Label>
-                      <div className="flex gap-2">
-                        <Button
-                          variant={correctionSeverity === "normal" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCorrectionSeverity("normal")}
-                          className="flex-1 text-xs"
-                        >
-                          Drobne / kosmetyczne
-                        </Button>
-                        <Button
-                          variant={correctionSeverity === "critical" ? "destructive" : "outline"}
-                          size="sm"
-                          onClick={() => setCorrectionSeverity("critical")}
-                          className="flex-1 text-xs"
-                        >
-                          🔴 Krytyczne
+                </PopoverContent>
+              </Popover>
+            )}
+
+            {/* Add person button when no assignments */}
+            {!isClient && !isPreviewMode && hasNoAssignment && (
+              <Popover open={assignOpen} onOpenChange={setAssignOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="text-xs gap-1 h-7 shrink-0"><UserPlus className="h-3 w-3" />Przypisz</Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-2" align="end">
+                  <p className="text-xs font-semibold mb-2">Wybierz osobę</p>
+                  <div className="max-h-48 overflow-y-auto space-y-1">
+                    {(allProfiles || []).map((p: any) => (
+                      <button key={p.id} onClick={() => { addAssignment(p.id, "primary"); setAssignOpen(false); }}
+                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent transition-colors text-left text-sm">
+                        <Avatar className="h-5 w-5">
+                          <AvatarFallback className="text-[9px] bg-primary/10 text-primary font-bold">
+                            {p.full_name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2) || "?"}
+                          </AvatarFallback>
+                        </Avatar>
+                        {p.full_name}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+
+            {/* Deadline */}
+            <div className="shrink-0">
+              {canEditInline ? (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className={cn("text-xs gap-1 h-7", isOverdue && "border-destructive text-destructive")}>
+                      <CalendarIcon className="h-3 w-3" />
+                      {task.due_date ? format(new Date(task.due_date), "dd.MM.yyyy") : "Termin"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      mode="single"
+                      selected={task.due_date ? new Date(task.due_date) : undefined}
+                      onSelect={(date) => handleDeadlineChange(date)}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                    {task.due_date && (
+                      <div className="px-3 pb-3">
+                        <Button variant="ghost" size="sm" className="w-full text-xs text-destructive" onClick={() => handleDeadlineChange(undefined)}>
+                          <X className="h-3 w-3 mr-1" />Usuń termin
                         </Button>
                       </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+              ) : task.due_date ? (
+                <span className={cn("text-xs font-semibold", isOverdue ? "text-destructive" : "text-muted-foreground")}>
+                  {new Date(task.due_date).toLocaleDateString("pl-PL")}
+                </span>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Tags + Action buttons row */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge variant="outline" className="text-[9px] font-mono h-5">#{task.id.slice(0, 8)}</Badge>
+            {!isPreviewMode && !isClient ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="cursor-pointer">
+                    <Badge className={`text-[9px] font-bold ${statusColors[task.status] || "bg-muted"} hover:opacity-80 transition-opacity`}>
+                      {statusLabels[task.status] || task.status}
+                    </Badge>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-1" align="start">
+                  {Object.entries(statusLabels).map(([k, v]) => (
+                    <button key={k} onClick={() => handleStatusChange(k)}
+                      className={`w-full text-left px-3 py-1.5 text-sm rounded-sm hover:bg-accent transition-colors ${k === task.status ? "font-bold bg-accent/50" : ""}`}>
+                      <Badge className={`text-[9px] ${statusColors[k]}`}>{v}</Badge>
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <Badge className={`text-[9px] font-bold ${statusColors[task.status] || "bg-muted"}`}>
+                {statusLabels[task.status] || task.status}
+              </Badge>
+            )}
+            {canEditInline ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="cursor-pointer">
+                    <Badge className={`text-[9px] font-bold border ${priorityColors[task.priority] || ""} hover:opacity-80 transition-opacity`}>
+                      {priorityLabels[task.priority] || task.priority} ▾
+                    </Badge>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-36 p-1" align="start">
+                  {Object.entries(priorityLabels).map(([k, v]) => (
+                    <button key={k} onClick={() => handlePriorityChange(k)}
+                      className={`w-full text-left px-3 py-1.5 text-sm rounded-sm hover:bg-accent transition-colors ${k === task.priority ? "font-bold bg-accent/50" : ""}`}>
+                      <Badge className={`text-[9px] border ${priorityColors[k]}`}>{v}</Badge>
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <Badge className={`text-[9px] font-bold border ${priorityColors[task.priority] || ""}`}>{priorityLabels[task.priority] || task.priority}</Badge>
+            )}
+            {hasNoAssignment && <Badge className="bg-destructive text-destructive-foreground text-[9px] font-bold h-5">NIEPRZYPISANE!</Badge>}
+            {isOverdue && <Badge className="bg-destructive text-destructive-foreground text-[9px] font-bold h-5">PO TERMINIE</Badge>}
+            {task.type && <Badge variant="secondary" className="text-[9px] h-5">{task.type}</Badge>}
+            {canEditInline ? (
+              <Popover open={clientPickerOpen} onOpenChange={setClientPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="text-[10px] gap-1 h-5 px-2">
+                    <Building2 className="h-2.5 w-2.5" />
+                    {task.client_id && (task as any).clients?.name ? (task as any).clients.name : "+ Klient"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Szukaj klienta..." />
+                    <CommandList>
+                      <CommandEmpty>Nie znaleziono klienta</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem onSelect={() => handleClientChange(null)} className="text-muted-foreground">
+                          <X className="h-3 w-3 mr-2" /> Brak klienta
+                        </CommandItem>
+                        {(allClients || []).map((c: any) => (
+                          <CommandItem key={c.id} value={c.name} onSelect={() => handleClientChange(c.id)}>
+                            <Building2 className="h-3 w-3 mr-2" />
+                            {c.name}
+                            {c.id === task.client_id && <CheckCircle2 className="h-3 w-3 ml-auto text-primary" />}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            ) : task.client_id && (task as any).clients?.name ? (
+              <Badge variant="outline" className="text-[9px] gap-1 h-5"><Building2 className="h-2.5 w-2.5" />{(task as any).clients.name}</Badge>
+            ) : null}
+
+            {/* Spacer */}
+            <div className="flex-1" />
+
+            {/* Action buttons */}
+            {!isClient && !isPreviewMode && (task.status === "review" || task.status === "corrections") && (
+              <Button size="sm" className="text-[10px] gap-1 h-6 bg-amber-500 hover:bg-amber-600 text-white"
+                onClick={() => {
+                  if (totalLogged <= 0) {
+                    toast.error("Brak zalogowanego czasu. Musisz zalogować czas pracy przed wysłaniem zadania do klienta.");
+                    return;
+                  }
+                  setVerificationSendOpen(true);
+                }}>
+                <ShieldCheck className="h-2.5 w-2.5" />Do akceptacji klienta
+              </Button>
+            )}
+            {!isClient && !isPreviewMode && task.status === "review" && (
+              <Button variant="destructive" size="sm" className="text-[10px] gap-1 h-6" onClick={() => setRejectReviewOpen(true)}>
+                <AlertTriangle className="h-2.5 w-2.5" />Odrzuć
+              </Button>
+            )}
+            {!isClient && !isPreviewMode && (
+              <Button variant="outline" size="sm" className="text-[10px] gap-1 h-6" onClick={() => setIsPreviewMode(true)}><Eye className="h-2.5 w-2.5" />Podgląd</Button>
+            )}
+            {!isClient && !isPreviewMode && !["review", "client_review", "client_verified", "done", "closed", "cancelled"].includes(task.status || "") && (
+              <Button variant="outline" size="sm" className="text-[10px] gap-1 h-6 border-emerald-500/50 text-emerald-600 hover:bg-emerald-500/10"
+                onClick={async () => {
+                  try {
+                    const { error } = await supabase.rpc("change_task_status", {
+                      _task_id: task.id, _new_status: "review", _changed_by: user?.id,
+                      _note: "Przekazano do weryfikacji (quick action)",
+                    });
+                    if (error) throw error;
+                    toast.success("Zadanie przekazane do weryfikacji");
+                    queryClient.invalidateQueries({ queryKey: ["task"] });
+                  } catch (err: any) {
+                    toast.error("Błąd: " + (err.message || "Nie udało się zmienić statusu"));
+                  }
+                }}>
+                <CheckCircle2 className="h-2.5 w-2.5" />Do weryfikacji
+              </Button>
+            )}
+            {!isClient && !isPreviewMode && (task.status === "in_progress" || task.status === "todo") && !(task as any).is_misunderstood && (
+              <Button variant="outline" size="sm" className="text-[10px] gap-1 h-6 border-amber-500/50 text-amber-600 hover:bg-amber-500/10" onClick={() => setNotUnderstoodOpen(true)}>
+                <HelpCircle className="h-2.5 w-2.5" />Nie rozumiem
+              </Button>
+            )}
+            {/* Right panel toggle for smaller screens */}
+            <Button variant="outline" size="sm" className="text-[10px] gap-1 h-6 xl:hidden" onClick={() => setRightPanelOpen(true)}>
+              <MessageCircle className="h-2.5 w-2.5" />Komentarze
+            </Button>
+          </div>
+        </div>
+
+        {/* ─── Three Column Layout ─── */}
+        <div className="flex-1 min-h-0 flex flex-col md:flex-row">
+
+          {/* ─── LEFT COLUMN ─── */}
+          <div className="w-full md:w-[28%] xl:w-[25%] border-r border-border overflow-y-auto scrollbar-thin p-3 space-y-3 shrink-0">
+
+            {/* Time tracking */}
+            {!isPreviewMode && !isClient && (
+              <Card className="border-0 shadow-none bg-transparent">
+                <CardHeader className="px-0 py-2">
+                  <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" />Czas pracy
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-0 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Łącznie</p>
+                      <p className="text-base font-bold">{formatDuration(totalLogged)}</p>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-sm font-semibold">Co wymaga poprawy?</Label>
-                      <Textarea
-                        value={correctionText}
-                        onChange={e => setCorrectionText(e.target.value)}
-                        placeholder="Opisz szczegółowo, co jest nie tak..."
-                        className="min-h-[80px] text-sm"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => { setClientReviewOpen(false); setCorrectionText(""); }} className="flex-1">
-                        Anuluj
-                      </Button>
-                      <Button variant="destructive" size="sm" onClick={handleClientReject} disabled={!correctionText.trim()} className="flex-1">
-                        Wyślij poprawki
-                      </Button>
+                    <div className="text-right">
+                      <p className="text-[10px] text-muted-foreground">Szacowany</p>
+                      <p className="text-base font-bold">{task.estimated_time ? formatDuration(task.estimated_time) : "—"}</p>
                     </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Corrections history - visible for everyone */}
-          {corrections && corrections.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <Bug className="h-4 w-4 text-orange-500" />
-                  Poprawki ({corrections.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {corrections.map((c: any) => (
-                  <div key={c.id} className={`rounded-lg border p-3 space-y-1.5 ${
-                    c.severity === "critical"
-                      ? "border-destructive/40 bg-destructive/5"
-                      : "border-amber-400/40 bg-amber-500/5"
-                  }`}>
-                    <div className="flex items-center gap-2">
-                      <Badge className={`text-[9px] font-bold ${
-                        c.severity === "critical"
-                          ? "bg-destructive text-destructive-foreground"
-                          : "bg-amber-500/15 text-amber-700 border-amber-400/40"
-                      }`}>
-                        {c.severity === "critical" ? "🔴 KRYTYCZNE" : "Drobne"}
-                      </Badge>
-                      <Badge variant="outline" className={`text-[9px] ${c.status === "resolved" ? "bg-emerald-500/15 text-emerald-700" : ""}`}>
-                        {c.status === "resolved" ? "Rozwiązane" : "Oczekujące"}
-                      </Badge>
-                      <span className="text-[10px] text-muted-foreground ml-auto">
-                        {new Date(c.created_at).toLocaleString("pl-PL")}
-                      </span>
-                    </div>
-                    <p className="text-sm">{c.description}</p>
-                    {c.profiles?.full_name && (
-                      <p className="text-[10px] text-muted-foreground">Zgłoszone przez: {c.profiles.full_name}</p>
+                  {task.estimated_time > 0 && (
+                    <Progress value={Math.min((totalLogged / task.estimated_time) * 100, 100)} className="h-1.5" />
+                  )}
+                  {/* Timer */}
+                  <div className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+                    <span className="text-sm font-mono font-bold">{formatTimer(timer.elapsed)}</span>
+                    {!timer.isRunning ? (
+                      <Button size="sm" variant="outline" onClick={() => timer.start()} className="gap-1 text-[10px] h-6">
+                        <Play className="h-2.5 w-2.5" />Start
+                      </Button>
+                    ) : (
+                      <Button size="sm" variant="destructive" onClick={stopTimer} className="gap-1 text-[10px] h-6">
+                        <Timer className="h-2.5 w-2.5" />Stop
+                      </Button>
                     )}
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Comments - clients see external/client comments */}
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold">Komentarze</CardTitle>
-                {!isPreviewMode && !isClient && (
-                <div className="flex gap-1">
-                  {["all", "internal", "client"].map(f => (
-                    <Button key={f} variant={commentFilter === f ? "default" : "outline"} size="sm" className="text-[10px] h-6 px-2"
-                      onClick={() => setCommentFilter(f)}>
-                      {f === "all" ? "Wszystkie" : f === "internal" ? "Wewnętrzne" : "Klient"}
+                  {/* Quick time buttons */}
+                  <div className="flex flex-wrap gap-1">
+                    {[5, 15, 30, 60, 120].map(m => (
+                      <Button key={m} variant="outline" size="sm" className="text-[10px] h-6 px-2" onClick={() => logTime(m)}>
+                        +{m >= 60 ? `${m / 60}h` : `${m}m`}
+                      </Button>
+                    ))}
+                  </div>
+                  <div className="flex gap-1.5 items-center">
+                    <Input type="number" placeholder="Min..." value={manualMinutes}
+                      onChange={e => setManualMinutes(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && logManualTime()}
+                      className="text-xs h-7 w-20" min={1} />
+                    <Button size="sm" variant="outline" className="text-[10px] h-7" onClick={logManualTime}>
+                      <Clock className="h-2.5 w-2.5 mr-1" />Zaloguj
                     </Button>
-                  ))}
-                </div>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-3">
-                {(() => {
-                  let displayComments = filteredComments;
-                  if (isClient) {
-                    displayComments = (comments || []).filter((c: any) => c.type !== "internal");
-                  } else if (isPreviewMode) {
-                    displayComments = filteredComments.filter((c: any) => c.type !== "internal");
-                  }
-                  return displayComments.length > 0 ? displayComments.map((c: any) => (
-                  <div key={c.id} className="space-y-2">
-                    <div className="flex gap-3">
-                      <Avatar className="h-7 w-7 mt-0.5">
-                        <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-bold">
-                          {(c.profiles?.full_name || ("?") || "?").split(" ").map((n: string) => n[0]).join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-medium">{c.profiles?.full_name || ("?")}</span>
-                          {!isClient && c.profiles?.role && (
-                            <Badge variant="secondary" className="text-[9px] h-4 capitalize">
-                              {c.profiles.role}
-                            </Badge>
-                          )}
-                          {!isClient && (
-                          <Badge variant={c.type === "client" ? "default" : "outline"} className="text-[9px] h-4">
-                            {c.type === "client" ? "Typ: Klient" : "Wewnętrzny"}
-                          </Badge>
-                          )}
-                          {c.requires_client_reply && !isClient && <Badge className="text-[9px] h-4 bg-amber-500 text-white">Wymaga odpowiedzi klienta</Badge>}
-                          <span className="text-[10px] text-muted-foreground">{new Date(c.created_at).toLocaleString("pl-PL")}</span>
+                  </div>
+                  {/* Time log history */}
+                  {timeLogs && timeLogs.length > 0 && (
+                    <div className="space-y-1 pt-1 border-t border-border">
+                      <p className="text-[10px] font-semibold text-muted-foreground">Historia</p>
+                      {timeLogs.slice(0, 5).map((l: any) => (
+                        <div key={l.id} className="flex items-center gap-1.5 text-[10px]">
+                          <span className="font-medium truncate">{l.profiles?.full_name}</span>
+                          <span className="text-muted-foreground">—</span>
+                          <span className="font-semibold">{formatDuration(l.duration)}</span>
+                          <span className="ml-auto text-muted-foreground">{new Date(l.created_at).toLocaleDateString("pl-PL")}</span>
                         </div>
-                        <p className="text-sm mt-0.5">{c.content}</p>
-                        {/* Client reply */}
-                        {c.client_reply && (
-                          <div className="mt-2 bg-primary/5 border border-primary/20 rounded-md px-3 py-2">
-                            <p className="text-[10px] font-semibold text-primary uppercase mb-1">Odpowiedź klienta</p>
-                            <p className="text-sm">{c.client_reply}</p>
+                      ))}
+                      {timeLogs.length > 5 && (
+                        <p className="text-[10px] text-muted-foreground">+{timeLogs.length - 5} więcej</p>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            <Separator />
+
+            {/* Checklists */}
+            <Card className="border-0 shadow-none bg-transparent">
+              <CardHeader className="px-0 py-2">
+                <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5" />Lista kontrolna
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-0 space-y-3">
+                {checklists && checklists.length > 0 && (
+                  <div className="space-y-3">
+                    {checklists.map((cl: any) => (
+                      <div key={cl.id} className="space-y-1.5">
+                        <p className="text-xs font-medium">{cl.title}</p>
+                        {(cl.items || []).map((item: any) => (
+                          <div key={item.id} className="flex items-center gap-1.5 pl-1">
+                            <Checkbox checked={item.is_completed} disabled={item.is_na || isPreviewMode || isClient}
+                              onCheckedChange={() => !isPreviewMode && !isClient && toggleChecklistItem(item.id, item.is_completed)}
+                              className="h-3.5 w-3.5" />
+                            <span className={cn("text-xs", item.is_completed && "line-through text-muted-foreground", item.is_na && "text-muted-foreground italic")}>
+                              {item.title}
+                            </span>
+                            {item.is_na && <Badge variant="outline" className="text-[8px] h-3.5 px-1">N/A</Badge>}
+                          </div>
+                        ))}
+                        {!isClient && !isPreviewMode && (
+                          <div className="flex gap-1 pl-1">
+                            <Input placeholder="Dodaj element..." value={newChecklistItemTexts[cl.id] || ""}
+                              onChange={e => setNewChecklistItemTexts(prev => ({ ...prev, [cl.id]: e.target.value }))}
+                              onKeyDown={e => e.key === "Enter" && addChecklistItem(cl.id)} className="text-xs h-6" />
+                            <Button size="sm" variant="ghost" onClick={() => addChecklistItem(cl.id)} className="h-6 w-6 p-0"><Plus className="h-2.5 w-2.5" /></Button>
                           </div>
                         )}
-                        {/* Client reply input */}
-                        {isClient && c.requires_client_reply && !c.client_reply && (
-                          <ClientReplyInput commentId={c.id} taskId={id!} />
-                        )}
                       </div>
-                    </div>
+                    ))}
                   </div>
-                )) : (
-                  <p className="text-sm text-muted-foreground">{isClient ? "Brak komentarzy." : "Brak komentarzy."}</p>
-                );
-                })()}
-              </div>
-              {!isPreviewMode && !isClient && (
-              <>
-              <Separator />
-              <div className="flex gap-2 items-end">
-                <div className="flex-1 space-y-1.5">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Checkbox id="internal-comment" checked={commentType === "internal"} onCheckedChange={(v) => setCommentType(v ? "internal" : "client")} />
-                      <Label htmlFor="internal-comment" className="text-xs flex items-center gap-1 cursor-pointer">
-                        <Lock className="h-3 w-3 text-amber-500" />
-                        Wewnętrzny
-                      </Label>
-                    </div>
+                )}
+                {(!checklists || checklists.length === 0) && (
+                  <p className="text-xs text-muted-foreground">Brak list kontrolnych.</p>
+                )}
+                {!isClient && !isPreviewMode && (
+                  <div className="flex gap-1.5">
+                    <Input placeholder="Nazwa nowej listy..." value={newChecklistName}
+                      onChange={e => setNewChecklistName(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && addChecklist()} className="text-xs h-7" />
+                    <Button variant="outline" size="sm" className="text-[10px] gap-1 h-7" onClick={addChecklist}><Plus className="h-2.5 w-2.5" />Dodaj</Button>
                   </div>
-                  <Textarea value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Napisz komentarz..."
-                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); addComment(); } }} className="min-h-[50px] text-sm" />
-                </div>
-                <Button size="icon" onClick={addComment} className="h-9 w-9"><Send className="h-4 w-4" /></Button>
-              </div>
-              </>
-              )}
-              {isClient && !isPreviewMode && (
-              <>
-              <Separator />
-              <div className="flex gap-2 items-end">
-                <div className="flex-1">
-                  <Textarea value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Napisz wiadomość..."
-                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleClientComment(); } }} className="min-h-[50px] text-sm" />
-                </div>
-                <Button size="icon" onClick={handleClientComment} className="h-9 w-9"><Send className="h-4 w-4" /></Button>
-              </div>
-              </>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
 
-          {/* Status history - hidden for clients */}
-          {!isPreviewMode && !isClient && (
-            <StatusTimeline
-              statusHistory={statusHistory || []}
-              currentStatus={task?.status || "new"}
-              taskId={id}
-            />
-          )}
+            <Separator />
+
+            {/* Materials */}
+            <Card className="border-0 shadow-none bg-transparent">
+              <CardHeader className="px-0 py-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
+                    <FileText className="h-3.5 w-3.5" />Materiały
+                    <span className="text-muted-foreground font-normal">
+                      ({((isPreviewMode || isClient) ? materials?.filter((m: any) => m.is_visible_to_client) : materials)?.length || 0})
+                    </span>
+                  </CardTitle>
+                  {!isPreviewMode && !isClient && (
+                    <div className="flex gap-1">
+                      <input ref={fileInputRef} type="file" className="hidden" onChange={e => { if (e.target.files?.[0]) uploadFile(e.target.files[0]); e.target.value = ""; }} />
+                      <Button variant="ghost" size="sm" className="text-[10px] h-6 w-6 p-0" onClick={() => fileInputRef.current?.click()}><Upload className="h-3 w-3" /></Button>
+                      <Button variant="ghost" size="sm" className="text-[10px] h-6 w-6 p-0" onClick={() => setLinkDialogOpen(true)}><LinkIcon className="h-3 w-3" /></Button>
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="px-0">
+                {(() => {
+                  const filteredMats = (isPreviewMode || isClient) ? (materials || []).filter((m: any) => m.is_visible_to_client) : (materials || []);
+                  return filteredMats.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {filteredMats.map((m: any) => (
+                        <div key={m.id} className="flex items-center gap-1.5 p-1.5 rounded-md border bg-muted/30 group text-xs">
+                          {m.type === "link" ? <LinkIcon className="h-3 w-3 text-blue-500 shrink-0" /> : <FileText className="h-3 w-3 text-muted-foreground shrink-0" />}
+                          <div className="flex-1 min-w-0">
+                            {m.url ? (
+                              <a href={m.url} target="_blank" rel="noopener noreferrer" className="truncate block hover:underline text-primary text-xs">{m.name}</a>
+                            ) : (
+                              <span className="truncate block text-xs">{m.name}</span>
+                            )}
+                          </div>
+                          {!isPreviewMode && !isClient && (
+                            <label className="flex items-center gap-1 cursor-pointer shrink-0">
+                              <Checkbox checked={!!m.is_visible_to_client} onCheckedChange={(checked) => toggleMaterialVisibility(m.id, !!checked)} className="h-3 w-3" />
+                              <Eye className={cn("h-3 w-3", m.is_visible_to_client ? "text-emerald-600" : "text-muted-foreground/40")} />
+                            </label>
+                          )}
+                          {!isPreviewMode && !isClient && (
+                            <button onClick={() => deleteMaterial(m.id)}
+                              className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive/80 transition-opacity">
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Brak materiałów.</p>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+
+            {/* Bug severity card */}
+            {(task as any).bug_severity && (
+              <>
+                <Separator />
+                <Card className="border-destructive">
+                  <CardHeader className="px-3 py-2">
+                    <div className="flex items-center gap-1.5">
+                      <Bug className="h-3.5 w-3.5 text-destructive" />
+                      <CardTitle className="text-xs font-semibold text-destructive">
+                        {(task as any).bug_severity === "critical" ? "Poważny błąd" : "Zgłoszony błąd"}
+                      </CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="px-3 py-2 space-y-1">
+                    {(task as any).bug_reason && <p className="text-xs"><span className="font-medium text-destructive">Powód: </span>{(task as any).bug_reason}</p>}
+                    {(task as any).bug_description && <p className="text-xs text-muted-foreground">{(task as any).bug_description}</p>}
+                  </CardContent>
+                </Card>
+              </>
+            )}
+
+            {/* Client Review Actions */}
+            {isClient && task.status === "client_review" && (
+              <>
+                <Separator />
+                <Card className="border-2 border-primary/30 bg-primary/5">
+                  <CardHeader className="px-3 py-2">
+                    <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-primary" />Akcja wymagana
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-3 py-2 space-y-3">
+                    {!clientReviewOpen ? (
+                      <div className="flex gap-2">
+                        <Button onClick={handleClientAccept} size="sm" className="flex-1 gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white">
+                          <CheckCircle2 className="h-3 w-3" />Akceptuję
+                        </Button>
+                        <Button onClick={() => setClientReviewOpen(true)} variant="destructive" size="sm" className="flex-1 gap-1.5 text-xs">
+                          <AlertTriangle className="h-3 w-3" />Do poprawy
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex gap-1.5">
+                          <Button variant={correctionSeverity === "normal" ? "default" : "outline"} size="sm" onClick={() => setCorrectionSeverity("normal")} className="flex-1 text-[10px]">Drobne</Button>
+                          <Button variant={correctionSeverity === "critical" ? "destructive" : "outline"} size="sm" onClick={() => setCorrectionSeverity("critical")} className="flex-1 text-[10px]">🔴 Krytyczne</Button>
+                        </div>
+                        <Textarea value={correctionText} onChange={e => setCorrectionText(e.target.value)} placeholder="Co wymaga poprawy?" className="min-h-[60px] text-xs" />
+                        <div className="flex gap-1.5">
+                          <Button variant="outline" size="sm" onClick={() => { setClientReviewOpen(false); setCorrectionText(""); }} className="flex-1 text-xs">Anuluj</Button>
+                          <Button variant="destructive" size="sm" onClick={handleClientReject} disabled={!correctionText.trim()} className="flex-1 text-xs">Wyślij</Button>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </div>
+
+          {/* ─── CENTER COLUMN ─── */}
+          <div className="flex-1 min-w-0 overflow-y-auto scrollbar-thin p-4">
+            <Tabs defaultValue="description" className="space-y-3">
+              <TabsList className="h-8">
+                <TabsTrigger value="description" className="text-xs h-7 px-3">Opis</TabsTrigger>
+                <TabsTrigger value="brief" className="text-xs h-7 px-3 relative">
+                  Brief
+                  {briefFilledCount === 0 && !isClient && (
+                    <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-destructive" />
+                  )}
+                </TabsTrigger>
+                {!isPreviewMode && !isClient && (
+                  <TabsTrigger value="history" className="text-xs h-7 px-3">
+                    <History className="h-3 w-3 mr-1" />Historia statusów
+                  </TabsTrigger>
+                )}
+              </TabsList>
+
+              {/* Tab: Description */}
+              <TabsContent value="description" className="mt-3">
+                <DescriptionCard
+                  description={task.description}
+                  taskId={task.id}
+                  canEdit={canEditInline}
+                  onSaved={() => queryClient.invalidateQueries({ queryKey: ["task", id] })}
+                />
+
+                {/* Corrections history */}
+                {corrections && corrections.length > 0 && (
+                  <Card className="mt-3">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                        <Bug className="h-4 w-4 text-orange-500" />
+                        Poprawki ({corrections.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {corrections.map((c: any) => (
+                        <div key={c.id} className={cn(
+                          "rounded-lg border p-2.5 space-y-1",
+                          c.severity === "critical" ? "border-destructive/40 bg-destructive/5" : "border-amber-400/40 bg-amber-500/5"
+                        )}>
+                          <div className="flex items-center gap-1.5">
+                            <Badge className={cn("text-[9px] font-bold", c.severity === "critical" ? "bg-destructive text-destructive-foreground" : "bg-amber-500/15 text-amber-700 border-amber-400/40")}>
+                              {c.severity === "critical" ? "🔴 KRYTYCZNE" : "Drobne"}
+                            </Badge>
+                            <Badge variant="outline" className={cn("text-[9px]", c.status === "resolved" ? "bg-emerald-500/15 text-emerald-700" : "")}>
+                              {c.status === "resolved" ? "Rozwiązane" : "Oczekujące"}
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground ml-auto">{new Date(c.created_at).toLocaleString("pl-PL")}</span>
+                          </div>
+                          <p className="text-sm">{c.description}</p>
+                          {c.profiles?.full_name && <p className="text-[10px] text-muted-foreground">Zgłoszone przez: {c.profiles.full_name}</p>}
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              {/* Tab: Brief */}
+              <TabsContent value="brief" className="mt-3">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-semibold">Brief zadania</CardTitle>
+                      {!isClient && !isPreviewMode && (
+                        <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={openBriefEditor}>
+                          <Edit3 className="h-3 w-3" />Edytuj brief
+                        </Button>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {!isClient && !isPreviewMode && (
+                      <div className="flex items-center gap-3">
+                        <Progress value={(briefFilledCount / briefFields.length) * 100} className="h-2 flex-1" />
+                        <span className={cn("text-xs font-semibold", briefFilledCount === 0 ? "text-destructive" : briefFilledCount < briefFields.length ? "text-amber-600" : "text-green-600")}>
+                          {briefFilledCount}/{briefFields.length} pól
+                        </span>
+                      </div>
+                    )}
+                    {!isClient && !isPreviewMode && briefFilledCount === 0 && (
+                      <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 rounded-md px-3 py-2">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Brief jest pusty! Uzupełnij go, aby zespół wiedział, co robić.
+                      </div>
+                    )}
+                    {briefFilledCount > 0 && (
+                      <div className="grid gap-2">
+                        {briefFields.map(f => {
+                          const val = (task as any)[f.key];
+                          if (!val) return null;
+                          return (
+                            <div key={f.key}>
+                              <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">{f.label}</Label>
+                              <p className="text-sm">{val}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Tab: Status History */}
+              {!isPreviewMode && !isClient && (
+                <TabsContent value="history" className="mt-3">
+                  <StatusTimeline
+                    statusHistory={statusHistory || []}
+                    currentStatus={task?.status || "new"}
+                    taskId={id}
+                  />
+                </TabsContent>
+              )}
+            </Tabs>
+          </div>
+
+          {/* ─── RIGHT COLUMN (Desktop xl+) ─── */}
+          <div className="hidden xl:flex xl:w-[30%] border-l border-border flex-col">
+            {commentsContent}
+          </div>
         </div>
       </div>
+
+      {/* Right panel Sheet for smaller screens */}
+      <Sheet open={rightPanelOpen} onOpenChange={setRightPanelOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
+          <SheetHeader className="px-4 py-3 border-b">
+            <SheetTitle className="flex items-center gap-2 text-sm">
+              <MessageCircle className="h-4 w-4" />Komentarze i aktywność
+            </SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 min-h-0">
+            {commentsContent}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Brief Edit Dialog */}
       <Dialog open={briefOpen} onOpenChange={setBriefOpen}>
@@ -1555,20 +1599,19 @@ export default function TaskDetail() {
         totalMinutes={totalLogged}
       />
 
-      {/* Reject from review modal — unified with Kanban */}
+      {/* Reject from review modal */}
       <RejectionModal
         open={rejectReviewOpen}
         onOpenChange={setRejectReviewOpen}
         onConfirm={handleRejectFromReview}
       />
 
-      {/* Task Chat Sheet */}
+      {/* Task Chat Sheet (kept for quick access) */}
       <Sheet open={isChatOpen} onOpenChange={setIsChatOpen}>
         <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
           <SheetHeader className="px-6 py-4 border-b">
             <SheetTitle className="flex items-center gap-2">
-              <MessageCircle className="h-4 w-4" />
-              Czat zadania
+              <MessageCircle className="h-4 w-4" />Czat zadania
             </SheetTitle>
           </SheetHeader>
           <ScrollArea className="flex-1 px-6 py-4">
@@ -1675,23 +1718,18 @@ function MisunderstoodBanner({ task, onResolve }: { task: any; onResolve: () => 
   const reporterName = reporter?.full_name || "Pracownik";
 
   return (
-    <div className="flex items-start justify-between gap-3 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+    <div className="flex items-start justify-between gap-3 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
       <div className="flex items-start gap-2">
-        <HelpCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+        <HelpCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
         <div>
-          <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+          <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
             {reporterName} zgłosił niezrozumienie zadania
           </p>
-          {task.misunderstood_reason && (
-            <p className="text-sm text-muted-foreground mt-1">
-              „{task.misunderstood_reason}"
-            </p>
-          )}
-          <p className="text-xs text-muted-foreground mt-1">Wymagane wyjaśnienie od koordynatora.</p>
+          {task.misunderstood_reason && <p className="text-xs text-muted-foreground mt-0.5">„{task.misunderstood_reason}"</p>}
         </div>
       </div>
-      <Button variant="outline" size="sm" className="text-xs shrink-0" onClick={onResolve}>
-        Oznacz jako wyjaśnione
+      <Button variant="outline" size="sm" className="text-[10px] shrink-0 h-6" onClick={onResolve}>
+        Wyjaśnione
       </Button>
     </div>
   );
