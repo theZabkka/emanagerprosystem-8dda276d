@@ -168,6 +168,7 @@ export default function TaskTeamBoard({ tasks, onRefresh, priorityFilter, onPers
             avatar={{ initials: getInitials(p.full_name), color: getAvatarColor(p.id) }}
             getInitials={getInitials}
             getAvatarColor={getAvatarColor}
+            onHeaderClick={() => onPersonClick?.(p.id)}
           />
         ))}
       </div>
