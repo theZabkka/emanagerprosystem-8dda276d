@@ -130,13 +130,13 @@ export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="w-full sm:max-w-lg p-0 flex flex-col">
-        <SheetHeader className="p-6 pb-4 border-b border-border">
-          <SheetTitle className="text-lg">{deal.title}</SheetTitle>
+      <SheetContent className="w-full sm:max-w-lg p-0 flex flex-col h-full max-h-screen">
+        <SheetHeader className="p-4 pb-3 border-b border-border shrink-0">
+          <SheetTitle className="text-lg truncate">{deal.title}</SheetTitle>
         </SheetHeader>
 
-        <ScrollArea className="flex-1 p-6">
-          <div className="space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/50 [&::-webkit-scrollbar-track]:bg-transparent">
+          <div className="space-y-4">
             {editing ? (
               <div className="space-y-4">
                 <div className="space-y-2">
