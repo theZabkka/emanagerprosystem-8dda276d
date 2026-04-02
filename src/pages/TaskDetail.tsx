@@ -89,7 +89,6 @@ export default function TaskDetail() {
   const [briefForm, setBriefForm] = useState<Record<string, string>>({});
   const [assignOpen, setAssignOpen] = useState(false);
   const [newChecklistName, setNewChecklistName] = useState("");
-  const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [newChecklistItemTexts, setNewChecklistItemTexts] = useState<Record<string, string>>({});
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkName, setLinkName] = useState("");
@@ -203,15 +202,6 @@ export default function TaskDetail() {
     enabled: !!id,
   });
 
-  const { data: subtasks } = useQuery({
-    queryKey: ["subtasks", id],
-    queryFn: async () => {
-      const { data } = await supabase.from("subtasks").select("*, profiles:assigned_to(full_name)").eq("task_id", id!).order("created_at");
-      return data || [];
-    },
-    enabled: !!id,
-  });
-
   // Real-time
   useEffect(() => {
     if (!id) return;
@@ -224,7 +214,6 @@ export default function TaskDetail() {
       .on("postgres_changes", { event: "*", schema: "public", table: "checklists", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["checklists", id] }))
       .on("postgres_changes", { event: "*", schema: "public", table: "task_materials", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["materials", id] }))
       .on("postgres_changes", { event: "*", schema: "public", table: "task_corrections", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["task-corrections", id] }))
-      .on("postgres_changes", { event: "*", schema: "public", table: "subtasks", filter: `task_id=eq.${id}` }, () => queryClient.invalidateQueries({ queryKey: ["subtasks", id] }))
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [id, queryClient]);
@@ -416,26 +405,6 @@ export default function TaskDetail() {
   async function toggleChecklistItem(itemId: string, completed: boolean) {
     await supabase.from("checklist_items").update({ is_completed: !completed }).eq("id", itemId);
     queryClient.invalidateQueries({ queryKey: ["checklists", id] });
-  }
-
-  async function addSubtask() {
-    if (!newSubtaskTitle.trim()) return;
-    const { error } = await supabase.from("subtasks").insert({ task_id: id!, title: newSubtaskTitle.trim() });
-    if (error) { toast.error(error.message); return; }
-    setNewSubtaskTitle("");
-    queryClient.invalidateQueries({ queryKey: ["subtasks", id] });
-    toast.success("Podzadanie dodane");
-  }
-
-  async function toggleSubtask(subtaskId: string, completed: boolean) {
-    await supabase.from("subtasks").update({ is_completed: !completed }).eq("id", subtaskId);
-    queryClient.invalidateQueries({ queryKey: ["subtasks", id] });
-  }
-
-  async function deleteSubtask(subtaskId: string) {
-    await supabase.from("subtasks").delete().eq("id", subtaskId);
-    queryClient.invalidateQueries({ queryKey: ["subtasks", id] });
-    toast.success("Podzadanie usunięte");
   }
 
   async function uploadFile(file: File) {
@@ -1085,49 +1054,6 @@ export default function TaskDetail() {
                             onChange={e => setNewChecklistName(e.target.value)}
                             onKeyDown={e => e.key === "Enter" && addChecklist()} className="text-sm h-8" />
                           <Button variant="outline" size="sm" className="text-xs gap-1.5 h-8" onClick={addChecklist}><Plus className="h-3 w-3" />Dodaj</Button>
-                        </div>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Subtasks block */}
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-semibold">Podzadania <span className="text-muted-foreground font-normal">({subtasks?.filter((s: any) => s.is_completed).length || 0}/{subtasks?.length || 0})</span></CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {subtasks && subtasks.length > 0 && (
-                      <div className="space-y-1.5">
-                        {subtasks.map((st: any) => (
-                          <div key={st.id} className="flex items-center gap-2 group">
-                            <Checkbox checked={st.is_completed} disabled={isPreviewMode || isClient}
-                              onCheckedChange={() => !isPreviewMode && !isClient && toggleSubtask(st.id, st.is_completed)} />
-                            <span className={cn("text-sm flex-1", st.is_completed && "line-through text-muted-foreground")}>{st.title}</span>
-                            {st.profiles?.full_name && (
-                              <span className="text-[10px] text-muted-foreground">{st.profiles.full_name}</span>
-                            )}
-                            {!isClient && !isPreviewMode && (
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
-                                onClick={() => deleteSubtask(st.id)}>
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {(!subtasks || subtasks.length === 0) && (
-                      <p className="text-sm text-muted-foreground">Brak podzadań.</p>
-                    )}
-                    {!isClient && !isPreviewMode && (
-                      <>
-                        <Separator />
-                        <div className="flex gap-2">
-                          <Input placeholder="Nowe podzadanie..." value={newSubtaskTitle}
-                            onChange={e => setNewSubtaskTitle(e.target.value)}
-                            onKeyDown={e => e.key === "Enter" && addSubtask()} className="text-sm h-8" />
-                          <Button variant="outline" size="sm" className="text-xs gap-1.5 h-8" onClick={addSubtask}><Plus className="h-3 w-3" />Dodaj</Button>
                         </div>
                       </>
                     )}
