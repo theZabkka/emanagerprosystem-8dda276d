@@ -977,7 +977,7 @@ export default function TaskDetail() {
         )}>
           <div className="p-4">
             <Tabs defaultValue="description" className="w-full">
-              <TabsList className="w-full justify-start bg-muted/50 mb-4">
+              <TabsList className="w-full justify-start bg-muted/50 mb-4 overflow-x-auto whitespace-nowrap">
                 <TabsTrigger value="description" className="text-xs">Opis</TabsTrigger>
                 <TabsTrigger value="plan" className="text-xs">Plan działania</TabsTrigger>
                 <TabsTrigger value="materials" className="text-xs">Materiały</TabsTrigger>
