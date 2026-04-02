@@ -738,11 +738,6 @@ export default function TaskDetail() {
                   <HelpCircle className="h-3 w-3" />Nie rozumiem
                 </Button>
               )}
-              {!isClient && !isPreviewMode && (
-                <Button variant="outline" size="sm" className="text-xs gap-1 h-7 border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => setIsChatOpen(true)}>
-                  <MessageCircle className="h-3 w-3" />Czat
-                </Button>
-              )}
             </div>
 
             <Separator />
