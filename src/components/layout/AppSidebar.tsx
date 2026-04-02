@@ -24,7 +24,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import logoDark from "@/assets/logo-dark.png";
+import { ThemeLogo } from "@/components/ThemeLogo";
 
 const sections = [
   {
@@ -181,7 +181,7 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <img src={logoDark} alt="EMANAGER.PRO" className="h-7 w-auto" />
+            <ThemeLogo className="h-7 w-auto" />
           </div>
         )}
         {collapsed && (

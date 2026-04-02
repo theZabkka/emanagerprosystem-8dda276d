@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import logoDark from "@/assets/logo-dark.png";
+import { ThemeLogo } from "@/components/ThemeLogo";
 
 export default function UpdatePassword() {
   const [newPassword, setNewPassword] = useState("");
@@ -88,7 +88,7 @@ export default function UpdatePassword() {
       <div className="w-full max-w-sm">
         <div className="bg-card rounded-xl shadow-lg p-8 space-y-6">
           <div className="text-center space-y-3">
-            <img src={logoDark} alt="EMANAGER.PRO" className="h-9 w-auto mx-auto" />
+            <ThemeLogo className="h-9 w-auto mx-auto" />
             <p className="text-sm text-muted-foreground">Ustaw nowe hasło</p>
           </div>
 

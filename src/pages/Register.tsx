@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Search, ArrowLeft } from "lucide-react";
-import logoDark from "@/assets/logo-dark.png";
+import { ThemeLogo } from "@/components/ThemeLogo";
 
 const voivodeships = [
   "dolnośląskie", "kujawsko-pomorskie", "lubelskie", "lubuskie",
@@ -157,7 +157,7 @@ export default function Register() {
       <div className="w-full max-w-2xl">
         <div className="bg-card rounded-xl shadow-lg p-6 md:p-8 space-y-6">
           <div className="text-center space-y-3">
-            <img src={logoDark} alt="EMANAGER.PRO" className="h-9 w-auto mx-auto" />
+            <ThemeLogo className="h-9 w-auto mx-auto" />
             <p className="text-sm text-muted-foreground">Rejestracja nowego klienta</p>
           </div>
 
