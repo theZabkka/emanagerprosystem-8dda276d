@@ -182,12 +182,13 @@ export default function CrmBoard() {
       title: newDeal.title,
       column_id: newDeal.column_id,
       priority: "medium",
-      due_date: newDeal.due_date || undefined,
+      due_date: newDeal.due_date ? new Date(newDeal.due_date).toISOString() : undefined,
       lexo_rank: rank,
       reminder_active: true,
-    });
+      ...(newDeal.client_id ? { client_id: newDeal.client_id } : {}),
+    } as any);
     setCreateOpen(false);
-    setNewDeal({ title: "", column_id: "", due_date: "" });
+    setNewDeal({ title: "", column_id: "", due_date: "", client_id: "" });
     toast.success("Karta dodana");
   };
 
