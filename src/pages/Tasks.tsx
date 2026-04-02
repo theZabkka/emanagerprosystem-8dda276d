@@ -238,6 +238,7 @@ export default function Tasks() {
               tasks={filteredTasks}
               onRefresh={refetch}
               priorityFilter={priorityFilter}
+              onPersonClick={handlePersonDrillDown}
             />
           ) : (
             <TaskKanbanBoard
