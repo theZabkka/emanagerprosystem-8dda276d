@@ -49,7 +49,7 @@ export default function TeamBoard() {
 
   const STAFF_ROLES = ["superadmin", "boss", "koordynator", "specjalista", "praktykant"];
 
-  import { useStaffMembers } from "@/hooks/useStaffMembers";
+  
   // ...
   const { data: profiles = [] } = useStaffMembers();
 
