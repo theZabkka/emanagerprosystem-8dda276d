@@ -585,7 +585,7 @@ const KanbanCard = React.memo(function KanbanCard({
           ))}
           <AssignPopover
             taskId={task.id}
-            assignee={taskAssignees.length > 0 ? taskAssignees[0] : null}
+            assignedUserIds={taskAssignees.map((p: any) => p.id)}
             allProfiles={allProfiles}
             getInitials={getInitials}
             getAvatarColor={getAvatarColor}
