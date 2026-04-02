@@ -31,6 +31,7 @@ export default function Tasks() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [overdueFilter, setOverdueFilter] = useState(false);
   const [unassignedFilter, setUnassignedFilter] = useState(false);
+  const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
   const [autoOpenTaskId, setAutoOpenTaskId] = useState<string | null>(null);
 
   const isTerminalStatus = (status?: string | null) => ["done", "cancelled", "closed"].includes(status || "");
