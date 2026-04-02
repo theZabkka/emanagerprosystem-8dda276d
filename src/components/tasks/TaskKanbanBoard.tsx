@@ -62,6 +62,7 @@ export default function TaskKanbanBoard({
   onLexoRankUpdate, onQuickAdd, sortField = "manual", sortDirection = "asc",
 }: TaskKanbanBoardProps) {
   const { user, profile } = useAuth();
+  const queryClient = useQueryClient();
   const { currentRole, roleLoading } = useRole();
   const normalizedRole = (profile?.role ?? currentRole ?? "").toLowerCase().replace(/\s/g, "");
   const isSuperAdmin = !roleLoading && normalizedRole === "superadmin";
