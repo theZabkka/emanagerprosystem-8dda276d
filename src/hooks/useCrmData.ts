@@ -16,6 +16,7 @@ export interface CrmDeal {
   description: string | null;
   column_id: string;
   assigned_to: string | null;
+  client_id: string | null;
   priority: string;
   due_date: string | null;
   is_archived: boolean;
@@ -25,6 +26,7 @@ export interface CrmDeal {
   created_at: string | null;
   updated_at: string | null;
   profiles?: { full_name: string | null } | null;
+  clients?: { id: string; name: string } | null;
   labels?: CrmLabel[];
 }
 
