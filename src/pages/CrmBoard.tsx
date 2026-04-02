@@ -242,7 +242,7 @@ export default function CrmBoard() {
   };
 
   return (
-    <AppLayout title="Lejek sprzedaży">
+    <AppLayout title="">
       <div className="flex flex-col h-[calc(100vh-4rem)]">
         {/* Consolidated toolbar */}
         <div className="flex items-center justify-between gap-3 px-4 py-2.5 mb-2">
