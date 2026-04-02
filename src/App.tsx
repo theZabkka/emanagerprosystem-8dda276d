@@ -96,6 +96,7 @@ const stubRoutes = [
 ];
 
 const App = () => (
+  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="emanager-theme">
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
