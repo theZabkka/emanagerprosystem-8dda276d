@@ -177,7 +177,7 @@ export function CoordinatorFreezeOverlay() {
               className="w-full gap-2 text-muted-foreground hover:text-foreground"
             >
               <Timer className="h-4 w-4" />
-              Odłóż weryfikację na 1 minutę
+              Odłóż weryfikację na 1 godzinę
             </Button>
           </div>
         )}

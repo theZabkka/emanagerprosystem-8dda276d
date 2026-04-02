@@ -5,8 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 
-const FREEZE_THRESHOLD_MS = 5 * 60 * 1000; // 5 min
-const SNOOZE_DURATION_MS = 1 * 60 * 1000; // 1 min
+const FREEZE_THRESHOLD_MS = 60 * 60 * 1000; // 60 min
+const SNOOZE_DURATION_MS = 60 * 60 * 1000; // 60 min
 
 const SNOOZE_STORAGE_KEY = "verification-snooze";
 
