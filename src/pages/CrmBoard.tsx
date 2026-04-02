@@ -1,14 +1,16 @@
 import { useState, useCallback, useMemo } from "react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
-import { Plus, Archive, Search, MoreHorizontal, GripVertical, Pencil, Trash2 } from "lucide-react";
+import { Plus, Archive, Search, MoreHorizontal, GripVertical, Pencil, Trash2, Tag } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -18,9 +20,13 @@ import {
   useCrmRealtime, useCrmMutations,
   type CrmColumn, type CrmDeal,
 } from "@/hooks/useCrmData";
+import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { CrmDealCard } from "@/components/crm/CrmDealCard";
 import { CrmDealDetailPanel } from "@/components/crm/CrmDealDetailPanel";
 import { CrmArchiveDrawer } from "@/components/crm/CrmArchiveDrawer";
+import { CrmLabelManager } from "@/components/crm/CrmLabelManager";
+
+const NONE_SENTINEL = "__none__";
 
 export default function CrmBoard() {
   useCrmRealtime();
@@ -28,19 +34,25 @@ export default function CrmBoard() {
   const { data: columns = [] } = useCrmColumns();
   const { data: deals = [] } = useCrmDeals(false);
   const { data: allLabels = [] } = useCrmLabels();
+  const { data: staff = [] } = useStaffMembers();
   const mutations = useCrmMutations();
 
   const [search, setSearch] = useState("");
   const [selectedDeal, setSelectedDeal] = useState<CrmDeal | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [labelManagerOpen, setLabelManagerOpen] = useState(false);
   const [createColumnOpen, setCreateColumnOpen] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
   const [editingColumnName, setEditingColumnName] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
 
-  // New deal form (no priority)
-  const [newDeal, setNewDeal] = useState({ title: "", column_id: "", due_date: "", client_id: "" });
+  // New deal form
+  const [newDeal, setNewDeal] = useState({
+    title: "", column_id: "", due_date: "", client_id: "",
+    description: "", assigned_to: "", selectedLabels: [] as string[],
+  });
 
   // Fetch clients for picker
   const { data: clientsList = [] } = useQuery({
