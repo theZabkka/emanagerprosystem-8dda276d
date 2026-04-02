@@ -8,6 +8,7 @@ import { useRole } from "@/hooks/useRole";
 import { useRoutePrefetch } from "@/hooks/useRoutePrefetch";
 import { CoordinatorFreezeOverlay } from "@/components/tasks/CoordinatorFreezeOverlay";
 import { ProfileGatekeeper } from "./ProfileGatekeeper";
+import { VerificationSnoozeBanner } from "./VerificationSnoozeBanner";
 import { useVerificationLock } from "@/hooks/useVerificationLock";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -19,24 +20,22 @@ interface AppLayoutProps {
 export function AppLayout({ children, title }: AppLayoutProps) {
   const { isClient } = useRole();
   useRoutePrefetch();
-  const { hasPendingVerifications, activeLockedTaskId } = useVerificationLock();
+  const { hasPendingVerifications, activeLockedTaskId, isSnoozed, isHardBlocked } = useVerificationLock();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const isLocked = hasPendingVerifications && !!activeLockedTaskId;
+  const isLocked = isHardBlocked && !!activeLockedTaskId;
   const isOnLockedTask = isLocked && location.pathname === `/tasks/${activeLockedTaskId}`;
 
   // Block browser back button when locked
   useEffect(() => {
     if (!isLocked) return;
 
-    const handlePopState = (e: PopStateEvent) => {
-      // Push the locked task URL back
+    const handlePopState = () => {
       window.history.pushState(null, "", `/tasks/${activeLockedTaskId}`);
       navigate(`/tasks/${activeLockedTaskId}`, { replace: true });
     };
 
-    // Push an extra entry so back goes to our handler
     window.history.pushState(null, "", location.pathname);
     window.addEventListener("popstate", handlePopState);
 
@@ -54,26 +53,26 @@ export function AppLayout({ children, title }: AppLayoutProps) {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        {/* Navigation lock overlay */}
-        {isLocked && isOnLockedTask && (
-          <div
-            className="fixed inset-0 z-40 pointer-events-none"
-            aria-hidden="true"
-          >
-            {/* Block sidebar */}
-            <div className="absolute left-0 top-0 bottom-0 w-[var(--sidebar-width,16rem)] pointer-events-auto bg-background/60 backdrop-blur-[1px]" />
-            {/* Block topbar */}
-            <div className="absolute top-0 left-[var(--sidebar-width,16rem)] right-0 h-14 pointer-events-auto bg-background/60 backdrop-blur-[1px]" />
-          </div>
-        )}
+      <div className="min-h-screen flex w-full flex-col">
+        {/* Yellow snooze banner at the very top */}
+        <VerificationSnoozeBanner />
 
-        {isClient ? <ClientSidebar /> : <AppSidebar />}
-        <div className="flex-1 flex flex-col min-w-0">
-          <Topbar title={title} />
-          <main className="flex-1 overflow-auto p-6 bg-background">
-            {children}
-          </main>
+        <div className="flex flex-1 min-h-0">
+          {/* Sidebar with conditional lock */}
+          <div className={isLocked && isOnLockedTask ? "pointer-events-none opacity-50 grayscale" : ""}>
+            {isClient ? <ClientSidebar /> : <AppSidebar />}
+          </div>
+
+          <div className="flex-1 flex flex-col min-w-0">
+            {/* Topbar with conditional lock */}
+            <div className={isLocked && isOnLockedTask ? "pointer-events-none opacity-50 grayscale" : ""}>
+              <Topbar title={title} />
+            </div>
+
+            <main className="flex-1 overflow-auto p-6 bg-background">
+              {children}
+            </main>
+          </div>
         </div>
       </div>
       <AIAssistantButton />
