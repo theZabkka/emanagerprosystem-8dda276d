@@ -24,7 +24,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import logoDark from "@/assets/logo-dark.png";
+import { ThemeLogo } from "@/components/ThemeLogo";
 
 const sections = [
   {
