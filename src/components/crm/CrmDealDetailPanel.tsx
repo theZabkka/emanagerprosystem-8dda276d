@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
-import { Send, Tag, ExternalLink } from "lucide-react";
+import { Send, Tag, ExternalLink, Pencil, Trash2, Check, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useRole } from "@/hooks/useRole";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,20 +33,17 @@ interface Props {
 export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const { role } = useRole();
   const { data: staff } = useStaffMembers();
   const { data: comments = [] } = useCrmDealComments(deal?.id ?? null);
   const { data: dealLabels = [] } = useCrmDealLabels(deal?.id ?? null);
   const { data: allLabels = [] } = useCrmLabels();
-  const { updateDeal, addComment, toggleLabel, archiveDeal } = useCrmMutations();
+  const { updateDeal, addComment, updateComment, deleteComment, toggleLabel, archiveDeal } = useCrmMutations();
 
-  // Fetch clients list for the picker
   const { data: clients = [] } = useQuery({
     queryKey: ["clients-list-simple"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("clients")
-        .select("id, name")
-        .order("name");
+      const { data, error } = await supabase.from("clients").select("id, name").order("name");
       if (error) throw error;
       return data as Array<{ id: string; name: string }>;
     },
@@ -53,24 +51,23 @@ export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
 
   const [commentText, setCommentText] = useState("");
   const [editing, setEditing] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentText, setEditingCommentText] = useState("");
   const [form, setForm] = useState({
-    title: "",
-    description: "",
-    due_date: "",
-    assigned_to: "",
-    client_id: "",
+    title: "", description: "", due_date: "", assigned_to: "", client_id: "",
   });
+
+  const isAdmin = role === "superadmin" || role === "boss" || role === "admin" || role === "koordynator";
+  const currentUserId = session?.user.id;
 
   const startEdit = () => {
     if (!deal) return;
-    // Convert ISO date to datetime-local format (YYYY-MM-DDTHH:mm)
     let dueDateLocal = "";
     if (deal.due_date) {
       try {
-        const d = new Date(deal.due_date);
-        dueDateLocal = format(d, "yyyy-MM-dd'T'HH:mm");
+        dueDateLocal = format(new Date(deal.due_date), "yyyy-MM-dd'T'HH:mm");
       } catch {
-        dueDateLocal = deal.due_date.slice(0, 16); // fallback
+        dueDateLocal = deal.due_date.slice(0, 16);
       }
     }
     setForm({
@@ -90,22 +87,16 @@ export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
       return;
     }
     try {
-      const payload: Record<string, any> = {
+      updateDeal.mutate({
         id: deal.id,
         title: form.title.trim(),
         description: form.description || null,
         due_date: form.due_date ? new Date(form.due_date).toISOString() : null,
         assigned_to: form.assigned_to || null,
         client_id: form.client_id || null,
-      };
-      updateDeal.mutate(payload as any, {
-        onSuccess: () => {
-          toast.success("Karta zaktualizowana");
-          setEditing(false);
-        },
-        onError: (err: any) => {
-          toast.error("Błąd zapisu: " + (err?.message || "Nieznany błąd"));
-        },
+      } as any, {
+        onSuccess: () => { toast.success("Karta zaktualizowana"); setEditing(false); },
+        onError: (err: any) => toast.error("Błąd zapisu: " + (err?.message || "Nieznany błąd")),
       });
     } catch (err: any) {
       toast.error("Wystąpił błąd: " + (err?.message || "Nieznany błąd"));
@@ -113,9 +104,24 @@ export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
   };
 
   const handleAddComment = () => {
-    if (!deal || !commentText.trim() || !session?.user.id) return;
-    addComment.mutate({ deal_id: deal.id, user_id: session.user.id, content: commentText.trim() });
+    if (!deal || !commentText.trim() || !currentUserId) return;
+    addComment.mutate({ deal_id: deal.id, user_id: currentUserId, content: commentText.trim() });
     setCommentText("");
+  };
+
+  const handleEditComment = (id: string) => {
+    if (!editingCommentText.trim()) return;
+    updateComment.mutate({ id, content: editingCommentText.trim() }, {
+      onSuccess: () => { setEditingCommentId(null); toast.success("Komentarz zaktualizowany"); },
+      onError: (err: any) => toast.error("Błąd: " + (err?.message || "Nieznany")),
+    });
+  };
+
+  const handleDeleteComment = (id: string) => {
+    deleteComment.mutate(id, {
+      onSuccess: () => toast.success("Komentarz usunięty"),
+      onError: (err: any) => toast.error("Błąd: " + (err?.message || "Nieznany")),
+    });
   };
 
   const dealLabelIds = new Set(dealLabels.map((l) => l.id));
@@ -131,7 +137,6 @@ export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
 
         <ScrollArea className="flex-1 p-6">
           <div className="space-y-6">
-            {/* Edit / View mode */}
             {editing ? (
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -144,18 +149,11 @@ export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
                 </div>
                 <div className="space-y-2">
                   <Label>Termin (data i godzina)</Label>
-                  <Input
-                    type="datetime-local"
-                    value={form.due_date}
-                    onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-                  />
+                  <Input type="datetime-local" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
                 </div>
                 <div className="space-y-2">
                   <Label>Przypisana osoba</Label>
-                  <Select
-                    value={form.assigned_to || NONE_SENTINEL}
-                    onValueChange={(v) => setForm({ ...form, assigned_to: v === NONE_SENTINEL ? "" : v })}
-                  >
+                  <Select value={form.assigned_to || NONE_SENTINEL} onValueChange={(v) => setForm({ ...form, assigned_to: v === NONE_SENTINEL ? "" : v })}>
                     <SelectTrigger><SelectValue placeholder="Wybierz..." /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value={NONE_SENTINEL}>Brak</SelectItem>
@@ -167,10 +165,7 @@ export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
                 </div>
                 <div className="space-y-2">
                   <Label>Klient</Label>
-                  <Select
-                    value={form.client_id || NONE_SENTINEL}
-                    onValueChange={(v) => setForm({ ...form, client_id: v === NONE_SENTINEL ? "" : v })}
-                  >
+                  <Select value={form.client_id || NONE_SENTINEL} onValueChange={(v) => setForm({ ...form, client_id: v === NONE_SENTINEL ? "" : v })}>
                     <SelectTrigger><SelectValue placeholder="Wybierz klienta..." /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value={NONE_SENTINEL}>Brak</SelectItem>
@@ -205,10 +200,7 @@ export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
                     {deal.clients?.name ? (
                       <button
                         className="text-primary hover:underline font-semibold inline-flex items-center gap-0.5"
-                        onClick={() => {
-                          onClose();
-                          navigate(`/clients/${deal.clients!.id}`);
-                        }}
+                        onClick={() => { onClose(); navigate(`/clients/${deal.clients!.id}`); }}
                       >
                         {deal.clients.name}
                         <ExternalLink className="h-3 w-3" />
@@ -264,22 +256,60 @@ export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
             <div className="space-y-3">
               <Label className="text-sm font-medium">Komentarze</Label>
               {comments.length === 0 && <p className="text-xs text-muted-foreground">Brak komentarzy</p>}
-              {comments.map((c) => (
-                <div key={c.id} className="bg-muted/50 rounded-lg p-3 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-5 w-5">
-                      <AvatarFallback className="text-[9px] bg-primary text-primary-foreground">
-                        {(c.profiles?.full_name || "U").charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-xs font-medium">{c.profiles?.full_name || "Użytkownik"}</span>
-                    <span className="text-[10px] text-muted-foreground ml-auto">
-                      {c.created_at ? format(new Date(c.created_at), "d MMM HH:mm", { locale: pl }) : ""}
-                    </span>
+              {comments.map((c) => {
+                const canModify = c.user_id === currentUserId || isAdmin;
+                const isEditingThis = editingCommentId === c.id;
+                return (
+                  <div key={c.id} className="bg-muted/50 rounded-lg p-3 space-y-1 group">
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-5 w-5">
+                        <AvatarFallback className="text-[9px] bg-primary text-primary-foreground">
+                          {(c.profiles?.full_name || "U").charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs font-medium">{c.profiles?.full_name || "Użytkownik"}</span>
+                      <span className="text-[10px] text-muted-foreground ml-auto">
+                        {c.created_at ? format(new Date(c.created_at), "d MMM HH:mm", { locale: pl }) : ""}
+                      </span>
+                      {canModify && !isEditingThis && (
+                        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground"
+                            onClick={() => { setEditingCommentId(c.id); setEditingCommentText(c.content); }}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                          <button
+                            className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                            onClick={() => handleDeleteComment(c.id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {isEditingThis ? (
+                      <div className="flex gap-1.5 items-center mt-1">
+                        <Input
+                          value={editingCommentText}
+                          onChange={(e) => setEditingCommentText(e.target.value)}
+                          className="text-sm h-8"
+                          autoFocus
+                          onKeyDown={(e) => e.key === "Enter" && handleEditComment(c.id)}
+                        />
+                        <button className="p-1 rounded hover:bg-accent text-primary" onClick={() => handleEditComment(c.id)}>
+                          <Check className="h-3.5 w-3.5" />
+                        </button>
+                        <button className="p-1 rounded hover:bg-accent text-muted-foreground" onClick={() => setEditingCommentId(null)}>
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-foreground">{c.content}</p>
+                    )}
                   </div>
-                  <p className="text-sm text-foreground">{c.content}</p>
-                </div>
-              ))}
+                );
+              })}
               <div className="flex gap-2">
                 <Input
                   placeholder="Dodaj komentarz..."

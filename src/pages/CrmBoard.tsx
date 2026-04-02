@@ -1,15 +1,18 @@
 import { useState, useCallback, useMemo } from "react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
-import { Plus, Archive, Search, MoreHorizontal, GripVertical, Pencil, Trash2 } from "lucide-react";
+import { Plus, Archive, Search, MoreHorizontal, GripVertical, Pencil, Trash2, Tag } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { compareRanks, generateRankBefore, generateRankAfter, generateMidpointRank } from "@/lib/lexoRank";
@@ -18,9 +21,13 @@ import {
   useCrmRealtime, useCrmMutations,
   type CrmColumn, type CrmDeal,
 } from "@/hooks/useCrmData";
+import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { CrmDealCard } from "@/components/crm/CrmDealCard";
 import { CrmDealDetailPanel } from "@/components/crm/CrmDealDetailPanel";
 import { CrmArchiveDrawer } from "@/components/crm/CrmArchiveDrawer";
+import { CrmLabelManager } from "@/components/crm/CrmLabelManager";
+
+const NONE_SENTINEL = "__none__";
 
 export default function CrmBoard() {
   useCrmRealtime();
@@ -28,19 +35,25 @@ export default function CrmBoard() {
   const { data: columns = [] } = useCrmColumns();
   const { data: deals = [] } = useCrmDeals(false);
   const { data: allLabels = [] } = useCrmLabels();
+  const { data: staff = [] } = useStaffMembers();
   const mutations = useCrmMutations();
 
   const [search, setSearch] = useState("");
   const [selectedDeal, setSelectedDeal] = useState<CrmDeal | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [labelManagerOpen, setLabelManagerOpen] = useState(false);
   const [createColumnOpen, setCreateColumnOpen] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
   const [editingColumnName, setEditingColumnName] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
 
-  // New deal form (no priority)
-  const [newDeal, setNewDeal] = useState({ title: "", column_id: "", due_date: "", client_id: "" });
+  // New deal form
+  const [newDeal, setNewDeal] = useState({
+    title: "", column_id: "", due_date: "", client_id: "",
+    description: "", assigned_to: "", selectedLabels: [] as string[],
+  });
 
   // Fetch clients for picker
   const { data: clientsList = [] } = useQuery({
@@ -169,29 +182,48 @@ export default function CrmBoard() {
     [columns, dealsByColumn, qc, mutations]
   );
 
-  const handleCreateDeal = () => {
+  const handleCreateDeal = async () => {
     if (!newDeal.title.trim() || !newDeal.column_id) {
       toast.error("Podaj tytuł i wybierz kolumnę");
       return;
     }
-    const colDeals = deals.filter((d) => d.column_id === newDeal.column_id);
-    const lastRank = colDeals.length > 0 ? colDeals[colDeals.length - 1].lexo_rank : null;
-    const rank = lastRank ? generateRankAfter(lastRank) : generateMidpointRank(null, null);
+    setIsCreating(true);
+    try {
+      const colDeals = deals.filter((d) => d.column_id === newDeal.column_id);
+      const lastRank = colDeals.length > 0 ? colDeals[colDeals.length - 1].lexo_rank : null;
+      const rank = lastRank ? generateRankAfter(lastRank) : generateMidpointRank(null, null);
 
-    mutations.createDeal.mutate({
-      title: newDeal.title,
-      column_id: newDeal.column_id,
-      priority: "medium",
-      due_date: newDeal.due_date ? new Date(newDeal.due_date).toISOString() : undefined,
-      lexo_rank: rank,
-      reminder_active: true,
-      ...(newDeal.client_id ? { client_id: newDeal.client_id } : {}),
-    } as any);
-    setCreateOpen(false);
-    setNewDeal({ title: "", column_id: "", due_date: "", client_id: "" });
-    toast.success("Karta dodana");
+      // Insert deal
+      const { data: inserted, error } = await supabase.from("crm_deals" as any).insert({
+        title: newDeal.title.trim(),
+        column_id: newDeal.column_id,
+        priority: "medium",
+        due_date: newDeal.due_date ? new Date(newDeal.due_date).toISOString() : null,
+        lexo_rank: rank,
+        reminder_active: true,
+        description: newDeal.description || null,
+        assigned_to: newDeal.assigned_to || null,
+        client_id: newDeal.client_id || null,
+      } as any).select("id").maybeSingle();
+      if (error) throw error;
+
+      // Attach labels if any
+      if (inserted && newDeal.selectedLabels.length > 0) {
+        const rows = newDeal.selectedLabels.map((label_id) => ({ deal_id: (inserted as any).id, label_id }));
+        await supabase.from("crm_deal_labels" as any).insert(rows as any);
+      }
+
+      qc.invalidateQueries({ queryKey: ["crm-deals"] });
+      qc.invalidateQueries({ queryKey: ["crm-all-deal-labels"] });
+      setCreateOpen(false);
+      setNewDeal({ title: "", column_id: "", due_date: "", client_id: "", description: "", assigned_to: "", selectedLabels: [] });
+      toast.success("Karta dodana");
+    } catch (err: any) {
+      toast.error("Błąd tworzenia: " + (err?.message || "Nieznany błąd"));
+    } finally {
+      setIsCreating(false);
+    }
   };
-
   const handleCreateColumn = () => {
     if (!newColumnName.trim()) return;
     const lastRank = columns.length > 0 ? columns[columns.length - 1].lexo_rank : null;
@@ -202,7 +234,7 @@ export default function CrmBoard() {
     toast.success("Kolumna dodana");
   };
 
-  const handleRenameColumn = (id: string) => {
+
     if (!editingColumnName.trim()) return;
     mutations.updateColumn.mutate({ id, name: editingColumnName.trim() });
     setEditingColumnId(null);
@@ -218,6 +250,9 @@ export default function CrmBoard() {
           <div className="flex items-center gap-2">
             <Button onClick={() => setCreateOpen(true)} className="bg-primary text-primary-foreground hover:bg-primary/90">
               <Plus className="h-4 w-4 mr-1" /> Nowa karta
+            </Button>
+            <Button variant="outline" onClick={() => setLabelManagerOpen(true)}>
+              <Tag className="h-4 w-4 mr-1" /> Etykiety
             </Button>
             <Button variant="outline" onClick={() => setArchiveOpen(true)}>
               <Archive className="h-4 w-4 mr-1" /> Archiwum
@@ -375,38 +410,97 @@ export default function CrmBoard() {
 
       {/* Create deal dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Nowa karta</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Tytuł *</Label>
-              <Input value={newDeal.title} onChange={(e) => setNewDeal({ ...newDeal, title: e.target.value })} placeholder="Nazwa karty" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Tytuł *</Label>
+                <Input value={newDeal.title} onChange={(e) => setNewDeal({ ...newDeal, title: e.target.value })} placeholder="Nazwa karty" />
+              </div>
+              <div className="space-y-2">
+                <Label>Etap *</Label>
+                <Select value={newDeal.column_id} onValueChange={(v) => setNewDeal({ ...newDeal, column_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Wybierz etap..." /></SelectTrigger>
+                  <SelectContent>
+                    {columns.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Termin</Label>
+                <Input type="datetime-local" value={newDeal.due_date} onChange={(e) => setNewDeal({ ...newDeal, due_date: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Klient</Label>
+                <Select value={newDeal.client_id || NONE_SENTINEL} onValueChange={(v) => setNewDeal({ ...newDeal, client_id: v === NONE_SENTINEL ? "" : v })}>
+                  <SelectTrigger><SelectValue placeholder="Wybierz klienta..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE_SENTINEL}>Brak</SelectItem>
+                    {clientsList.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Przypisana osoba</Label>
+                <Select value={newDeal.assigned_to || NONE_SENTINEL} onValueChange={(v) => setNewDeal({ ...newDeal, assigned_to: v === NONE_SENTINEL ? "" : v })}>
+                  <SelectTrigger><SelectValue placeholder="Wybierz osobę..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE_SENTINEL}>Brak</SelectItem>
+                    {staff.map((s) => <SelectItem key={s.id} value={s.id}>{s.full_name || "Bez nazwy"}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="space-y-2">
-              <Label>Kolumna *</Label>
-              <Select value={newDeal.column_id} onValueChange={(v) => setNewDeal({ ...newDeal, column_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Wybierz kolumnę..." /></SelectTrigger>
-                <SelectContent>
-                  {columns.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label>Opis</Label>
+              <Textarea
+                value={newDeal.description}
+                onChange={(e) => setNewDeal({ ...newDeal, description: e.target.value })}
+                placeholder="Opcjonalny opis karty..."
+                rows={3}
+              />
             </div>
             <div className="space-y-2">
-              <Label>Termin (data i godzina)</Label>
-              <Input type="datetime-local" value={newDeal.due_date} onChange={(e) => setNewDeal({ ...newDeal, due_date: e.target.value })} />
+              <Label>Etykiety</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {allLabels.map((l) => {
+                  const isSelected = newDeal.selectedLabels.includes(l.id);
+                  return (
+                    <button
+                      key={l.id}
+                      type="button"
+                      onClick={() => setNewDeal({
+                        ...newDeal,
+                        selectedLabels: isSelected
+                          ? newDeal.selectedLabels.filter((id) => id !== l.id)
+                          : [...newDeal.selectedLabels, l.id],
+                      })}
+                      className={cn(
+                        "text-[11px] font-medium px-2 py-0.5 rounded-full border transition-all",
+                        isSelected ? "text-white border-transparent" : "text-foreground border-border bg-muted/50"
+                      )}
+                      style={isSelected ? { backgroundColor: l.color } : undefined}
+                    >
+                      {l.name} {isSelected && "✓"}
+                    </button>
+                  );
+                })}
+                {allLabels.length === 0 && <span className="text-xs text-muted-foreground">Brak etykiet — utwórz je przyciskiem "Etykiety"</span>}
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Klient</Label>
-              <Select value={newDeal.client_id || "__none__"} onValueChange={(v) => setNewDeal({ ...newDeal, client_id: v === "__none__" ? "" : v })}>
-                <SelectTrigger><SelectValue placeholder="Wybierz klienta..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Brak</SelectItem>
-                  {clientsList.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button onClick={handleCreateDeal} className="w-full">Dodaj kartę</Button>
+            <Button onClick={handleCreateDeal} className="w-full" disabled={isCreating || !newDeal.title.trim() || !newDeal.column_id}>
+              {isCreating ? "Tworzenie..." : "Dodaj kartę"}
+            </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Label manager dialog */}
+      <Dialog open={labelManagerOpen} onOpenChange={setLabelManagerOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Zarządzaj etykietami</DialogTitle></DialogHeader>
+          <CrmLabelManager />
         </DialogContent>
       </Dialog>
 
@@ -428,8 +522,7 @@ export default function CrmBoard() {
   );
 }
 
-// Need Select imports
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 
 // Helper hook: fetch labels for all visible deals in a single pass
 function useCrmLabelsForDeals(dealIds: string[]) {
