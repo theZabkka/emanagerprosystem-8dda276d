@@ -83,7 +83,7 @@ export default function TaskDetail() {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const [commentText, setCommentText] = useState("");
-  const commentType = "internal";
+  const [commentType, setCommentType] = useState("internal");
   const [commentFilter, setCommentFilter] = useState("all");
   const [briefOpen, setBriefOpen] = useState(false);
   const [briefForm, setBriefForm] = useState<Record<string, string>>({});
@@ -698,7 +698,7 @@ export default function TaskDetail() {
                 {canEditInline && <Edit3 className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity inline-block ml-1" />}
               </div>
             )}
-            
+            {task.clients?.name && <p className="text-xs text-muted-foreground">{(task as any).clients.name} {task.projects?.name && `• ${(task as any).projects.name}`}</p>}
 
             {/* Action buttons */}
             <div className="flex flex-wrap gap-1.5">
@@ -714,6 +714,11 @@ export default function TaskDetail() {
               {!isClient && !isPreviewMode && task.status === "review" && (
                 <Button variant="destructive" size="sm" className="text-xs gap-1 h-7" onClick={() => setRejectReviewOpen(true)}>
                   <AlertTriangle className="h-3 w-3" />Odrzuć
+                </Button>
+              )}
+              {!isClient && !isPreviewMode && (
+                <Button variant="outline" size="sm" className="text-xs gap-1 h-7" onClick={() => setIsPreviewMode(true)}>
+                  <Eye className="h-3 w-3" />Podgląd
                 </Button>
               )}
               {!isClient && !isPreviewMode && !["review", "client_review", "client_verified", "done", "closed", "cancelled"].includes(task.status || "") && (
@@ -736,6 +741,11 @@ export default function TaskDetail() {
               {!isClient && !isPreviewMode && (task.status === "in_progress" || task.status === "todo") && !(task as any).is_misunderstood && (
                 <Button variant="outline" size="sm" className="text-xs gap-1 h-7 border-amber-500/50 text-amber-600" onClick={() => setNotUnderstoodOpen(true)}>
                   <HelpCircle className="h-3 w-3" />Nie rozumiem
+                </Button>
+              )}
+              {!isClient && !isPreviewMode && (
+                <Button variant="outline" size="sm" className="text-xs gap-1 h-7 border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => setIsChatOpen(true)}>
+                  <MessageCircle className="h-3 w-3" />Czat
                 </Button>
               )}
             </div>
@@ -979,7 +989,6 @@ export default function TaskDetail() {
                 <TabsTrigger value="materials" className="text-xs">Materiały</TabsTrigger>
                 {!isPreviewMode && !isClient && <TabsTrigger value="time" className="text-xs">Czas pracy</TabsTrigger>}
                 {!isPreviewMode && !isClient && <TabsTrigger value="report" className="text-xs">Raport</TabsTrigger>}
-                {!isClient && <TabsTrigger value="preview" className="text-xs">Podgląd</TabsTrigger>}
               </TabsList>
 
               {/* TAB 1: Description + Brief */}
@@ -1287,6 +1296,8 @@ export default function TaskDetail() {
                     currentStatus={task?.status || "new"}
                     taskId={id}
                   />
+
+                  {/* Time comparison */}
                   <Card>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-semibold">Czas: Estymacja vs Rzeczywistość</CardTitle>
@@ -1313,89 +1324,6 @@ export default function TaskDetail() {
                           <Progress value={Math.min((totalLogged / task.estimated_time) * 100, 100)} className="h-2" />
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              )}
-
-              {/* TAB 6: Client Preview */}
-              {!isClient && (
-                <TabsContent value="preview" className="space-y-4 mt-0">
-                  <div className="flex items-center gap-2 bg-orange-500/10 border border-orange-500/30 rounded-lg px-4 py-3 mb-4">
-                    <Eye className="h-4 w-4 text-orange-600" />
-                    <span className="text-sm font-medium text-orange-700 dark:text-orange-400">Podgląd — tak widzi to klient</span>
-                  </div>
-                  <DescriptionCard
-                    description={task.description}
-                    taskId={task.id}
-                    canEdit={false}
-                    onSaved={() => {}}
-                  />
-                  {briefFilledCount > 0 && (
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-semibold">Brief zadania</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid gap-2">
-                          {briefFields.map(f => {
-                            const val = (task as any)[f.key];
-                            if (!val) return null;
-                            return (
-                              <div key={f.key}>
-                                <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">{f.label}</Label>
-                                <p className="text-sm">{val}</p>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                  {(() => {
-                    const clientMaterials = (materials || []).filter((m: any) => m.is_visible_to_client);
-                    if (clientMaterials.length === 0) return null;
-                    return (
-                      <Card>
-                        <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Materiały</CardTitle></CardHeader>
-                        <CardContent>
-                          <div className="space-y-2">
-                            {clientMaterials.map((m: any) => (
-                              <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer"
-                                className="flex items-center gap-2 text-sm text-primary hover:underline">
-                                {m.type === "link" ? <LinkIcon className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
-                                {m.name}
-                              </a>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })()}
-                  {/* Client-visible comments */}
-                  <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Komentarze</CardTitle></CardHeader>
-                    <CardContent>
-                      {(() => {
-                        const clientComments = (comments || []).filter((c: any) => c.type !== "internal");
-                        if (clientComments.length === 0) return <p className="text-sm text-muted-foreground">Brak komentarzy widocznych dla klienta.</p>;
-                        return (
-                          <div className="space-y-3">
-                            {[...clientComments].reverse().map((c: any) => (
-                              <div key={c.id} className="flex gap-2">
-                                <Avatar className="h-6 w-6 shrink-0"><AvatarFallback className="text-[9px] bg-primary/10 text-primary font-bold">{(c.profiles?.full_name || "?").split(" ").map((n: string) => n[0]).join("")}</AvatarFallback></Avatar>
-                                <div>
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-xs font-medium">{c.profiles?.full_name || "?"}</span>
-                                    <span className="text-[10px] text-muted-foreground">{new Date(c.created_at).toLocaleString("pl-PL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
-                                  </div>
-                                  <p className="text-sm mt-0.5 whitespace-pre-wrap">{c.content}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        );
-                      })()}
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -1438,8 +1366,13 @@ export default function TaskDetail() {
             {rightTab === "discussion" ? (
               <div className="space-y-3">
                 {(() => {
-                  const internalComments = (comments || []).filter((c: any) => c.type === "internal");
-                  return internalComments.length > 0 ? [...internalComments].reverse().map((c: any) => (
+                  let displayComments = filteredComments;
+                  if (isClient) {
+                    displayComments = (comments || []).filter((c: any) => c.type !== "internal");
+                  } else if (isPreviewMode) {
+                    displayComments = filteredComments.filter((c: any) => c.type !== "internal");
+                  }
+                  return displayComments.length > 0 ? [...displayComments].reverse().map((c: any) => (
                     <div key={c.id} className="space-y-1">
                       <div className="flex gap-2">
                         <Avatar className="h-6 w-6 mt-0.5 shrink-0">
@@ -1504,18 +1437,42 @@ export default function TaskDetail() {
           </div>
 
           {/* Sticky comment input */}
-          {rightTab === "discussion" && !isClient && (
+          {rightTab === "discussion" && (
             <div className="border-t border-border px-4 py-3 shrink-0">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Lock className="h-3 w-3 text-amber-500" />
-                <span className="text-[10px] text-muted-foreground font-medium">Komentarze wewnętrzne — niewidoczne dla klienta</span>
-              </div>
-              <div className="flex gap-2 items-end">
-                <Textarea value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Napisz komentarz wewnętrzny..."
-                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); addComment(); } }}
-                  className="min-h-[40px] max-h-[100px] text-sm resize-none" />
-                <Button size="icon" onClick={addComment} className="h-9 w-9 shrink-0"><Send className="h-4 w-4" /></Button>
-              </div>
+              {!isPreviewMode && !isClient && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="right-internal" checked={commentType === "internal"} onCheckedChange={(v) => setCommentType(v ? "internal" : "client")} className="h-3.5 w-3.5" />
+                    <Label htmlFor="right-internal" className="text-[10px] flex items-center gap-1 cursor-pointer">
+                      <Lock className="h-2.5 w-2.5 text-amber-500" />Wewnętrzny
+                    </Label>
+                    {!isPreviewMode && !isClient && (
+                      <div className="flex gap-0.5 ml-auto">
+                        {["all", "internal", "client"].map(f => (
+                          <Button key={f} variant={commentFilter === f ? "default" : "ghost"} size="sm" className="text-[9px] h-5 px-1.5"
+                            onClick={() => setCommentFilter(f)}>
+                            {f === "all" ? "Wsze" : f === "internal" ? "Wewn" : "Klient"}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2 items-end">
+                    <Textarea value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Napisz komentarz..."
+                      onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); addComment(); } }}
+                      className="min-h-[40px] max-h-[100px] text-sm resize-none" />
+                    <Button size="icon" onClick={addComment} className="h-9 w-9 shrink-0"><Send className="h-4 w-4" /></Button>
+                  </div>
+                </div>
+              )}
+              {isClient && !isPreviewMode && (
+                <div className="flex gap-2 items-end">
+                  <Textarea value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Napisz wiadomość..."
+                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleClientComment(); } }}
+                    className="min-h-[40px] max-h-[100px] text-sm resize-none" />
+                  <Button size="icon" onClick={handleClientComment} className="h-9 w-9 shrink-0"><Send className="h-4 w-4" /></Button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1572,6 +1529,62 @@ export default function TaskDetail() {
       <VerificationSendModal open={verificationSendOpen} onOpenChange={setVerificationSendOpen} taskId={task.id} timeLogs={timeLogs || []} totalMinutes={totalLogged} />
       <RejectionModal open={rejectReviewOpen} onOpenChange={setRejectReviewOpen} onConfirm={handleRejectFromReview} />
 
+      {/* Task Chat Sheet */}
+      <Sheet open={isChatOpen} onOpenChange={setIsChatOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
+          <SheetHeader className="px-6 py-4 border-b">
+            <SheetTitle className="flex items-center gap-2"><MessageCircle className="h-4 w-4" />Czat zadania</SheetTitle>
+          </SheetHeader>
+          <ScrollArea className="flex-1 px-6 py-4">
+            <div className="space-y-3">
+              {(!comments || comments.length === 0) ? (
+                <p className="text-sm text-muted-foreground py-8 text-center">Brak wiadomości.</p>
+              ) : (
+                [...(comments || [])].reverse().map((c: any) => {
+                  const isOwn = c.user_id === user?.id;
+                  return (
+                    <div key={c.id} className={cn("flex gap-2", isOwn && "flex-row-reverse")}>
+                      <Avatar className="h-7 w-7 shrink-0"><AvatarFallback className="text-xs bg-muted">{(c.profiles?.full_name || "?").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
+                      <div className={cn("max-w-[75%] rounded-lg px-3 py-2", isOwn ? "bg-primary text-primary-foreground" : "bg-muted")}>
+                        <p className="text-xs font-medium opacity-80">{c.profiles?.full_name || "Użytkownik"}</p>
+                        <p className="text-sm whitespace-pre-wrap">{c.content}</p>
+                        <p className="text-[10px] opacity-60 mt-1">{new Date(c.created_at).toLocaleString("pl-PL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </ScrollArea>
+          <div className="border-t px-4 py-3 flex gap-2 items-end">
+            <Textarea value={chatMessage} onChange={(e) => setChatMessage(e.target.value)} placeholder="Napisz wiadomość..."
+              className="min-h-[48px] max-h-[120px] resize-none text-sm"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && chatMessage.trim()) {
+                  e.preventDefault();
+                  (async () => {
+                    if (!user) return;
+                    const { error } = await supabase.from("comments").insert({ task_id: id!, user_id: user.id, content: chatMessage.trim(), type: "internal" });
+                    if (error) { toast.error(error.message); return; }
+                    setChatMessage("");
+                    queryClient.invalidateQueries({ queryKey: ["comments", id] });
+                  })();
+                }
+              }}
+            />
+            <Button size="icon" className="shrink-0" disabled={!chatMessage.trim()}
+              onClick={async () => {
+                if (!user || !chatMessage.trim()) return;
+                const { error } = await supabase.from("comments").insert({ task_id: id!, user_id: user.id, content: chatMessage.trim(), type: "internal" });
+                if (error) { toast.error(error.message); return; }
+                setChatMessage("");
+                queryClient.invalidateQueries({ queryKey: ["comments", id] });
+              }}>
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </AppLayout>
   );
 }
