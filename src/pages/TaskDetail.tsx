@@ -1411,8 +1411,10 @@ export default function TaskDetail() {
 
         {/* ─── RIGHT COLUMN: Communication ─── */}
         <div className={cn(
-          "border-l border-border flex flex-col",
-          isMobile ? "w-full border-l-0 border-t min-h-[400px]" : "w-[30%] min-w-[280px] max-w-[400px] h-full min-h-0"
+          "border-border flex flex-col",
+          "w-full border-t min-h-[400px]",
+          "md:w-full md:border-t md:border-l-0",
+          "xl:w-[30%] xl:min-w-[280px] xl:max-w-[400px] xl:h-full xl:min-h-0 xl:border-t-0 xl:border-l"
         )}>
           {/* Toggle: Discussion / Logs */}
           <div className="px-4 pt-3 pb-2 border-b border-border shrink-0">
