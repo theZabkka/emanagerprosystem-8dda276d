@@ -398,7 +398,7 @@ export default function TaskKanbanBoard({
         toast.success("Usunięto przypisanie");
       } else {
         const role = currentAssignments.length === 0 ? "primary" : "collaborator";
-        const staffProfile = (allProfiles || []).find((p: any) => p.id === userId);
+        const staffProfile = (profiles || []).find((p: any) => p.id === userId);
         applyOptimistic((t) => ({
           ...t,
           task_assignments: [
