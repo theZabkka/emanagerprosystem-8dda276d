@@ -1547,16 +1547,12 @@ export default function TaskDetail() {
         onConfirm={handleNotUnderstood}
       />
       <ChecklistBlockModal open={checklistBlockOpen} onOpenChange={setChecklistBlockOpen} />
-      <ResponsibilityModal
-        open={responsibilityOpen}
-        onOpenChange={setResponsibilityOpen}
-        onConfirm={async () => {
-          if (pendingStatus && task) {
-            await supabase.from("tasks").update({ accepted_responsibility_by: user?.id } as any).eq("id", task.id);
-            executeStatusChange(pendingStatus);
-            setPendingStatus(null);
-          }
-        }}
+      <VerificationSendModal
+        open={verificationSendOpen}
+        onOpenChange={setVerificationSendOpen}
+        taskId={task.id}
+        timeLogs={timeLogs || []}
+        totalMinutes={totalLogged}
       />
 
       {/* Reject from review modal — unified with Kanban */}
