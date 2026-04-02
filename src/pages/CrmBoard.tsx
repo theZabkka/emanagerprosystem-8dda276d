@@ -299,7 +299,7 @@ export default function CrmBoard() {
                             {/* Column header */}
                             <div
                               {...colProv.dragHandleProps}
-                              className="flex items-center justify-between px-3 py-2 border-b border-border/30"
+                              className="flex items-center justify-between px-3 h-14 border-b border-border/30"
                             >
                               <div className="flex items-center gap-2 min-w-0 flex-1">
                                 <GripVertical className="h-4 w-4 text-muted-foreground shrink-0 cursor-grab" />
@@ -313,10 +313,7 @@ export default function CrmBoard() {
                                     className="h-7 text-xs font-bold"
                                   />
                                 ) : (
-                                  <div className="min-w-0 flex-1">
-                                    <h3 className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground leading-tight line-clamp-2">{col.name}</h3>
-                                    <span className="text-[10px] text-muted-foreground/60">{colDeals.length}</span>
-                                  </div>
+                                  <h3 className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground truncate pr-1">{col.name}</h3>
                                 )}
                               </div>
                               <div className="flex items-center gap-0.5 shrink-0">
