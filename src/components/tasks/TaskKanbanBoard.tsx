@@ -320,7 +320,7 @@ export default function TaskKanbanBoard({
   };
 
   const handleToggleAssign = useCallback(async (taskId: string, userId: string) => {
-    const queryKey = ["tasks", priorityFilter];
+    const queryKey = ["tasks"];
     const previousTasks = queryClient.getQueryData<any[]>(queryKey);
 
     // Check if user is already assigned
