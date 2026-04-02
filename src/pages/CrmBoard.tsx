@@ -219,7 +219,7 @@ export default function CrmBoard() {
       qc.invalidateQueries({ queryKey: ["crm-deals"] });
       qc.invalidateQueries({ queryKey: ["crm-all-deal-labels"] });
       setCreateOpen(false);
-      setNewDeal({ title: "", column_id: "", due_date: "", client_id: "", description: "", assigned_to: "", selectedLabels: [] });
+      setNewDeal(emptyDeal);
       toast.success("Karta dodana");
     } catch (err: any) {
       toast.error("Błąd tworzenia: " + (err?.message || "Nieznany błąd"));
