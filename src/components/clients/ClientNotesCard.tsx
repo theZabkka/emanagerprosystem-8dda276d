@@ -29,7 +29,12 @@ interface ClientNotesCardProps {
 
 function getInitials(name: string | null | undefined) {
   if (!name) return "?";
-  return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 }
 
 export function ClientNotesCard({ clientId, onShowAll }: ClientNotesCardProps) {
@@ -55,15 +60,13 @@ export function ClientNotesCard({ clientId, onShowAll }: ClientNotesCardProps) {
     enabled: !!clientId,
   });
 
-  const { data: profiles = [] } = useQuery({
-    queryKey: ["profiles-all"],
-    queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, full_name, avatar_url");
-      return data || [];
-    },
-  });
+  import { useStaffMembers } from "@/hooks/useStaffMembers";
 
-  const profileMap = new Map(profiles.map(p => [p.id, p]));
+  // ...
+
+  const { data: profiles = [] } = useStaffMembers();
+
+  const profileMap = new Map(profiles.map((p) => [p.id, p]));
 
   // Sort: pinned first, then by created_at desc
   const sortedNotes = [...notes].sort((a, b) => {
@@ -88,7 +91,7 @@ export function ClientNotesCard({ clientId, onShowAll }: ClientNotesCardProps) {
       is_pinned: false,
     };
 
-    queryClient.setQueryData<ClientNote[]>(queryKey, old => [optimisticNote, ...(old || [])]);
+    queryClient.setQueryData<ClientNote[]>(queryKey, (old) => [optimisticNote, ...(old || [])]);
     setNewNote("");
     setShowAddDialog(false);
 
@@ -102,9 +105,7 @@ export function ClientNotesCard({ clientId, onShowAll }: ClientNotesCardProps) {
       queryClient.invalidateQueries({ queryKey });
       toast.success("Notatka dodana");
     } catch {
-      queryClient.setQueryData<ClientNote[]>(queryKey, old =>
-        (old || []).filter(n => n.id !== optimisticNote.id)
-      );
+      queryClient.setQueryData<ClientNote[]>(queryKey, (old) => (old || []).filter((n) => n.id !== optimisticNote.id));
       toast.error("Nie udało się dodać notatki");
     } finally {
       setSubmitting(false);
@@ -115,11 +116,11 @@ export function ClientNotesCard({ clientId, onShowAll }: ClientNotesCardProps) {
     const prev = queryClient.getQueryData<ClientNote[]>(queryKey);
 
     // Optimistic: unpin all others, toggle this one
-    queryClient.setQueryData<ClientNote[]>(queryKey, old =>
-      (old || []).map(n => ({
+    queryClient.setQueryData<ClientNote[]>(queryKey, (old) =>
+      (old || []).map((n) => ({
         ...n,
         is_pinned: n.id === noteId ? !currentlyPinned : false,
-      }))
+      })),
     );
 
     try {
@@ -131,9 +132,7 @@ export function ClientNotesCard({ clientId, onShowAll }: ClientNotesCardProps) {
           .eq("is_pinned", true);
       }
       // Then set the target note
-      await (supabase.from("client_notes" as any) as any)
-        .update({ is_pinned: !currentlyPinned })
-        .eq("id", noteId);
+      await (supabase.from("client_notes" as any) as any).update({ is_pinned: !currentlyPinned }).eq("id", noteId);
 
       queryClient.invalidateQueries({ queryKey });
       toast.success(currentlyPinned ? "Notatka odpięta" : "Notatka przypięta");
@@ -151,9 +150,7 @@ export function ClientNotesCard({ clientId, onShowAll }: ClientNotesCardProps) {
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <StickyNote className="h-4 w-4 text-muted-foreground" />
               Notatki o kliencie
-              {notes.length > 0 && (
-                <span className="text-xs font-normal text-muted-foreground">({notes.length})</span>
-              )}
+              {notes.length > 0 && <span className="text-xs font-normal text-muted-foreground">({notes.length})</span>}
             </CardTitle>
             <Button size="sm" variant="outline" className="h-7 px-2" onClick={() => setShowAddDialog(true)}>
               <Plus className="h-3.5 w-3.5 mr-1" />
@@ -164,7 +161,7 @@ export function ClientNotesCard({ clientId, onShowAll }: ClientNotesCardProps) {
         <CardContent className="pt-0">
           {isLoading ? (
             <div className="space-y-3">
-              {[1, 2].map(i => (
+              {[1, 2].map((i) => (
                 <div key={i} className="animate-pulse h-16 bg-muted rounded-md" />
               ))}
             </div>
@@ -172,13 +169,11 @@ export function ClientNotesCard({ clientId, onShowAll }: ClientNotesCardProps) {
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <FileText className="h-10 w-10 text-muted-foreground/40 mb-3" />
               <p className="text-sm text-muted-foreground">Brak notatek</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Kliknij (+), aby dodać pierwszą informację.
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">Kliknij (+), aby dodać pierwszą informację.</p>
             </div>
           ) : (
             <div className="space-y-2">
-              {displayNotes.map(note => {
+              {displayNotes.map((note) => {
                 const author = note.author_id ? profileMap.get(note.author_id) : null;
                 const timeAgo = formatDistanceToNow(new Date(note.created_at), { addSuffix: true, locale: pl });
 
@@ -200,9 +195,7 @@ export function ClientNotesCard({ clientId, onShowAll }: ClientNotesCardProps) {
                       </Avatar>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-xs font-medium truncate">
-                            {author?.full_name || "Nieznany"}
-                          </span>
+                          <span className="text-xs font-medium truncate">{author?.full_name || "Nieznany"}</span>
                           <span className="text-xs text-muted-foreground">{timeAgo}</span>
                           {note.is_pinned && (
                             <Pin className="h-3 w-3 text-amber-600 dark:text-amber-400 fill-current" />
@@ -221,7 +214,9 @@ export function ClientNotesCard({ clientId, onShowAll }: ClientNotesCardProps) {
                         onClick={() => handleTogglePin(note.id, note.is_pinned)}
                         title={note.is_pinned ? "Odepnij" : "Przypnij"}
                       >
-                        <Pin className={`h-3.5 w-3.5 ${note.is_pinned ? "text-amber-600 fill-current" : "text-muted-foreground"}`} />
+                        <Pin
+                          className={`h-3.5 w-3.5 ${note.is_pinned ? "text-amber-600 fill-current" : "text-muted-foreground"}`}
+                        />
                       </Button>
                     </div>
                   </div>
@@ -247,13 +242,15 @@ export function ClientNotesCard({ clientId, onShowAll }: ClientNotesCardProps) {
           </DialogHeader>
           <Textarea
             value={newNote}
-            onChange={e => setNewNote(e.target.value)}
+            onChange={(e) => setNewNote(e.target.value)}
             placeholder="Wpisz notatkę, ustalenia ze spotkania..."
             className="min-h-[120px] resize-none"
             autoFocus
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)}>Anuluj</Button>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+              Anuluj
+            </Button>
             <Button onClick={handleAddNote} disabled={!newNote.trim() || submitting}>
               Dodaj notatkę
             </Button>

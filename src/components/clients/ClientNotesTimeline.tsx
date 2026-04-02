@@ -33,7 +33,12 @@ interface ClientNotesTimelineProps {
 
 function getInitials(name: string | null | undefined) {
   if (!name) return "?";
-  return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 }
 
 export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
@@ -62,15 +67,13 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
   });
 
   // Fetch profiles for author names
-  const { data: profiles = [] } = useQuery({
-    queryKey: ["profiles-all"],
-    queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, full_name, avatar_url, role");
-      return data || [];
-    },
-  });
+  import { useStaffMembers } from "@/hooks/useStaffMembers";
 
-  const profileMap = new Map(profiles.map(p => [p.id, p]));
+  // ...
+
+  const { data: profiles = [] } = useStaffMembers();
+
+  const profileMap = new Map(profiles.map((p) => [p.id, p]));
   const isStaff = profile?.role && ["superadmin", "boss", "koordynator", "admin"].includes(profile.role);
 
   const canManageNote = (authorId: string | null) => {
@@ -94,7 +97,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
       is_pinned: false,
     };
 
-    queryClient.setQueryData<ClientNote[]>(queryKey, old => [optimisticNote, ...(old || [])]);
+    queryClient.setQueryData<ClientNote[]>(queryKey, (old) => [optimisticNote, ...(old || [])]);
     setNewNote("");
 
     try {
@@ -106,9 +109,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey });
     } catch {
-      queryClient.setQueryData<ClientNote[]>(queryKey, old =>
-        (old || []).filter(n => n.id !== optimisticNote.id)
-      );
+      queryClient.setQueryData<ClientNote[]>(queryKey, (old) => (old || []).filter((n) => n.id !== optimisticNote.id));
       toast.error("Nie udało się dodać notatki");
     } finally {
       setSubmitting(false);
@@ -120,8 +121,10 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
     if (!editContent.trim()) return;
 
     const prev = queryClient.getQueryData<ClientNote[]>(queryKey);
-    queryClient.setQueryData<ClientNote[]>(queryKey, old =>
-      (old || []).map(n => n.id === noteId ? { ...n, content: editContent.trim(), updated_at: new Date().toISOString() } : n)
+    queryClient.setQueryData<ClientNote[]>(queryKey, (old) =>
+      (old || []).map((n) =>
+        n.id === noteId ? { ...n, content: editContent.trim(), updated_at: new Date().toISOString() } : n,
+      ),
     );
     setEditingId(null);
 
@@ -141,9 +144,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
   // Delete note
   const handleDeleteNote = async (noteId: string) => {
     const prev = queryClient.getQueryData<ClientNote[]>(queryKey);
-    queryClient.setQueryData<ClientNote[]>(queryKey, old =>
-      (old || []).filter(n => n.id !== noteId)
-    );
+    queryClient.setQueryData<ClientNote[]>(queryKey, (old) => (old || []).filter((n) => n.id !== noteId));
 
     try {
       const { error } = await (supabase.from("client_notes" as any) as any).delete().eq("id", noteId);
@@ -158,11 +159,11 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
   // Toggle pin
   const handleTogglePin = async (noteId: string, currentlyPinned: boolean) => {
     const prev = queryClient.getQueryData<ClientNote[]>(queryKey);
-    queryClient.setQueryData<ClientNote[]>(queryKey, old =>
-      (old || []).map(n => ({
+    queryClient.setQueryData<ClientNote[]>(queryKey, (old) =>
+      (old || []).map((n) => ({
         ...n,
         is_pinned: n.id === noteId ? !currentlyPinned : false,
-      }))
+      })),
     );
     try {
       if (!currentlyPinned) {
@@ -171,9 +172,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
           .eq("client_id", clientId)
           .eq("is_pinned", true);
       }
-      await (supabase.from("client_notes" as any) as any)
-        .update({ is_pinned: !currentlyPinned })
-        .eq("id", noteId);
+      await (supabase.from("client_notes" as any) as any).update({ is_pinned: !currentlyPinned }).eq("id", noteId);
       queryClient.invalidateQueries({ queryKey });
     } catch {
       queryClient.setQueryData(queryKey, prev);
@@ -201,13 +200,13 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
         <CardContent className="p-4 space-y-3">
           <Textarea
             value={newNote}
-            onChange={e => {
+            onChange={(e) => {
               setNewNote(e.target.value);
               autoResize(e.target);
             }}
             placeholder="Dodaj notatkę, podsumowanie spotkania lub ustalenia..."
             className="min-h-[80px] resize-none"
-            onKeyDown={e => {
+            onKeyDown={(e) => {
               if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
                 handleAddNote();
@@ -216,11 +215,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
           />
           <div className="flex justify-between items-center">
             <span className="text-xs text-muted-foreground">Ctrl+Enter aby wysłać</span>
-            <Button
-              onClick={handleAddNote}
-              disabled={!newNote.trim() || submitting}
-              size="sm"
-            >
+            <Button onClick={handleAddNote} disabled={!newNote.trim() || submitting} size="sm">
               <Send className="h-4 w-4 mr-1.5" />
               Dodaj notatkę
             </Button>
@@ -231,7 +226,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
       {/* Timeline */}
       {isLoading ? (
         <div className="space-y-3">
-          {[1, 2, 3].map(i => (
+          {[1, 2, 3].map((i) => (
             <Card key={i} className="animate-pulse">
               <CardContent className="p-4 h-24" />
             </Card>
@@ -245,28 +240,36 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
         </Card>
       ) : (
         <div className="space-y-3">
-          {sortedNotes.map(note => {
+          {sortedNotes.map((note) => {
             const author = note.author_id ? profileMap.get(note.author_id) : null;
             const isEditing = editingId === note.id;
             const timeAgo = formatDistanceToNow(new Date(note.created_at), { addSuffix: true, locale: pl });
             const fullDate = format(new Date(note.created_at), "dd.MM.yyyy, HH:mm", { locale: pl });
-            const wasEdited = note.updated_at !== note.created_at &&
+            const wasEdited =
+              note.updated_at !== note.created_at &&
               new Date(note.updated_at).getTime() - new Date(note.created_at).getTime() > 1000;
 
             return (
-              <Card key={note.id} className={`group transition-shadow hover:shadow-md ${note.is_pinned ? "border-amber-200 bg-amber-50/40 dark:border-amber-800/40 dark:bg-amber-950/20" : ""}`}>
+              <Card
+                key={note.id}
+                className={`group transition-shadow hover:shadow-md ${note.is_pinned ? "border-amber-200 bg-amber-50/40 dark:border-amber-800/40 dark:bg-amber-950/20" : ""}`}
+              >
                 <CardContent className="p-4">
                   {/* Header */}
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <Avatar className="h-8 w-8 shrink-0">
                         {author?.avatar_url && <AvatarImage src={author.avatar_url} />}
-                        <AvatarFallback className={`text-xs ${author?.full_name ? "bg-primary/10 text-primary" : "bg-muted/60 text-muted-foreground"}`}>
+                        <AvatarFallback
+                          className={`text-xs ${author?.full_name ? "bg-primary/10 text-primary" : "bg-muted/60 text-muted-foreground"}`}
+                        >
                           {getInitials(author?.full_name)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">
-                        <p className={`text-sm font-medium truncate ${author?.full_name ? "" : "text-muted-foreground italic"}`}>
+                        <p
+                          className={`text-sm font-medium truncate ${author?.full_name ? "" : "text-muted-foreground italic"}`}
+                        >
                           {author?.full_name || "Usunięty użytkownik"}
                         </p>
                         <p className="text-xs text-muted-foreground" title={fullDate}>
@@ -293,10 +296,12 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
                             <Pin className={`h-4 w-4 mr-2 ${note.is_pinned ? "fill-current text-amber-600" : ""}`} />
                             {note.is_pinned ? "Odepnij" : "Przypnij"}
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => {
-                            setEditingId(note.id);
-                            setEditContent(note.content);
-                          }}>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setEditingId(note.id);
+                              setEditContent(note.content);
+                            }}
+                          >
                             <Pencil className="h-4 w-4 mr-2" />
                             Edytuj
                           </DropdownMenuItem>
@@ -317,31 +322,21 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
                     <div className="space-y-2 mt-1">
                       <Textarea
                         value={editContent}
-                        onChange={e => setEditContent(e.target.value)}
+                        onChange={(e) => setEditContent(e.target.value)}
                         className="min-h-[60px] resize-none"
                         autoFocus
                       />
                       <div className="flex gap-2 justify-end">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingId(null)}
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>
                           Anuluj
                         </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleUpdateNote(note.id)}
-                          disabled={!editContent.trim()}
-                        >
+                        <Button size="sm" onClick={() => handleUpdateNote(note.id)} disabled={!editContent.trim()}>
                           Zapisz
                         </Button>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                      {note.content}
-                    </p>
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{note.content}</p>
                   )}
                 </CardContent>
               </Card>

@@ -6,12 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Clock, TrendingUp, Users, BarChart3 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { pl } from "date-fns/locale";
@@ -33,7 +29,6 @@ export default function TimeReports() {
   const { data: timeLogs = [] } = useQuery({
     queryKey: ["time-logs-report", period],
     queryFn: async () => {
-
       const { data } = await supabase
         .from("time_logs")
         .select("*, profiles:user_id(full_name), tasks:task_id(title, client_id, clients:client_id(name))")
@@ -44,16 +39,12 @@ export default function TimeReports() {
     },
   });
 
-  const { data: profiles = [] } = useQuery({
-    queryKey: ["report-profiles"],
-    queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, full_name, role");
-      return data || [];
-    },
-  });
+  import { useStaffMembers } from "@/hooks/useStaffMembers";
+  // ...
+  const { data: profiles = [] } = useStaffMembers();
 
   const totalMinutes = timeLogs.reduce((s: number, l: any) => s + (l.duration || 0), 0);
-  const totalHours = Math.round(totalMinutes / 60 * 10) / 10;
+  const totalHours = Math.round((totalMinutes / 60) * 10) / 10;
 
   // Group by user
   const byUser = useMemo(() => {
@@ -93,7 +84,12 @@ export default function TimeReports() {
   };
 
   const getInitials = (name: string) =>
-    name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+    name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
 
   return (
     <AppLayout title="Raporty czasu">

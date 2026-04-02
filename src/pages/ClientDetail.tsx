@@ -13,17 +13,57 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 // ScrollArea removed – vertical sidebar tabs don't need horizontal scroll
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import TaskKanbanBoard from "@/components/tasks/TaskKanbanBoard";
 import {
-  ArrowLeft, Phone, MessageSquare, DollarSign, ListTodo, AlertTriangle, PhoneCall,
-  Copy, Check, CheckCircle2, Circle, Search, Plus, LayoutGrid, List, Timer,
-  FileText, Link as LinkIcon, ThumbsUp, Mail, Users, Upload, Trash2, Download,
-  Pencil, Calendar, ExternalLink, StickyNote, Lightbulb, FileSignature, ShoppingCart,
-  Share2, Receipt, History, Contact,
+  ArrowLeft,
+  Phone,
+  MessageSquare,
+  DollarSign,
+  ListTodo,
+  AlertTriangle,
+  PhoneCall,
+  Copy,
+  Check,
+  CheckCircle2,
+  Circle,
+  Search,
+  Plus,
+  LayoutGrid,
+  List,
+  Timer,
+  FileText,
+  Link as LinkIcon,
+  ThumbsUp,
+  Mail,
+  Users,
+  Upload,
+  Trash2,
+  Download,
+  Pencil,
+  Calendar,
+  ExternalLink,
+  StickyNote,
+  Lightbulb,
+  FileSignature,
+  ShoppingCart,
+  Share2,
+  Receipt,
+  History,
+  Contact,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -84,7 +124,12 @@ function formatFileSize(bytes: number) {
 
 function getInitials(name: string | null | undefined) {
   if (!name) return "?";
-  return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 }
 
 // Mutable demo state
@@ -143,7 +188,12 @@ export default function ClientDetail() {
   const { data: projects } = useQuery({
     queryKey: ["client-projects", id],
     queryFn: async () => {
-      const { data } = await supabase.from("projects").select("*, profiles:manager_id(full_name)").eq("client_id", id!).eq("is_archived", false).order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("projects")
+        .select("*, profiles:manager_id(full_name)")
+        .eq("client_id", id!)
+        .eq("is_archived", false)
+        .order("created_at", { ascending: false });
       return data || [];
     },
     enabled: !!id,
@@ -153,7 +203,11 @@ export default function ClientDetail() {
   const { data: clientTickets } = useQuery({
     queryKey: ["client-tickets-tab", id],
     queryFn: async () => {
-      const { data } = await supabase.from("tickets").select("id, title, status, priority, created_at, ticket_number").eq("client_id", id!).order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("tickets")
+        .select("id, title, status, priority, created_at, ticket_number")
+        .eq("client_id", id!)
+        .order("created_at", { ascending: false });
       return data || [];
     },
     enabled: !!id && activeTab === "tickets-tab",
@@ -163,27 +217,28 @@ export default function ClientDetail() {
   const { data: tasks } = useQuery({
     queryKey: ["client-tasks", id],
     queryFn: async () => {
-      const { data } = await supabase.from("tasks").select("id, title, status, priority, due_date, lexo_rank, client_id, project_id, type, parent_task_id, not_understood, is_misunderstood, correction_severity, is_archived, estimated_time, logged_time, updated_at, created_at, status_updated_at, bug_severity").eq("client_id", id!);
+      const { data } = await supabase
+        .from("tasks")
+        .select(
+          "id, title, status, priority, due_date, lexo_rank, client_id, project_id, type, parent_task_id, not_understood, is_misunderstood, correction_severity, is_archived, estimated_time, logged_time, updated_at, created_at, status_updated_at, bug_severity",
+        )
+        .eq("client_id", id!);
       return data || [];
     },
     enabled: !!id,
   });
 
   // ─── Fetch profiles & assignments ─────────────────────────────
-  const { data: profiles } = useQuery({
-    queryKey: ["profiles-all"],
-    queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("*");
-      return data || [];
-    },
-  });
+  import { useStaffMembers } from "@/hooks/useStaffMembers";
+  // ...
+  const { data: profiles = [] } = useStaffMembers();
 
   const { data: assignments } = useQuery({
     queryKey: ["client-assignments", id],
     queryFn: async () => {
       const { data: clientTasks } = await supabase.from("tasks").select("id").eq("client_id", id!);
       if (!clientTasks?.length) return [];
-      const taskIds = clientTasks.map(t => t.id);
+      const taskIds = clientTasks.map((t) => t.id);
       const { data } = await supabase.from("task_assignments").select("*").in("task_id", taskIds);
       return data || [];
     },
@@ -204,7 +259,11 @@ export default function ClientDetail() {
   const { data: offers } = useQuery({
     queryKey: ["client-offers", id],
     queryFn: async () => {
-      const { data } = await supabase.from("client_offers").select("*").eq("client_id", id!).order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("client_offers")
+        .select("*")
+        .eq("client_id", id!)
+        .order("created_at", { ascending: false });
       return data || [];
     },
     enabled: !!id,
@@ -214,7 +273,11 @@ export default function ClientDetail() {
   const { data: ideas } = useQuery({
     queryKey: ["client-ideas", id],
     queryFn: async () => {
-      const { data } = await supabase.from("client_ideas").select("*").eq("client_id", id!).order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("client_ideas")
+        .select("*")
+        .eq("client_id", id!)
+        .order("created_at", { ascending: false });
       return data || [];
     },
     enabled: !!id,
@@ -224,7 +287,11 @@ export default function ClientDetail() {
   const { data: conversations } = useQuery({
     queryKey: ["client-conversations", id],
     queryFn: async () => {
-      const { data } = await supabase.from("client_conversations").select("*").eq("client_id", id!).order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("client_conversations")
+        .select("*")
+        .eq("client_id", id!)
+        .order("created_at", { ascending: false });
       return data || [];
     },
     enabled: !!id,
@@ -234,7 +301,11 @@ export default function ClientDetail() {
   const { data: files } = useQuery({
     queryKey: ["client-files", id],
     queryFn: async () => {
-      const { data } = await supabase.from("client_files").select("*").eq("client_id", id!).order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("client_files")
+        .select("*")
+        .eq("client_id", id!)
+        .order("created_at", { ascending: false });
       return data || [];
     },
     enabled: !!id,
@@ -254,7 +325,11 @@ export default function ClientDetail() {
   const { data: contracts } = useQuery({
     queryKey: ["client-contracts", id],
     queryFn: async () => {
-      const { data } = await supabase.from("client_contracts").select("*").eq("client_id", id!).order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("client_contracts")
+        .select("*")
+        .eq("client_id", id!)
+        .order("created_at", { ascending: false });
       return data || [];
     },
     enabled: !!id,
@@ -264,7 +339,11 @@ export default function ClientDetail() {
   const { data: orders } = useQuery({
     queryKey: ["client-orders", id],
     queryFn: async () => {
-      const { data } = await supabase.from("client_orders").select("*").eq("client_id", id!).order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("client_orders")
+        .select("*")
+        .eq("client_id", id!)
+        .order("created_at", { ascending: false });
       return data || [];
     },
     enabled: !!id,
@@ -284,7 +363,12 @@ export default function ClientDetail() {
   const { data: activityHistory } = useQuery({
     queryKey: ["client-history", id],
     queryFn: async () => {
-      const { data } = await supabase.from("activity_log").select("*").or(`entity_id.eq.${id}`).order("created_at", { ascending: false }).limit(50);
+      const { data } = await supabase
+        .from("activity_log")
+        .select("*")
+        .or(`entity_id.eq.${id}`)
+        .order("created_at", { ascending: false })
+        .limit(50);
       return data || [];
     },
     enabled: !!id,
@@ -304,7 +388,10 @@ export default function ClientDetail() {
   const { data: contactsCount } = useQuery({
     queryKey: ["customer-contacts-count", id],
     queryFn: async () => {
-      const { count } = await supabase.from("customer_contacts" as any).select("id", { count: "exact", head: true }).eq("customer_id", id!);
+      const { count } = await supabase
+        .from("customer_contacts" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("customer_id", id!);
       return count || 0;
     },
     enabled: !!id,
@@ -328,30 +415,48 @@ export default function ClientDetail() {
   };
 
   const saveInvoiceData = async () => {
-const { data: existing } = await supabase.from("client_invoice_data").select("id").eq("client_id", id!).maybeSingle();
-      if (existing) {
-        await supabase.from("client_invoice_data").update({ ...invoiceForm, updated_at: new Date().toISOString() }).eq("client_id", id!);
-      } else {
-        await supabase.from("client_invoice_data").insert({ client_id: id!, ...invoiceForm });
-      }
-      queryClient.invalidateQueries({ queryKey: ["client-invoice"] });
+    const { data: existing } = await supabase
+      .from("client_invoice_data")
+      .select("id")
+      .eq("client_id", id!)
+      .maybeSingle();
+    if (existing) {
+      await supabase
+        .from("client_invoice_data")
+        .update({ ...invoiceForm, updated_at: new Date().toISOString() })
+        .eq("client_id", id!);
+    } else {
+      await supabase.from("client_invoice_data").insert({ client_id: id!, ...invoiceForm });
+    }
+    queryClient.invalidateQueries({ queryKey: ["client-invoice"] });
 
     setShowInvoiceEdit(false);
     toast.success("Dane do faktury zapisane");
   };
 
   // ─── Computed values ──────────────────────────────────────────
-  const activeTasks = useMemo(() => (tasks || []).filter((t: any) =>
-    ["todo", "in_progress", "review", "corrections", "client_review"].includes(t.status)
-  ), [tasks]);
+  const activeTasks = useMemo(
+    () =>
+      (tasks || []).filter((t: any) =>
+        ["todo", "in_progress", "review", "corrections", "client_review"].includes(t.status),
+      ),
+    [tasks],
+  );
 
-  const openBugs = useMemo(() => (tasks || []).filter((t: any) => t.bug_severity && t.status !== "done" && t.status !== "cancelled"), [tasks]);
+  const openBugs = useMemo(
+    () => (tasks || []).filter((t: any) => t.bug_severity && t.status !== "done" && t.status !== "cancelled"),
+    [tasks],
+  );
 
   const onboardingSteps = useMemo(() => {
     if (!client) return [];
     const steps = (client as any).onboarding_steps;
     if (Array.isArray(steps)) return steps;
-    try { return JSON.parse(steps || "[]"); } catch { return []; }
+    try {
+      return JSON.parse(steps || "[]");
+    } catch {
+      return [];
+    }
   }, [client]);
 
   const onboardingCompleted = onboardingSteps.filter((s: any) => s.completed).length;
@@ -365,23 +470,40 @@ const { data: existing } = await supabase.from("client_invoice_data").select("id
   }, [client]);
 
   // ─── Tab counts ───────────────────────────────────────────────
-  const tabCounts: Record<string, number> = useMemo(() => ({
-    tasks: activeTasks.length,
-    "projects-tab": (projects || []).length,
-    "tickets-tab": (clientTickets || []).length,
-    contacts: contactsCount || 0,
-    conversations: (conversations || []).length,
-    voip: callsCount || 0,
-    offers: (offers || []).length,
-    ideas: (ideas || []).length,
-    contracts: (contracts || []).length,
-    orders: (orders || []).length,
-    files: (files || []).length,
-    social: (socialAccounts || []).length,
-    billing: invoiceData ? 1 : 0,
-    history: (activityHistory || []).length,
-  }), [activeTasks, projects, clientTickets, contactsCount, conversations, callsCount, offers, ideas, contracts, orders, files, socialAccounts, invoiceData, activityHistory]);
-  
+  const tabCounts: Record<string, number> = useMemo(
+    () => ({
+      tasks: activeTasks.length,
+      "projects-tab": (projects || []).length,
+      "tickets-tab": (clientTickets || []).length,
+      contacts: contactsCount || 0,
+      conversations: (conversations || []).length,
+      voip: callsCount || 0,
+      offers: (offers || []).length,
+      ideas: (ideas || []).length,
+      contracts: (contracts || []).length,
+      orders: (orders || []).length,
+      files: (files || []).length,
+      social: (socialAccounts || []).length,
+      billing: invoiceData ? 1 : 0,
+      history: (activityHistory || []).length,
+    }),
+    [
+      activeTasks,
+      projects,
+      clientTickets,
+      contactsCount,
+      conversations,
+      callsCount,
+      offers,
+      ideas,
+      contracts,
+      orders,
+      files,
+      socialAccounts,
+      invoiceData,
+      activityHistory,
+    ],
+  );
 
   // ─── Filtered tasks ───────────────────────────────────────────
   const filteredTasks = useMemo(() => {
@@ -406,7 +528,10 @@ const { data: existing } = await supabase.from("client_invoice_data").select("id
   }, [filteredTasks, projects]);
 
   const handleStatusChange = async (taskId: string, newStatus: string) => {
-    await supabase.from("tasks").update({ status: newStatus as any }).eq("id", taskId);
+    await supabase
+      .from("tasks")
+      .update({ status: newStatus as any })
+      .eq("id", taskId);
   };
 
   const handleCopy = () => {
@@ -418,7 +543,9 @@ const { data: existing } = await supabase.from("client_invoice_data").select("id
   };
 
   const formatTimer = (s: number) => {
-    const m = Math.floor(s / 60).toString().padStart(2, "0");
+    const m = Math.floor(s / 60)
+      .toString()
+      .padStart(2, "0");
     const sec = (s % 60).toString().padStart(2, "0");
     return `${m}:${sec}`;
   };
@@ -426,28 +553,38 @@ const { data: existing } = await supabase.from("client_invoice_data").select("id
   // ─── Actions ──────────────────────────────────────────────────
   const handleAddIdea = async () => {
     if (!newIdeaTitle.trim()) return;
-await supabase.from("client_ideas").insert({ client_id: id!, title: newIdeaTitle, description: newIdeaDesc, created_by: user?.id });
-      queryClient.invalidateQueries({ queryKey: ["client-ideas"] });
+    await supabase
+      .from("client_ideas")
+      .insert({ client_id: id!, title: newIdeaTitle, description: newIdeaDesc, created_by: user?.id });
+    queryClient.invalidateQueries({ queryKey: ["client-ideas"] });
 
-    setNewIdeaTitle(""); setNewIdeaDesc(""); setShowIdeaDialog(false);
+    setNewIdeaTitle("");
+    setNewIdeaDesc("");
+    setShowIdeaDialog(false);
     toast.success("Pomysł dodany");
   };
 
   const handleVoteIdea = async (ideaId: string) => {
-const idea = (ideas || []).find((i: any) => i.id === ideaId);
-      if (idea) {
-        await supabase.from("client_ideas").update({ votes: ((idea as any).votes || 0) + 1 }).eq("id", ideaId);
-        queryClient.invalidateQueries({ queryKey: ["client-ideas"] });
-      }
-
+    const idea = (ideas || []).find((i: any) => i.id === ideaId);
+    if (idea) {
+      await supabase
+        .from("client_ideas")
+        .update({ votes: ((idea as any).votes || 0) + 1 })
+        .eq("id", ideaId);
+      queryClient.invalidateQueries({ queryKey: ["client-ideas"] });
+    }
   };
 
   const handleAddLink = async () => {
     if (!newLinkName.trim() || !newLinkUrl.trim()) return;
-await supabase.from("client_files").insert({ client_id: id!, name: newLinkName, url: newLinkUrl, size: 0, uploaded_by: user?.id });
-      queryClient.invalidateQueries({ queryKey: ["client-files"] });
+    await supabase
+      .from("client_files")
+      .insert({ client_id: id!, name: newLinkName, url: newLinkUrl, size: 0, uploaded_by: user?.id });
+    queryClient.invalidateQueries({ queryKey: ["client-files"] });
 
-    setNewLinkName(""); setNewLinkUrl(""); setShowLinkDialog(false);
+    setNewLinkName("");
+    setNewLinkUrl("");
+    setShowLinkDialog(false);
     toast.success("Link dodany");
   };
 
@@ -457,16 +594,21 @@ await supabase.from("client_files").insert({ client_id: id!, name: newLinkName, 
 
     const path = `${id}/${Date.now()}-${file.name}`;
     const { error: uploadErr } = await supabase.storage.from("task_materials").upload(path, file);
-    if (uploadErr) { toast.error("Błąd uploadu"); return; }
+    if (uploadErr) {
+      toast.error("Błąd uploadu");
+      return;
+    }
     const { data: urlData } = supabase.storage.from("task_materials").getPublicUrl(path);
-    await supabase.from("client_files").insert({ client_id: id!, name: file.name, size: file.size, url: urlData.publicUrl, uploaded_by: user?.id });
+    await supabase
+      .from("client_files")
+      .insert({ client_id: id!, name: file.name, size: file.size, url: urlData.publicUrl, uploaded_by: user?.id });
     queryClient.invalidateQueries({ queryKey: ["client-files"] });
     toast.success("Plik wgrany");
   };
 
   const handleDeleteFile = async (fileId: string) => {
-await supabase.from("client_files").delete().eq("id", fileId);
-      queryClient.invalidateQueries({ queryKey: ["client-files"] });
+    await supabase.from("client_files").delete().eq("id", fileId);
+    queryClient.invalidateQueries({ queryKey: ["client-files"] });
 
     toast.success("Plik usunięty");
   };
@@ -480,16 +622,24 @@ await supabase.from("client_files").delete().eq("id", fileId);
   // Timer effect
   useState(() => {
     if (!timerRunning) return;
-    const iv = setInterval(() => setTimerSeconds(s => s + 1), 1000);
+    const iv = setInterval(() => setTimerSeconds((s) => s + 1), 1000);
     return () => clearInterval(iv);
   });
 
   if (loadingClient) {
-    return <AppLayout title="Klient"><div className="flex items-center justify-center h-64 text-muted-foreground">Ładowanie...</div></AppLayout>;
+    return (
+      <AppLayout title="Klient">
+        <div className="flex items-center justify-center h-64 text-muted-foreground">Ładowanie...</div>
+      </AppLayout>
+    );
   }
 
   if (!client) {
-    return <AppLayout title="Klient"><div className="text-center py-16 text-muted-foreground">Nie znaleziono klienta</div></AppLayout>;
+    return (
+      <AppLayout title="Klient">
+        <div className="text-center py-16 text-muted-foreground">Nie znaleziono klienta</div>
+      </AppLayout>
+    );
   }
 
   return (
@@ -497,7 +647,10 @@ await supabase.from("client_files").delete().eq("id", fileId);
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
         {/* Top bar with back link + actions */}
         <div className="flex items-center gap-3 mb-4">
-          <Link to="/clients" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <Link
+            to="/clients"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
             <ArrowLeft className="h-4 w-4" /> Wróć do klientów
           </Link>
           <div className="ml-auto flex gap-3 items-center">
@@ -518,9 +671,17 @@ await supabase.from("client_files").delete().eq("id", fileId);
                     try {
                       await queryClient.cancelQueries({ queryKey: ["clients"] });
                       await queryClient.cancelQueries({ queryKey: clientQueryKey });
-                      queryClient.setQueryData(clientQueryKey, (old: any) => old ? { ...old, status: newStatus } : old);
-                      queryClient.setQueryData(["clients"], (old: any[] | undefined) => old?.map((c: any) => (c.id === clientId ? { ...c, status: newStatus } : c)));
-                      const { data, error } = await supabase.from("clients").update({ status: newStatus as any }).eq("id", clientId).select();
+                      queryClient.setQueryData(clientQueryKey, (old: any) =>
+                        old ? { ...old, status: newStatus } : old,
+                      );
+                      queryClient.setQueryData(["clients"], (old: any[] | undefined) =>
+                        old?.map((c: any) => (c.id === clientId ? { ...c, status: newStatus } : c)),
+                      );
+                      const { data, error } = await supabase
+                        .from("clients")
+                        .update({ status: newStatus as any })
+                        .eq("id", clientId)
+                        .select();
                       const updatedClient = data?.[0];
                       if (error || !updatedClient || updatedClient.status !== newStatus) {
                         if (previousClient !== undefined) queryClient.setQueryData(clientQueryKey, previousClient);
@@ -541,14 +702,19 @@ await supabase.from("client_files").delete().eq("id", fileId);
                   }}
                 >
                   <SelectTrigger onPointerDown={(e) => e.stopPropagation()} className="w-auto h-9 border-border">
-                    <Badge variant="outline" className={`text-xs font-bold px-3 py-1 cursor-pointer transition-opacity ${updatingStatus ? "opacity-50" : ""} ${getClientStatusColor(displayStatus)}`}>
+                    <Badge
+                      variant="outline"
+                      className={`text-xs font-bold px-3 py-1 cursor-pointer transition-opacity ${updatingStatus ? "opacity-50" : ""} ${getClientStatusColor(displayStatus)}`}
+                    >
                       {getClientStatusLabel(displayStatus)}
                     </Badge>
                   </SelectTrigger>
                   <SelectContent>
                     {CLIENT_STATUS_GROUPS.map((group) => (
                       <div key={group.name}>
-                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{group.name}</div>
+                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                          {group.name}
+                        </div>
                         {group.statuses.map((s) => (
                           <SelectItem key={s.value} value={s.value}>
                             <span className="flex items-center gap-2">
@@ -576,7 +742,10 @@ await supabase.from("client_files").delete().eq("id", fileId);
           open={showEditClient}
           onOpenChange={setShowEditClient}
           client={client}
-          onUpdated={() => { queryClient.invalidateQueries({ queryKey: ["client", id] }); queryClient.invalidateQueries({ queryKey: ["clients"] }); }}
+          onUpdated={() => {
+            queryClient.invalidateQueries({ queryKey: ["client", id] });
+            queryClient.invalidateQueries({ queryKey: ["clients"] });
+          }}
         />
         <CreateTaskDialog
           open={showCreateTask}
@@ -586,22 +755,19 @@ await supabase.from("client_files").delete().eq("id", fileId);
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex flex-col md:flex-row gap-6 w-full items-start">
-
             {/* ═══════ LEFT SIDEBAR ═══════ */}
             <div className="flex flex-col w-full md:w-64 shrink-0 space-y-4">
               {/* Client info card - clean */}
               <Card>
                 <CardContent className="p-4 space-y-1">
                   <h1 className="text-2xl font-bold text-foreground truncate">{client.name}</h1>
-                  {client.email && (
-                    <p className="text-sm text-muted-foreground truncate">{client.email}</p>
-                  )}
+                  {client.email && <p className="text-sm text-muted-foreground truncate">{client.email}</p>}
                 </CardContent>
               </Card>
 
               {/* Navigation tabs */}
               <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 space-y-1 rounded-none border-none">
-                {CLIENT_TABS.map(tab => {
+                {CLIENT_TABS.map((tab) => {
                   const count = tabCounts[tab.key] || 0;
                   const TabIcon = tab.icon;
                   return (
@@ -625,7 +791,6 @@ await supabase.from("client_files").delete().eq("id", fileId);
 
             {/* ═══════ RIGHT CONTENT AREA ═══════ */}
             <div className="flex-1 w-full min-w-0 bg-card rounded-xl shadow-sm border border-border p-6">
-
               {/* ─── Overview Tab ──────────────────────────────── */}
               <TabsContent value="overview" className="mt-0 space-y-6">
                 {/* KPI Cards */}
@@ -696,7 +861,9 @@ await supabase.from("client_files").delete().eq("id", fileId);
                     <CardContent className="space-y-4">
                       <div>
                         <div className="flex items-center justify-between text-xs mb-1.5">
-                          <span className="font-medium text-muted-foreground">{onboardingCompleted}/{onboardingTotal} kroków</span>
+                          <span className="font-medium text-muted-foreground">
+                            {onboardingCompleted}/{onboardingTotal} kroków
+                          </span>
                           <span className="font-bold text-primary">{Math.round(onboardingPercent)}%</span>
                         </div>
                         <Progress value={onboardingPercent} className="h-2 [&>div]:bg-primary" />
@@ -707,8 +874,16 @@ await supabase.from("client_files").delete().eq("id", fileId);
                         <ul className="space-y-2">
                           {onboardingSteps.map((step: any, i: number) => (
                             <li key={i} className="flex items-center gap-2">
-                              {step.completed ? <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" /> : <Circle className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />}
-                              <span className={`text-sm ${step.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>{step.name}</span>
+                              {step.completed ? (
+                                <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                              ) : (
+                                <Circle className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
+                              )}
+                              <span
+                                className={`text-sm ${step.completed ? "line-through text-muted-foreground" : "text-foreground"}`}
+                              >
+                                {step.name}
+                              </span>
                             </li>
                           ))}
                         </ul>
@@ -717,10 +892,14 @@ await supabase.from("client_files").delete().eq("id", fileId);
                   </Card>
                   <Card>
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-bold tracking-wider text-foreground">PUBLICZNA STRONA STATUSU</CardTitle>
+                      <CardTitle className="text-sm font-bold tracking-wider text-foreground">
+                        PUBLICZNA STRONA STATUSU
+                      </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      <p className="text-xs text-muted-foreground">Udostępnij klientowi link do publicznej strony z postępem prac.</p>
+                      <p className="text-xs text-muted-foreground">
+                        Udostępnij klientowi link do publicznej strony z postępem prac.
+                      </p>
                       {publicUrl ? (
                         <div className="flex gap-2">
                           <Input value={publicUrl} readOnly className="text-xs bg-muted font-mono" />
@@ -730,7 +909,9 @@ await supabase.from("client_files").delete().eq("id", fileId);
                           </Button>
                         </div>
                       ) : (
-                        <p className="text-xs text-muted-foreground italic">Brak tokenu — link nie został jeszcze wygenerowany.</p>
+                        <p className="text-xs text-muted-foreground italic">
+                          Brak tokenu — link nie został jeszcze wygenerowany.
+                        </p>
                       )}
                     </CardContent>
                   </Card>
@@ -786,7 +967,8 @@ await supabase.from("client_files").delete().eq("id", fileId);
                 <div className="border border-destructive/30 bg-destructive/5 rounded-md p-4 space-y-3 mt-8">
                   <h3 className="text-sm font-bold text-destructive">Strefa niebezpieczna</h3>
                   <p className="text-sm text-muted-foreground">
-                    Usunięcie klienta jest operacją nieodwracalną. Wszystkie powiązane dane (zadania, pliki, notatki) zostaną trwale usunięte.
+                    Usunięcie klienta jest operacją nieodwracalną. Wszystkie powiązane dane (zadania, pliki, notatki)
+                    zostaną trwale usunięte.
                   </p>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -798,12 +980,17 @@ await supabase.from("client_files").delete().eq("id", fileId);
                       <AlertDialogHeader>
                         <AlertDialogTitle>Trwałe usunięcie klienta</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Czy na pewno chcesz trwale usunąć klienta <strong>"{client.name}"</strong>? Zostaną usunięte wszystkie powiązane dane. Tej operacji nie można cofnąć.
+                          Czy na pewno chcesz trwale usunąć klienta <strong>"{client.name}"</strong>? Zostaną usunięte
+                          wszystkie powiązane dane. Tej operacji nie można cofnąć.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteClient} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        <AlertDialogAction
+                          onClick={handleDeleteClient}
+                          disabled={isDeleting}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
                           {isDeleting ? "Usuwanie..." : "Tak, usuń"}
                         </AlertDialogAction>
                       </AlertDialogFooter>
@@ -812,507 +999,684 @@ await supabase.from("client_files").delete().eq("id", fileId);
                 </div>
               </TabsContent>
 
-          <TabsContent value="tasks" className="mt-0 space-y-4">
-            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-              <div className="flex gap-2 flex-1">
-                <div className="relative flex-1 max-w-xs">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Szukaj zadania..." value={taskSearch} onChange={e => setTaskSearch(e.target.value)} className="pl-9 h-9 text-sm" />
-                </div>
-                <Select value={taskStatusFilter} onValueChange={setTaskStatusFilter}>
-                  <SelectTrigger className="w-[140px] h-9 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Wszystkie</SelectItem>
-                    <SelectItem value="todo">Do zrobienia</SelectItem>
-                    <SelectItem value="in_progress">W realizacji</SelectItem>
-                    <SelectItem value="review">Weryfikacja</SelectItem>
-                    <SelectItem value="corrections">Poprawki</SelectItem>
-                    <SelectItem value="client_review">Do akceptacji</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={taskPriorityFilter} onValueChange={setTaskPriorityFilter}>
-                  <SelectTrigger className="w-[130px] h-9 text-xs"><SelectValue placeholder="Priorytet" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Wszystkie</SelectItem>
-                    <SelectItem value="critical">Pilny</SelectItem>
-                    <SelectItem value="high">Wysoki</SelectItem>
-                    <SelectItem value="medium">Średni</SelectItem>
-                    <SelectItem value="low">Niski</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button size="sm" onClick={() => setShowCreateTask(true)}><Plus className="h-4 w-4 mr-1" /> Nowe zadanie</Button>
-                <div className="flex bg-muted rounded-md p-0.5">
-                  <button onClick={() => setViewMode("kanban")} className={`p-1.5 rounded ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><LayoutGrid className="h-4 w-4" /></button>
-                  <button onClick={() => setViewMode("list")} className={`p-1.5 rounded ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><List className="h-4 w-4" /></button>
-                </div>
-              </div>
-            </div>
-            {tasksByProject.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground text-sm">Brak zadań dla tego klienta</div>
-            ) : (
-              tasksByProject.map(group => (
-                <div key={group.project.id} className="space-y-2">
-                  <h3 className="text-xs font-extrabold tracking-widest text-foreground uppercase border-b border-border pb-1.5">{group.project.name}</h3>
-                  <TaskKanbanBoard tasks={group.tasks} profiles={profiles || []} assignments={assignments || []} clients={[client]} onStatusChange={handleStatusChange} />
-                </div>
-              ))
-            )}
-          </TabsContent>
-
-          {/* ─── Contacts Tab ──────────────────────────────────── */}
-          <TabsContent value="contacts" className="mt-0">
-            <ClientContactsTab clientId={id!} />
-          </TabsContent>
-
-          {/* ─── Notes Tab ─────────────────────────────────────── */}
-          <TabsContent value="notes" className="mt-0">
-            <ClientNotesTimeline clientId={id!} />
-          </TabsContent>
-
-          {/* ─── Offers Tab ───────────────────────────────────── */}
-          <TabsContent value="offers" className="mt-0">
-            <Card>
-              <CardContent className="p-0">
-                {(offers || []).length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground text-sm">Brak ofert dla tego klienta</div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nazwa oferty</TableHead>
-                        <TableHead>Data utworzenia</TableHead>
-                        <TableHead>Wartość</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Akcja</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(offers || []).map((offer: any) => {
-                        const st = offerStatusLabels[offer.status] || offerStatusLabels.draft;
-                        return (
-                          <TableRow key={offer.id}>
-                            <TableCell className="font-medium">{offer.name}</TableCell>
-                            <TableCell className="text-muted-foreground text-sm">
-                              {format(new Date(offer.created_at), "dd.MM.yyyy", { locale: pl })}
-                            </TableCell>
-                            <TableCell className="font-semibold">{(offer.value || 0).toLocaleString("pl-PL")} zł</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className={`text-xs ${st.className}`}>{st.label}</Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button size="sm" variant="ghost"><ExternalLink className="h-4 w-4 mr-1" /> Podgląd</Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* ─── Ideas Tab ────────────────────────────────────── */}
-          <TabsContent value="ideas" className="mt-0 space-y-4">
-            <div className="flex justify-end">
-              <Button size="sm" onClick={() => setShowIdeaDialog(true)}><Plus className="h-4 w-4 mr-1" /> Zgłoś pomysł</Button>
-            </div>
-            {(ideas || []).length === 0 ? (
-              <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Brak pomysłów</CardContent></Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {(ideas || []).map((idea: any) => {
-                  const st = ideaStatusLabels[idea.status] || ideaStatusLabels.new;
-                  return (
-                    <Card key={idea.id}>
-                      <CardContent className="p-4 space-y-3">
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1 flex-1">
-                            <h4 className="font-semibold text-foreground">{idea.title}</h4>
-                            <p className="text-sm text-muted-foreground line-clamp-2">{idea.description}</p>
-                          </div>
-                          <Badge variant="outline" className={`text-xs ml-2 flex-shrink-0 ${st.className}`}>{st.label}</Badge>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">
-                            {format(new Date(idea.created_at), "dd.MM.yyyy", { locale: pl })}
-                          </span>
-                          <Button size="sm" variant="ghost" className="gap-1" onClick={() => handleVoteIdea(idea.id)}>
-                            <ThumbsUp className="h-4 w-4" />
-                            <span className="font-bold">{idea.votes || 0}</span>
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* ─── Conversations Tab ────────────────────────────── */}
-          <TabsContent value="conversations" className="mt-0">
-            {(conversations || []).length === 0 ? (
-              <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Brak rozmów</CardContent></Card>
-            ) : (
-              <div className="space-y-3">
-                {(conversations || []).map((conv: any) => {
-                  const cType = convTypeIcons[conv.type] || convTypeIcons.phone;
-                  const IconComp = cType.icon;
-                  const participantName = getProfileName(conv.participant_id);
-                  return (
-                    <Card key={conv.id}>
-                      <CardContent className="p-4 flex gap-4">
-                        <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                          <IconComp className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge variant="outline" className="text-[10px]">{cType.label}</Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {format(new Date(conv.created_at), "dd.MM.yyyy HH:mm", { locale: pl })}
-                            </span>
-                          </div>
-                          <p className="text-sm text-foreground">{conv.summary}</p>
-                        </div>
-                        <div className="flex-shrink-0 flex items-center gap-2">
-                          <Avatar className="h-7 w-7">
-                            <AvatarFallback className="text-xs bg-primary/10 text-primary">{getInitials(participantName)}</AvatarFallback>
-                          </Avatar>
-                          <span className="text-xs text-muted-foreground hidden sm:inline">{participantName}</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* ─── VoIP Calls Tab ───────────────────────────────── */}
-          <TabsContent value="voip" className="mt-0">
-            <ClientCallsTab clientId={id!} />
-          </TabsContent>
-
-          {/* ─── Files Tab ────────────────────────────────────── */}
-          <TabsContent value="files" className="mt-0 space-y-4">
-            <div className="flex gap-2 justify-end">
-              <Button size="sm" variant="outline" onClick={() => setShowLinkDialog(true)}>
-                <LinkIcon className="h-4 w-4 mr-1" /> Dodaj link
-              </Button>
-              <Button size="sm" asChild>
-                <label className="cursor-pointer">
-                  <Upload className="h-4 w-4 mr-1" /> Wgraj plik
-                  <input type="file" className="hidden" onChange={handleFileUpload} />
-                </label>
-              </Button>
-            </div>
-            <Card>
-              <CardContent className="p-0">
-                {(files || []).length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground text-sm">Brak plików</div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nazwa pliku</TableHead>
-                        <TableHead>Rozmiar</TableHead>
-                        <TableHead>Data wgrania</TableHead>
-                        <TableHead>Kto wgrał</TableHead>
-                        <TableHead className="text-right">Akcje</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(files || []).map((file: any) => {
-                        const uploaderName = getProfileName(file.uploaded_by);
-                        return (
-                          <TableRow key={file.id}>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                <span className="font-medium">{file.name}</span>
-                                {file.url && <ExternalLink className="h-3 w-3 text-muted-foreground" />}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-muted-foreground text-sm">{file.size > 0 ? formatFileSize(file.size) : "—"}</TableCell>
-                            <TableCell className="text-muted-foreground text-sm">
-                              {format(new Date(file.created_at), "dd.MM.yyyy", { locale: pl })}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Avatar className="h-6 w-6">
-                                  <AvatarFallback className="text-[10px] bg-primary/10 text-primary">{getInitials(uploaderName)}</AvatarFallback>
-                                </Avatar>
-                                <span className="text-sm text-muted-foreground">{uploaderName}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button size="sm" variant="ghost" onClick={() => handleDeleteFile(file.id)}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* ─── Billing Tab ──────────────────────────────────── */}
-          <TabsContent value="billing" className="mt-0">
-            <Card className="max-w-lg">
-              <CardHeader className="flex flex-row items-center justify-between pb-3">
-                <CardTitle className="text-sm font-bold tracking-wider">DANE DO FAKTURY</CardTitle>
-                <Button size="sm" variant="outline" onClick={openInvoiceEdit}><Pencil className="h-4 w-4 mr-1" /> Edytuj dane</Button>
-              </CardHeader>
-              <CardContent>
-                {invoiceData ? (
-                  <div className="space-y-3 text-sm">
-                    <div><span className="text-muted-foreground">Nazwa firmy:</span> <span className="font-semibold text-foreground ml-2">{(invoiceData as any).company_name}</span></div>
-                    <div><span className="text-muted-foreground">NIP:</span> <span className="font-semibold text-foreground ml-2">{(invoiceData as any).nip}</span></div>
-                    <div><span className="text-muted-foreground">Adres:</span> <span className="font-semibold text-foreground ml-2">{(invoiceData as any).street}, {(invoiceData as any).postal_code} {(invoiceData as any).city}</span></div>
+              <TabsContent value="tasks" className="mt-0 space-y-4">
+                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+                  <div className="flex gap-2 flex-1">
+                    <div className="relative flex-1 max-w-xs">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Szukaj zadania..."
+                        value={taskSearch}
+                        onChange={(e) => setTaskSearch(e.target.value)}
+                        className="pl-9 h-9 text-sm"
+                      />
+                    </div>
+                    <Select value={taskStatusFilter} onValueChange={setTaskStatusFilter}>
+                      <SelectTrigger className="w-[140px] h-9 text-xs">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Wszystkie</SelectItem>
+                        <SelectItem value="todo">Do zrobienia</SelectItem>
+                        <SelectItem value="in_progress">W realizacji</SelectItem>
+                        <SelectItem value="review">Weryfikacja</SelectItem>
+                        <SelectItem value="corrections">Poprawki</SelectItem>
+                        <SelectItem value="client_review">Do akceptacji</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={taskPriorityFilter} onValueChange={setTaskPriorityFilter}>
+                      <SelectTrigger className="w-[130px] h-9 text-xs">
+                        <SelectValue placeholder="Priorytet" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Wszystkie</SelectItem>
+                        <SelectItem value="critical">Pilny</SelectItem>
+                        <SelectItem value="high">Wysoki</SelectItem>
+                        <SelectItem value="medium">Średni</SelectItem>
+                        <SelectItem value="low">Niski</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" onClick={() => setShowCreateTask(true)}>
+                      <Plus className="h-4 w-4 mr-1" /> Nowe zadanie
+                    </Button>
+                    <div className="flex bg-muted rounded-md p-0.5">
+                      <button
+                        onClick={() => setViewMode("kanban")}
+                        className={`p-1.5 rounded ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                      >
+                        <LayoutGrid className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => setViewMode("list")}
+                        className={`p-1.5 rounded ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                      >
+                        <List className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                {tasksByProject.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground text-sm">Brak zadań dla tego klienta</div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Brak danych do faktury. Kliknij „Edytuj dane", aby dodać.</p>
+                  tasksByProject.map((group) => (
+                    <div key={group.project.id} className="space-y-2">
+                      <h3 className="text-xs font-extrabold tracking-widest text-foreground uppercase border-b border-border pb-1.5">
+                        {group.project.name}
+                      </h3>
+                      <TaskKanbanBoard
+                        tasks={group.tasks}
+                        profiles={profiles || []}
+                        assignments={assignments || []}
+                        clients={[client]}
+                        onStatusChange={handleStatusChange}
+                      />
+                    </div>
+                  ))
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </TabsContent>
 
-          {/* ─── Contracts Tab ────────────────────────────────── */}
-          <TabsContent value="contracts" className="mt-0">
-            <Card>
-              <CardContent className="p-0">
-                {(contracts || []).length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground text-sm">Brak umów</div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nazwa umowy</TableHead>
-                        <TableHead>Typ</TableHead>
-                        <TableHead>Wartość</TableHead>
-                        <TableHead>Okres</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(contracts || []).map((c: any) => {
-                        const typeLabels: Record<string, string> = { service: "Usługowa", nda: "NDA", amendment: "Aneks" };
-                        const cStatusColors: Record<string, string> = {
-                          active: "bg-green-600/15 text-green-700 border-green-600/30",
-                          signed: "bg-blue-500/15 text-blue-700 border-blue-500/30",
-                          draft: "bg-muted text-muted-foreground",
-                          expired: "bg-red-500/15 text-red-700 border-red-500/30",
-                        };
-                        const cStatusLabels: Record<string, string> = { active: "Aktywna", signed: "Podpisana", draft: "Szkic", expired: "Wygasła" };
-                        return (
-                          <TableRow key={c.id}>
-                            <TableCell className="font-medium">{c.name}</TableCell>
-                            <TableCell><Badge variant="outline" className="text-xs">{typeLabels[c.type] || c.type}</Badge></TableCell>
-                            <TableCell className="font-semibold">{c.value > 0 ? `${(c.value || 0).toLocaleString("pl-PL")} zł` : "—"}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {c.start_date && c.end_date ? `${format(new Date(c.start_date), "dd.MM.yyyy")} – ${format(new Date(c.end_date), "dd.MM.yyyy")}` : "—"}
-                            </TableCell>
-                            <TableCell><Badge variant="outline" className={`text-xs ${cStatusColors[c.status] || ""}`}>{cStatusLabels[c.status] || c.status}</Badge></TableCell>
+              {/* ─── Contacts Tab ──────────────────────────────────── */}
+              <TabsContent value="contacts" className="mt-0">
+                <ClientContactsTab clientId={id!} />
+              </TabsContent>
+
+              {/* ─── Notes Tab ─────────────────────────────────────── */}
+              <TabsContent value="notes" className="mt-0">
+                <ClientNotesTimeline clientId={id!} />
+              </TabsContent>
+
+              {/* ─── Offers Tab ───────────────────────────────────── */}
+              <TabsContent value="offers" className="mt-0">
+                <Card>
+                  <CardContent className="p-0">
+                    {(offers || []).length === 0 ? (
+                      <div className="text-center py-12 text-muted-foreground text-sm">Brak ofert dla tego klienta</div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Nazwa oferty</TableHead>
+                            <TableHead>Data utworzenia</TableHead>
+                            <TableHead>Wartość</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Akcja</TableHead>
                           </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                        </TableHeader>
+                        <TableBody>
+                          {(offers || []).map((offer: any) => {
+                            const st = offerStatusLabels[offer.status] || offerStatusLabels.draft;
+                            return (
+                              <TableRow key={offer.id}>
+                                <TableCell className="font-medium">{offer.name}</TableCell>
+                                <TableCell className="text-muted-foreground text-sm">
+                                  {format(new Date(offer.created_at), "dd.MM.yyyy", { locale: pl })}
+                                </TableCell>
+                                <TableCell className="font-semibold">
+                                  {(offer.value || 0).toLocaleString("pl-PL")} zł
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className={`text-xs ${st.className}`}>
+                                    {st.label}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Button size="sm" variant="ghost">
+                                    <ExternalLink className="h-4 w-4 mr-1" /> Podgląd
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-          {/* ─── Orders Tab ───────────────────────────────────── */}
-          <TabsContent value="orders" className="mt-0">
-            <Card>
-              <CardContent className="p-0">
-                {(orders || []).length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground text-sm">Brak zleceń</div>
+              {/* ─── Ideas Tab ────────────────────────────────────── */}
+              <TabsContent value="ideas" className="mt-0 space-y-4">
+                <div className="flex justify-end">
+                  <Button size="sm" onClick={() => setShowIdeaDialog(true)}>
+                    <Plus className="h-4 w-4 mr-1" /> Zgłoś pomysł
+                  </Button>
+                </div>
+                {(ideas || []).length === 0 ? (
+                  <Card>
+                    <CardContent className="py-12 text-center text-muted-foreground text-sm">Brak pomysłów</CardContent>
+                  </Card>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nazwa zlecenia</TableHead>
-                        <TableHead>Wartość</TableHead>
-                        <TableHead>Termin</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(orders || []).map((o: any) => {
-                        const oStatusColors: Record<string, string> = {
-                          new: "bg-blue-500/15 text-blue-700 border-blue-500/30",
-                          in_progress: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30",
-                          completed: "bg-green-600/15 text-green-700 border-green-600/30",
-                          cancelled: "bg-red-500/15 text-red-700 border-red-500/30",
-                        };
-                        const oStatusLabels: Record<string, string> = { new: "Nowe", in_progress: "W realizacji", completed: "Ukończone", cancelled: "Anulowane" };
-                        return (
-                          <TableRow key={o.id}>
-                            <TableCell className="font-medium">{o.name}</TableCell>
-                            <TableCell className="font-semibold">{(o.value || 0).toLocaleString("pl-PL")} zł</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {o.due_date ? format(new Date(o.due_date), "dd.MM.yyyy") : "—"}
-                            </TableCell>
-                            <TableCell><Badge variant="outline" className={`text-xs ${oStatusColors[o.status] || ""}`}>{oStatusLabels[o.status] || o.status}</Badge></TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* ─── Social Media Tab ─────────────────────────────── */}
-          <TabsContent value="social" className="mt-0">
-            {(socialAccounts || []).length === 0 ? (
-              <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Brak kont social media</CardContent></Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {(socialAccounts || []).map((acc: any) => {
-                  const platformIcons: Record<string, string> = { facebook: "📘", instagram: "📸", linkedin: "💼", twitter: "🐦", tiktok: "🎵", youtube: "🎬" };
-                  return (
-                    <Card key={acc.id}>
-                      <CardContent className="p-4 flex items-center gap-4">
-                        <div className="text-2xl">{platformIcons[acc.platform] || "🌐"}</div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-foreground capitalize">{acc.platform}</span>
-                            <Badge variant="outline" className="text-xs">{acc.handle}</Badge>
-                          </div>
-                          <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-                            <span><Users className="h-3 w-3 inline mr-1" />{(acc.followers || 0).toLocaleString("pl-PL")} obserwujących</span>
-                            {acc.last_post_at && <span><Calendar className="h-3 w-3 inline mr-1" />Ostatni post: {format(new Date(acc.last_post_at), "dd.MM.yyyy")}</span>}
-                          </div>
-                        </div>
-                        {acc.url && (
-                          <Button size="sm" variant="ghost" asChild>
-                            <a href={acc.url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a>
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* ─── Projects Tab ─────────────────────────────────── */}
-          <TabsContent value="projects-tab" className="mt-0">
-            {(projects || []).length === 0 ? (
-              <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Brak projektów dla tego klienta</CardContent></Card>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {(projects || []).map((p: any) => (
-                  <Link key={p.id} to={`/projects/${p.id}`}>
-                    <Card className="hover:border-primary/30 transition-colors cursor-pointer">
-                      <CardContent className="p-4 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <h3 className="font-semibold text-sm truncate">{p.name}</h3>
-                          <Badge variant="outline" className="text-[10px] shrink-0">
-                            {p.status === "active" ? "Aktywny" : p.status === "completed" ? "Ukończony" : p.status || "—"}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Kierownik: {p.profiles?.full_name || "—"}
-                          {p.start_date && ` · Start: ${new Date(p.start_date).toLocaleDateString("pl-PL")}`}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* ─── Tickets Tab ──────────────────────────────────── */}
-          <TabsContent value="tickets-tab" className="mt-0">
-            {!clientTickets || clientTickets.length === 0 ? (
-              <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Brak zgłoszeń dla tego klienta</CardContent></Card>
-            ) : (
-              <Card>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-16">#</TableHead>
-                        <TableHead>Tytuł</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Priorytet</TableHead>
-                        <TableHead>Data</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {clientTickets.map((t: any) => (
-                        <TableRow key={t.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/admin/tickets/${t.id}`)}>
-                          <TableCell className="font-mono text-xs text-muted-foreground">#{t.ticket_number}</TableCell>
-                          <TableCell className="font-medium text-sm">{t.title}</TableCell>
-                          <TableCell><Badge variant="outline" className="text-[10px]">{t.status}</Badge></TableCell>
-                          <TableCell><Badge variant="outline" className="text-[10px]">{t.priority}</Badge></TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{new Date(t.created_at).toLocaleDateString("pl-PL")}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          {/* ─── History Tab ──────────────────────────────────── */}
-          <TabsContent value="history" className="mt-0">
-            {(activityHistory || []).length === 0 ? (
-              <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Brak historii aktywności</CardContent></Card>
-            ) : (
-              <Card>
-                <CardContent className="p-4">
-                  <div className="space-y-0">
-                    {(activityHistory || []).map((entry: any, i: number) => {
-                      const authorName = (entry as any).profiles?.full_name || getProfileName(entry.user_id) || "Usunięty użytkownik";
-                      const isMissing = !(entry as any).profiles?.full_name && !getProfileName(entry.user_id);
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(ideas || []).map((idea: any) => {
+                      const st = ideaStatusLabels[idea.status] || ideaStatusLabels.new;
                       return (
-                        <div key={entry.id || i} className="flex items-start gap-3 py-3 border-b border-border last:border-0">
-                          <Avatar className="h-7 w-7 mt-0.5">
-                            <AvatarFallback className={`text-[10px] ${isMissing ? "bg-muted/60 text-muted-foreground" : "bg-primary/10 text-primary"}`}>{getInitials(authorName)}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-foreground">
-                              <span className={`font-semibold ${isMissing ? "text-muted-foreground italic" : ""}`}>{authorName}</span>{" "}
-                              <span className="text-muted-foreground">{entry.action}</span>{" "}
-                              <span className="font-medium">{entry.entity_name}</span>
-                            </p>
-                            <span className="text-xs text-muted-foreground">
-                              {format(new Date(entry.created_at), "dd.MM.yyyy HH:mm", { locale: pl })}
-                            </span>
-                          </div>
-                        </div>
+                        <Card key={idea.id}>
+                          <CardContent className="p-4 space-y-3">
+                            <div className="flex items-start justify-between">
+                              <div className="space-y-1 flex-1">
+                                <h4 className="font-semibold text-foreground">{idea.title}</h4>
+                                <p className="text-sm text-muted-foreground line-clamp-2">{idea.description}</p>
+                              </div>
+                              <Badge variant="outline" className={`text-xs ml-2 flex-shrink-0 ${st.className}`}>
+                                {st.label}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(idea.created_at), "dd.MM.yyyy", { locale: pl })}
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="gap-1"
+                                onClick={() => handleVoteIdea(idea.id)}
+                              >
+                                <ThumbsUp className="h-4 w-4" />
+                                <span className="font-bold">{idea.votes || 0}</span>
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
                       );
                     })}
                   </div>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
+                )}
+              </TabsContent>
 
-            </div>{/* end right content area */}
-          </div>{/* end flex row */}
+              {/* ─── Conversations Tab ────────────────────────────── */}
+              <TabsContent value="conversations" className="mt-0">
+                {(conversations || []).length === 0 ? (
+                  <Card>
+                    <CardContent className="py-12 text-center text-muted-foreground text-sm">Brak rozmów</CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-3">
+                    {(conversations || []).map((conv: any) => {
+                      const cType = convTypeIcons[conv.type] || convTypeIcons.phone;
+                      const IconComp = cType.icon;
+                      const participantName = getProfileName(conv.participant_id);
+                      return (
+                        <Card key={conv.id}>
+                          <CardContent className="p-4 flex gap-4">
+                            <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                              <IconComp className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="outline" className="text-[10px]">
+                                  {cType.label}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  {format(new Date(conv.created_at), "dd.MM.yyyy HH:mm", { locale: pl })}
+                                </span>
+                              </div>
+                              <p className="text-sm text-foreground">{conv.summary}</p>
+                            </div>
+                            <div className="flex-shrink-0 flex items-center gap-2">
+                              <Avatar className="h-7 w-7">
+                                <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                                  {getInitials(participantName)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-xs text-muted-foreground hidden sm:inline">{participantName}</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* ─── VoIP Calls Tab ───────────────────────────────── */}
+              <TabsContent value="voip" className="mt-0">
+                <ClientCallsTab clientId={id!} />
+              </TabsContent>
+
+              {/* ─── Files Tab ────────────────────────────────────── */}
+              <TabsContent value="files" className="mt-0 space-y-4">
+                <div className="flex gap-2 justify-end">
+                  <Button size="sm" variant="outline" onClick={() => setShowLinkDialog(true)}>
+                    <LinkIcon className="h-4 w-4 mr-1" /> Dodaj link
+                  </Button>
+                  <Button size="sm" asChild>
+                    <label className="cursor-pointer">
+                      <Upload className="h-4 w-4 mr-1" /> Wgraj plik
+                      <input type="file" className="hidden" onChange={handleFileUpload} />
+                    </label>
+                  </Button>
+                </div>
+                <Card>
+                  <CardContent className="p-0">
+                    {(files || []).length === 0 ? (
+                      <div className="text-center py-12 text-muted-foreground text-sm">Brak plików</div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Nazwa pliku</TableHead>
+                            <TableHead>Rozmiar</TableHead>
+                            <TableHead>Data wgrania</TableHead>
+                            <TableHead>Kto wgrał</TableHead>
+                            <TableHead className="text-right">Akcje</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {(files || []).map((file: any) => {
+                            const uploaderName = getProfileName(file.uploaded_by);
+                            return (
+                              <TableRow key={file.id}>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                    <span className="font-medium">{file.name}</span>
+                                    {file.url && <ExternalLink className="h-3 w-3 text-muted-foreground" />}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-muted-foreground text-sm">
+                                  {file.size > 0 ? formatFileSize(file.size) : "—"}
+                                </TableCell>
+                                <TableCell className="text-muted-foreground text-sm">
+                                  {format(new Date(file.created_at), "dd.MM.yyyy", { locale: pl })}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <Avatar className="h-6 w-6">
+                                      <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                                        {getInitials(uploaderName)}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <span className="text-sm text-muted-foreground">{uploaderName}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Button size="sm" variant="ghost" onClick={() => handleDeleteFile(file.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* ─── Billing Tab ──────────────────────────────────── */}
+              <TabsContent value="billing" className="mt-0">
+                <Card className="max-w-lg">
+                  <CardHeader className="flex flex-row items-center justify-between pb-3">
+                    <CardTitle className="text-sm font-bold tracking-wider">DANE DO FAKTURY</CardTitle>
+                    <Button size="sm" variant="outline" onClick={openInvoiceEdit}>
+                      <Pencil className="h-4 w-4 mr-1" /> Edytuj dane
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    {invoiceData ? (
+                      <div className="space-y-3 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Nazwa firmy:</span>{" "}
+                          <span className="font-semibold text-foreground ml-2">
+                            {(invoiceData as any).company_name}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">NIP:</span>{" "}
+                          <span className="font-semibold text-foreground ml-2">{(invoiceData as any).nip}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Adres:</span>{" "}
+                          <span className="font-semibold text-foreground ml-2">
+                            {(invoiceData as any).street}, {(invoiceData as any).postal_code}{" "}
+                            {(invoiceData as any).city}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Brak danych do faktury. Kliknij „Edytuj dane", aby dodać.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* ─── Contracts Tab ────────────────────────────────── */}
+              <TabsContent value="contracts" className="mt-0">
+                <Card>
+                  <CardContent className="p-0">
+                    {(contracts || []).length === 0 ? (
+                      <div className="text-center py-12 text-muted-foreground text-sm">Brak umów</div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Nazwa umowy</TableHead>
+                            <TableHead>Typ</TableHead>
+                            <TableHead>Wartość</TableHead>
+                            <TableHead>Okres</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {(contracts || []).map((c: any) => {
+                            const typeLabels: Record<string, string> = {
+                              service: "Usługowa",
+                              nda: "NDA",
+                              amendment: "Aneks",
+                            };
+                            const cStatusColors: Record<string, string> = {
+                              active: "bg-green-600/15 text-green-700 border-green-600/30",
+                              signed: "bg-blue-500/15 text-blue-700 border-blue-500/30",
+                              draft: "bg-muted text-muted-foreground",
+                              expired: "bg-red-500/15 text-red-700 border-red-500/30",
+                            };
+                            const cStatusLabels: Record<string, string> = {
+                              active: "Aktywna",
+                              signed: "Podpisana",
+                              draft: "Szkic",
+                              expired: "Wygasła",
+                            };
+                            return (
+                              <TableRow key={c.id}>
+                                <TableCell className="font-medium">{c.name}</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className="text-xs">
+                                    {typeLabels[c.type] || c.type}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="font-semibold">
+                                  {c.value > 0 ? `${(c.value || 0).toLocaleString("pl-PL")} zł` : "—"}
+                                </TableCell>
+                                <TableCell className="text-sm text-muted-foreground">
+                                  {c.start_date && c.end_date
+                                    ? `${format(new Date(c.start_date), "dd.MM.yyyy")} – ${format(new Date(c.end_date), "dd.MM.yyyy")}`
+                                    : "—"}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className={`text-xs ${cStatusColors[c.status] || ""}`}>
+                                    {cStatusLabels[c.status] || c.status}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* ─── Orders Tab ───────────────────────────────────── */}
+              <TabsContent value="orders" className="mt-0">
+                <Card>
+                  <CardContent className="p-0">
+                    {(orders || []).length === 0 ? (
+                      <div className="text-center py-12 text-muted-foreground text-sm">Brak zleceń</div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Nazwa zlecenia</TableHead>
+                            <TableHead>Wartość</TableHead>
+                            <TableHead>Termin</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {(orders || []).map((o: any) => {
+                            const oStatusColors: Record<string, string> = {
+                              new: "bg-blue-500/15 text-blue-700 border-blue-500/30",
+                              in_progress: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30",
+                              completed: "bg-green-600/15 text-green-700 border-green-600/30",
+                              cancelled: "bg-red-500/15 text-red-700 border-red-500/30",
+                            };
+                            const oStatusLabels: Record<string, string> = {
+                              new: "Nowe",
+                              in_progress: "W realizacji",
+                              completed: "Ukończone",
+                              cancelled: "Anulowane",
+                            };
+                            return (
+                              <TableRow key={o.id}>
+                                <TableCell className="font-medium">{o.name}</TableCell>
+                                <TableCell className="font-semibold">
+                                  {(o.value || 0).toLocaleString("pl-PL")} zł
+                                </TableCell>
+                                <TableCell className="text-sm text-muted-foreground">
+                                  {o.due_date ? format(new Date(o.due_date), "dd.MM.yyyy") : "—"}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className={`text-xs ${oStatusColors[o.status] || ""}`}>
+                                    {oStatusLabels[o.status] || o.status}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* ─── Social Media Tab ─────────────────────────────── */}
+              <TabsContent value="social" className="mt-0">
+                {(socialAccounts || []).length === 0 ? (
+                  <Card>
+                    <CardContent className="py-12 text-center text-muted-foreground text-sm">
+                      Brak kont social media
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(socialAccounts || []).map((acc: any) => {
+                      const platformIcons: Record<string, string> = {
+                        facebook: "📘",
+                        instagram: "📸",
+                        linkedin: "💼",
+                        twitter: "🐦",
+                        tiktok: "🎵",
+                        youtube: "🎬",
+                      };
+                      return (
+                        <Card key={acc.id}>
+                          <CardContent className="p-4 flex items-center gap-4">
+                            <div className="text-2xl">{platformIcons[acc.platform] || "🌐"}</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-foreground capitalize">{acc.platform}</span>
+                                <Badge variant="outline" className="text-xs">
+                                  {acc.handle}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                                <span>
+                                  <Users className="h-3 w-3 inline mr-1" />
+                                  {(acc.followers || 0).toLocaleString("pl-PL")} obserwujących
+                                </span>
+                                {acc.last_post_at && (
+                                  <span>
+                                    <Calendar className="h-3 w-3 inline mr-1" />
+                                    Ostatni post: {format(new Date(acc.last_post_at), "dd.MM.yyyy")}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {acc.url && (
+                              <Button size="sm" variant="ghost" asChild>
+                                <a href={acc.url} target="_blank" rel="noopener noreferrer">
+                                  <ExternalLink className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* ─── Projects Tab ─────────────────────────────────── */}
+              <TabsContent value="projects-tab" className="mt-0">
+                {(projects || []).length === 0 ? (
+                  <Card>
+                    <CardContent className="py-12 text-center text-muted-foreground text-sm">
+                      Brak projektów dla tego klienta
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {(projects || []).map((p: any) => (
+                      <Link key={p.id} to={`/projects/${p.id}`}>
+                        <Card className="hover:border-primary/30 transition-colors cursor-pointer">
+                          <CardContent className="p-4 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <h3 className="font-semibold text-sm truncate">{p.name}</h3>
+                              <Badge variant="outline" className="text-[10px] shrink-0">
+                                {p.status === "active"
+                                  ? "Aktywny"
+                                  : p.status === "completed"
+                                    ? "Ukończony"
+                                    : p.status || "—"}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Kierownik: {p.profiles?.full_name || "—"}
+                              {p.start_date && ` · Start: ${new Date(p.start_date).toLocaleDateString("pl-PL")}`}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* ─── Tickets Tab ──────────────────────────────────── */}
+              <TabsContent value="tickets-tab" className="mt-0">
+                {!clientTickets || clientTickets.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-12 text-center text-muted-foreground text-sm">
+                      Brak zgłoszeń dla tego klienta
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardContent className="p-0">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-16">#</TableHead>
+                            <TableHead>Tytuł</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Priorytet</TableHead>
+                            <TableHead>Data</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {clientTickets.map((t: any) => (
+                            <TableRow
+                              key={t.id}
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => navigate(`/admin/tickets/${t.id}`)}
+                            >
+                              <TableCell className="font-mono text-xs text-muted-foreground">
+                                #{t.ticket_number}
+                              </TableCell>
+                              <TableCell className="font-medium text-sm">{t.title}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-[10px]">
+                                  {t.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-[10px]">
+                                  {t.priority}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground">
+                                {new Date(t.created_at).toLocaleDateString("pl-PL")}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              {/* ─── History Tab ──────────────────────────────────── */}
+              <TabsContent value="history" className="mt-0">
+                {(activityHistory || []).length === 0 ? (
+                  <Card>
+                    <CardContent className="py-12 text-center text-muted-foreground text-sm">
+                      Brak historii aktywności
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="space-y-0">
+                        {(activityHistory || []).map((entry: any, i: number) => {
+                          const authorName =
+                            (entry as any).profiles?.full_name ||
+                            getProfileName(entry.user_id) ||
+                            "Usunięty użytkownik";
+                          const isMissing = !(entry as any).profiles?.full_name && !getProfileName(entry.user_id);
+                          return (
+                            <div
+                              key={entry.id || i}
+                              className="flex items-start gap-3 py-3 border-b border-border last:border-0"
+                            >
+                              <Avatar className="h-7 w-7 mt-0.5">
+                                <AvatarFallback
+                                  className={`text-[10px] ${isMissing ? "bg-muted/60 text-muted-foreground" : "bg-primary/10 text-primary"}`}
+                                >
+                                  {getInitials(authorName)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm text-foreground">
+                                  <span className={`font-semibold ${isMissing ? "text-muted-foreground italic" : ""}`}>
+                                    {authorName}
+                                  </span>{" "}
+                                  <span className="text-muted-foreground">{entry.action}</span>{" "}
+                                  <span className="font-medium">{entry.entity_name}</span>
+                                </p>
+                                <span className="text-xs text-muted-foreground">
+                                  {format(new Date(entry.created_at), "dd.MM.yyyy HH:mm", { locale: pl })}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+            </div>
+            {/* end right content area */}
+          </div>
+          {/* end flex row */}
         </Tabs>
       </div>
 
       {/* ─── Floating Timer Pill ──────────────────────────────── */}
       <button
-        onClick={() => { setTimerRunning(!timerRunning); if (timerRunning) setTimerSeconds(0); }}
+        onClick={() => {
+          setTimerRunning(!timerRunning);
+          if (timerRunning) setTimerSeconds(0);
+        }}
         className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-full shadow-lg hover:bg-green-700 transition-colors"
       >
         <Timer className="h-4 w-4" />
@@ -1323,41 +1687,109 @@ await supabase.from("client_files").delete().eq("id", fileId);
       {/* ─── Idea Dialog ──────────────────────────────────────── */}
       <Dialog open={showIdeaDialog} onOpenChange={setShowIdeaDialog}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Zgłoś pomysł</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Zgłoś pomysł</DialogTitle>
+          </DialogHeader>
           <div className="space-y-3">
-            <div><Label>Tytuł</Label><Input value={newIdeaTitle} onChange={e => setNewIdeaTitle(e.target.value)} placeholder="Nazwa pomysłu..." /></div>
-            <div><Label>Opis</Label><Textarea value={newIdeaDesc} onChange={e => setNewIdeaDesc(e.target.value)} placeholder="Opisz pomysł..." rows={3} /></div>
+            <div>
+              <Label>Tytuł</Label>
+              <Input
+                value={newIdeaTitle}
+                onChange={(e) => setNewIdeaTitle(e.target.value)}
+                placeholder="Nazwa pomysłu..."
+              />
+            </div>
+            <div>
+              <Label>Opis</Label>
+              <Textarea
+                value={newIdeaDesc}
+                onChange={(e) => setNewIdeaDesc(e.target.value)}
+                placeholder="Opisz pomysł..."
+                rows={3}
+              />
+            </div>
           </div>
-          <DialogFooter><Button onClick={handleAddIdea} disabled={!newIdeaTitle.trim()}>Dodaj pomysł</Button></DialogFooter>
+          <DialogFooter>
+            <Button onClick={handleAddIdea} disabled={!newIdeaTitle.trim()}>
+              Dodaj pomysł
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* ─── Link Dialog ──────────────────────────────────────── */}
       <Dialog open={showLinkDialog} onOpenChange={setShowLinkDialog}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Dodaj link</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Dodaj link</DialogTitle>
+          </DialogHeader>
           <div className="space-y-3">
-            <div><Label>Nazwa</Label><Input value={newLinkName} onChange={e => setNewLinkName(e.target.value)} placeholder="Nazwa linku..." /></div>
-            <div><Label>URL</Label><Input value={newLinkUrl} onChange={e => setNewLinkUrl(e.target.value)} placeholder="https://..." /></div>
+            <div>
+              <Label>Nazwa</Label>
+              <Input
+                value={newLinkName}
+                onChange={(e) => setNewLinkName(e.target.value)}
+                placeholder="Nazwa linku..."
+              />
+            </div>
+            <div>
+              <Label>URL</Label>
+              <Input value={newLinkUrl} onChange={(e) => setNewLinkUrl(e.target.value)} placeholder="https://..." />
+            </div>
           </div>
-          <DialogFooter><Button onClick={handleAddLink} disabled={!newLinkName.trim() || !newLinkUrl.trim()}>Dodaj link</Button></DialogFooter>
+          <DialogFooter>
+            <Button onClick={handleAddLink} disabled={!newLinkName.trim() || !newLinkUrl.trim()}>
+              Dodaj link
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* ─── Invoice Edit Dialog ──────────────────────────────── */}
       <Dialog open={showInvoiceEdit} onOpenChange={setShowInvoiceEdit}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Dane do faktury</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Dane do faktury</DialogTitle>
+          </DialogHeader>
           <div className="space-y-3">
-            <div><Label>Nazwa firmy</Label><Input value={invoiceForm.company_name} onChange={e => setInvoiceForm(f => ({ ...f, company_name: e.target.value }))} /></div>
-            <div><Label>NIP</Label><Input value={invoiceForm.nip} onChange={e => setInvoiceForm(f => ({ ...f, nip: e.target.value }))} /></div>
-            <div><Label>Ulica</Label><Input value={invoiceForm.street} onChange={e => setInvoiceForm(f => ({ ...f, street: e.target.value }))} /></div>
+            <div>
+              <Label>Nazwa firmy</Label>
+              <Input
+                value={invoiceForm.company_name}
+                onChange={(e) => setInvoiceForm((f) => ({ ...f, company_name: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label>NIP</Label>
+              <Input value={invoiceForm.nip} onChange={(e) => setInvoiceForm((f) => ({ ...f, nip: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Ulica</Label>
+              <Input
+                value={invoiceForm.street}
+                onChange={(e) => setInvoiceForm((f) => ({ ...f, street: e.target.value }))}
+              />
+            </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>Kod pocztowy</Label><Input value={invoiceForm.postal_code} onChange={e => setInvoiceForm(f => ({ ...f, postal_code: e.target.value }))} /></div>
-              <div><Label>Miasto</Label><Input value={invoiceForm.city} onChange={e => setInvoiceForm(f => ({ ...f, city: e.target.value }))} /></div>
+              <div>
+                <Label>Kod pocztowy</Label>
+                <Input
+                  value={invoiceForm.postal_code}
+                  onChange={(e) => setInvoiceForm((f) => ({ ...f, postal_code: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Miasto</Label>
+                <Input
+                  value={invoiceForm.city}
+                  onChange={(e) => setInvoiceForm((f) => ({ ...f, city: e.target.value }))}
+                />
+              </div>
             </div>
           </div>
-          <DialogFooter><Button onClick={saveInvoiceData}>Zapisz</Button></DialogFooter>
+          <DialogFooter>
+            <Button onClick={saveInvoiceData}>Zapisz</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </AppLayout>
