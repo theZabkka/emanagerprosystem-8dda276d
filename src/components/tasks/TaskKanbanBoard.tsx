@@ -647,8 +647,8 @@ const KanbanCard = React.memo(function KanbanCard({
       </Link>
 
       <div className="px-2 pb-1.5 flex items-end justify-between">
-        <div className="flex items-center gap-0.5">
-          {taskAssignees.map((person: any) => (
+        <div className="flex items-center gap-0.5 min-w-0">
+          {taskAssignees.slice(0, 3).map((person: any) => (
             <Tooltip key={person.id} delayDuration={200}>
               <TooltipTrigger asChild>
                 <Avatar className="h-4 w-4 -ml-0.5 first:ml-0 ring-1 ring-background">
@@ -663,6 +663,20 @@ const KanbanCard = React.memo(function KanbanCard({
               </TooltipContent>
             </Tooltip>
           ))}
+          {taskAssignees.length > 3 && (
+            <Tooltip delayDuration={200}>
+              <TooltipTrigger asChild>
+                <Avatar className="h-4 w-4 -ml-0.5 ring-1 ring-background">
+                  <AvatarFallback className="text-[6px] font-bold bg-muted text-muted-foreground">
+                    +{taskAssignees.length - 3}
+                  </AvatarFallback>
+                </Avatar>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                {taskAssignees.slice(3).map((p: any) => p.full_name).join(", ")}
+              </TooltipContent>
+            </Tooltip>
+          )}
           <AssignPopover
             taskId={task.id}
             assignedUserIds={taskAssignees.map((p: any) => p.id)}
