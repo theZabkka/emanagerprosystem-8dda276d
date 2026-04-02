@@ -47,8 +47,6 @@ export default function TeamBoard() {
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("all");
 
-  import { useStaffMembers } from "@/hooks/useStaffMembers";
-  // ...
   const { data: profiles = [] } = useStaffMembers();
 
   const { data: tasks = [] } = useQuery({
