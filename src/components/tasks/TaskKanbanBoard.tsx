@@ -420,7 +420,7 @@ export default function TaskKanbanBoard({
       }
       onRefresh?.();
     },
-    [onRefresh, optimisticTasks, allProfiles, queryClient],
+    [onRefresh, optimisticTasks, profiles, queryClient],
   );
 
   const handleOpenDeleteModal = useCallback((task: any) => {
