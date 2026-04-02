@@ -318,7 +318,7 @@ function DataRow({ label, children }: { label: string; children: React.ReactNode
 function MisunderstoodBanner({ task, onResolve }: { task: any; onResolve: () => void }) {
   const { data: reporter } = useQuery({
     queryKey: ["misunderstood-reporter", task.misunderstood_by],
-    staleTime: 10 * 60 * 1000
+    staleTime: 10 * 60 * 1000,
     queryFn: async () => {
       if (!task.misunderstood_by) return null;
       const { data } = await supabase.from("profiles").select("full_name").eq("id", task.misunderstood_by).single();

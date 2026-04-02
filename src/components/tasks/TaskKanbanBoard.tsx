@@ -398,7 +398,7 @@ export default function TaskKanbanBoard({
         toast.success("Usunięto przypisanie");
       } else {
         const role = currentAssignments.length === 0 ? "primary" : "collaborator";
-        const staffProfile = (allProfiles || []).find((p: any) => p.id === userId);
+        const staffProfile = (profiles || []).find((p: any) => p.id === userId);
         applyOptimistic((t) => ({
           ...t,
           task_assignments: [
@@ -420,7 +420,7 @@ export default function TaskKanbanBoard({
       }
       onRefresh?.();
     },
-    [onRefresh, optimisticTasks, allProfiles, queryClient],
+    [onRefresh, optimisticTasks, profiles, queryClient],
   );
 
   const handleOpenDeleteModal = useCallback((task: any) => {
@@ -515,7 +515,7 @@ export default function TaskKanbanBoard({
                                 getInitials={getInitials}
                                 getAvatarColor={getAvatarColor}
                                 getWaitingTime={getWaitingTime}
-                                allProfiles={allProfiles || []}
+                                allProfiles={profiles || []}
                                 onAssign={handleToggleAssign}
                                 onArchive={onArchive}
                                 onOpenDeleteModal={handleOpenDeleteModal}

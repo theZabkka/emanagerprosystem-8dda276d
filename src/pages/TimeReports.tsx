@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,7 +40,7 @@ export default function TimeReports() {
     },
   });
 
-  import { useStaffMembers } from "@/hooks/useStaffMembers";
+  
   // ...
   const { data: profiles = [] } = useStaffMembers();
 
