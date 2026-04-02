@@ -44,6 +44,7 @@ export function TaskFilters({
   onCreateClick,
   sortField, onSortFieldChange,
   sortDirection, onSortDirectionToggle,
+  kanbanMode = "status", onKanbanModeChange,
 }: TaskFiltersProps) {
   return (
     <div className="[&_svg]:pointer-events-none">
