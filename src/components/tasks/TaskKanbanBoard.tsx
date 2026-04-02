@@ -362,6 +362,7 @@ export default function TaskKanbanBoard({
       <ResponsibilityModal
         open={responsibilityOpen}
         onOpenChange={setResponsibilityOpen}
+        taskId={pendingMove?.taskId}
         onConfirm={() => {
           if (pendingMove) {
             onStatusChange(pendingMove.taskId, pendingMove.newStatus);
