@@ -252,6 +252,10 @@ export default function TaskDetail() {
 
     // Rule: review/corrections -> client_review requires responsibility confirmation
     if ((task.status === "review" || task.status === "corrections") && newStatus === "client_review") {
+      if (!task.logged_time || task.logged_time <= 0) {
+        toast.error("Brak zalogowanego czasu. Musisz zalogować czas pracy przed wysłaniem zadania do klienta.");
+        return;
+      }
       setPendingStatus(newStatus);
       setResponsibilityOpen(true);
       return;
