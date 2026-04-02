@@ -37,9 +37,10 @@ interface TaskTeamBoardProps {
   tasks: any[];
   onRefresh?: () => void;
   priorityFilter: string;
+  onPersonClick?: (userId: string) => void;
 }
 
-export default function TaskTeamBoard({ tasks, onRefresh, priorityFilter }: TaskTeamBoardProps) {
+export default function TaskTeamBoard({ tasks, onRefresh, priorityFilter, onPersonClick }: TaskTeamBoardProps) {
   const queryClient = useQueryClient();
   const { data: staffMembers = [] } = useStaffMembers();
 
