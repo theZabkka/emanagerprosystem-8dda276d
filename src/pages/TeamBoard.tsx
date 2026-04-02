@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { getMidpointRank, getAfterRank, getBeforeRank } from "@/lib/lexoRank";
 
 const statusLabels: Record<string, string> = {
