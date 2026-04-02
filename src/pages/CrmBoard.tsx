@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -49,11 +49,14 @@ export default function CrmBoard() {
   const [editingColumnName, setEditingColumnName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
-  // New deal form
-  const [newDeal, setNewDeal] = useState({
-    title: "", column_id: "", due_date: "", client_id: "",
-    description: "", assigned_to: "", selectedLabels: [] as string[],
-  });
+  const emptyDeal = { title: "", column_id: "", due_date: "", client_id: "", description: "", assigned_to: "", selectedLabels: [] as string[] };
+  const [newDeal, setNewDeal] = useState(emptyDeal);
+
+  // Quick-add: open create modal with pre-filled column
+  const openCreateForColumn = (columnId: string) => {
+    setNewDeal({ ...emptyDeal, column_id: columnId });
+    setCreateOpen(true);
+  };
 
   // Fetch clients for picker
   const { data: clientsList = [] } = useQuery({
@@ -216,7 +219,7 @@ export default function CrmBoard() {
       qc.invalidateQueries({ queryKey: ["crm-deals"] });
       qc.invalidateQueries({ queryKey: ["crm-all-deal-labels"] });
       setCreateOpen(false);
-      setNewDeal({ title: "", column_id: "", due_date: "", client_id: "", description: "", assigned_to: "", selectedLabels: [] });
+      setNewDeal(emptyDeal);
       toast.success("Karta dodana");
     } catch (err: any) {
       toast.error("Błąd tworzenia: " + (err?.message || "Nieznany błąd"));
@@ -261,7 +264,7 @@ export default function CrmBoard() {
             </Button>
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" className="h-8 text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => setCreateOpen(true)}>
+            <Button size="sm" className="h-8 text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { setNewDeal(emptyDeal); setCreateOpen(true); }}>
               <Plus className="h-3.5 w-3.5 mr-1" /> Nowa karta
             </Button>
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setLabelManagerOpen(true)}>
@@ -316,70 +319,73 @@ export default function CrmBoard() {
                                   </div>
                                 )}
                               </div>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => { setEditingColumnId(col.id); setEditingColumnName(col.name); }}>
-                                    <Pencil className="h-3.5 w-3.5 mr-2" /> Zmień nazwę
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="text-destructive"
-                                    onClick={() => {
-                                      if (colDeals.length > 0) {
-                                        toast.error("Przenieś karty przed usunięciem kolumny");
-                                        return;
-                                      }
-                                      mutations.deleteColumn.mutate(col.id);
-                                      toast.success("Kolumna usunięta");
-                                    }}
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5 mr-2" /> Usuń
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openCreateForColumn(col.id)}>
+                                  <Plus className="h-3.5 w-3.5" />
+                                </Button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => { setEditingColumnId(col.id); setEditingColumnName(col.name); }}>
+                                      <Pencil className="h-3.5 w-3.5 mr-2" /> Zmień nazwę
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-destructive"
+                                      onClick={() => {
+                                        if (colDeals.length > 0) {
+                                          toast.error("Przenieś karty przed usunięciem kolumny");
+                                          return;
+                                        }
+                                        mutations.deleteColumn.mutate(col.id);
+                                        toast.success("Kolumna usunięta");
+                                      }}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5 mr-2" /> Usuń
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
                             </div>
 
                             {/* Cards */}
                             <Droppable droppableId={col.id} type="CARD">
                               {(provided, snapshot) => (
-                                <ScrollArea className="flex-1">
-                                  <div
-                                    ref={provided.innerRef}
-                                    {...provided.droppableProps}
-                                    className={cn(
-                                      "p-2 space-y-2.5 min-h-[60px] transition-colors",
-                                      snapshot.isDraggingOver && "bg-accent/40"
-                                    )}
-                                  >
-                                    {colDeals.map((deal, idx) => (
-                                      <Draggable key={deal.id} draggableId={deal.id} index={idx}>
-                                        {(cardProv, cardSnap) => (
-                                          <div
-                                            ref={cardProv.innerRef}
-                                            {...cardProv.draggableProps}
-                                            {...cardProv.dragHandleProps}
-                                            className={cn(
-                                              "transition-transform",
-                                              cardSnap.isDragging && "opacity-90 rotate-1"
-                                            )}
-                                          >
-                                            <CrmDealCard
-                                              deal={deal}
-                                              labels={allDealLabelsMap?.[deal.id]}
-                                              onReminderToggle={(id, active) => mutations.toggleReminder.mutate({ id, active })}
-                                              onClick={() => setSelectedDeal(deal)}
-                                            />
-                                          </div>
-                                        )}
-                                      </Draggable>
-                                    ))}
-                                    {provided.placeholder}
-                                  </div>
-                                </ScrollArea>
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.droppableProps}
+                                  className={cn(
+                                    "flex-1 overflow-y-auto p-2 space-y-2.5 min-h-[60px] transition-colors",
+                                    snapshot.isDraggingOver && "bg-accent/40"
+                                  )}
+                                >
+                                  {colDeals.map((deal, idx) => (
+                                    <Draggable key={deal.id} draggableId={deal.id} index={idx}>
+                                      {(cardProv, cardSnap) => (
+                                        <div
+                                          ref={cardProv.innerRef}
+                                          {...cardProv.draggableProps}
+                                          {...cardProv.dragHandleProps}
+                                          className={cn(
+                                            "transition-transform",
+                                            cardSnap.isDragging && "opacity-90 rotate-1"
+                                          )}
+                                        >
+                                          <CrmDealCard
+                                            deal={deal}
+                                            labels={allDealLabelsMap?.[deal.id]}
+                                            onReminderToggle={(id, active) => mutations.toggleReminder.mutate({ id, active })}
+                                            onClick={() => setSelectedDeal(deal)}
+                                          />
+                                        </div>
+                                      )}
+                                    </Draggable>
+                                  ))}
+                                  {provided.placeholder}
+                                </div>
                               )}
                             </Droppable>
                           </div>
