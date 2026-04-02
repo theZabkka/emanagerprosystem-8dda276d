@@ -33,7 +33,7 @@ interface Props {
 export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
   const navigate = useNavigate();
   const { session } = useAuth();
-  const { role } = useRole();
+  const { currentRole } = useRole();
   const { data: staff } = useStaffMembers();
   const { data: comments = [] } = useCrmDealComments(deal?.id ?? null);
   const { data: dealLabels = [] } = useCrmDealLabels(deal?.id ?? null);
