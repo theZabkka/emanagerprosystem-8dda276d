@@ -56,7 +56,16 @@ const VaultPage = lazy(() => import("./pages/VaultPage"));
 const UpdatePassword = lazy(() => import("./pages/UpdatePassword"));
 const Transcriptions = lazy(() => import("./pages/Transcriptions"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 3 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth();
@@ -77,7 +86,7 @@ const stubRoutes = [
   { path: "/routines", title: "Rutyny" },
   { path: "/contracts", title: "Umowy" },
   { path: "/orders", title: "Zlecenia" },
-  
+
   { path: "/micro-interventions", title: "Mikro-interwencje" },
   { path: "/client-inbox", title: "Skrzynka klientów" },
   // tickets now has real pages
@@ -91,77 +100,358 @@ const stubRoutes = [
   { path: "/team-analytics", title: "Analityka zespołu" },
   { path: "/recurring-tasks", title: "Zadania cykliczne" },
   { path: "/suggestions", title: "Sugestie" },
-  
+
   { path: "/project-guide", title: "Instrukcja projektu" },
 ];
 
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="emanager-theme">
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <RoleProvider>
-          <ErrorBoundary>
-          <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-            <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-            <Route path="/update-password" element={<UpdatePassword />} />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/my-day" element={<ProtectedRoute><MyDay /></ProtectedRoute>} />
-            <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
-            <Route path="/tasks/archive" element={<ProtectedRoute><TaskArchive /></ProtectedRoute>} />
-            <Route path="/tasks/:id" element={<ProtectedRoute><TaskDetail /></ProtectedRoute>} />
-            <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
-            <Route path="/clients/:id" element={<ProtectedRoute><ClientDetail /></ProtectedRoute>} />
-            <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
-            {/* /projects/archive removed — now a tab inside /projects */}
-            <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
-            <Route path="/pipeline" element={<ProtectedRoute><Pipeline /></ProtectedRoute>} />
-            <Route path="/crm" element={<ProtectedRoute><CrmBoard /></ProtectedRoute>} />
-            <Route path="/messenger" element={<ProtectedRoute><Messenger /></ProtectedRoute>} />
-            <Route path="/okr" element={<ProtectedRoute><OKR /></ProtectedRoute>} />
-            <Route path="/operational" element={<ProtectedRoute><OperationalBoard /></ProtectedRoute>} />
-            <Route path="/team-board" element={<Navigate to="/tasks" replace />} />
-            <Route path="/team/calendar" element={<ProtectedRoute><TeamCalendar /></ProtectedRoute>} />
-            <Route path="/reports/time" element={<ProtectedRoute><TimeReports /></ProtectedRoute>} />
-            <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/automations" element={<ProtectedRoute><Automations /></ProtectedRoute>} />
-            <Route path="/automation-center" element={<ProtectedRoute><AutomationCenter /></ProtectedRoute>} />
-            <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-            <Route path="/whats-new" element={<ProtectedRoute><WhatsNew /></ProtectedRoute>} />
-            <Route path="/settings/permissions" element={<AdminRoute><Permissions /></AdminRoute>} />
-            <Route path="/client-ideas" element={<ProtectedRoute><ClientIdeas /></ProtectedRoute>} />
-            <Route path="/staff-ideas" element={<ProtectedRoute><StaffIdeas /></ProtectedRoute>} />
-            <Route path="/docs" element={<ProtectedRoute><Documentation /></ProtectedRoute>} />
-            <Route path="/admin/tickets" element={<ProtectedRoute><AdminTickets /></ProtectedRoute>} />
-            <Route path="/admin/tickets/new" element={<ProtectedRoute><AdminNewTicket /></ProtectedRoute>} />
-            <Route path="/admin/tickets/:id" element={<ProtectedRoute><AdminTicketDetails /></ProtectedRoute>} />
-            <Route path="/client/tasks" element={<ProtectedRoute><ClientTasks /></ProtectedRoute>} />
-            <Route path="/client/tickets" element={<ProtectedRoute><ClientTickets /></ProtectedRoute>} />
-            <Route path="/client/tickets/new" element={<ProtectedRoute><ClientNewTicket /></ProtectedRoute>} />
-            <Route path="/client/tickets/:id" element={<ProtectedRoute><ClientTicketDetails /></ProtectedRoute>} />
-            <Route path="/admin/bugs" element={<ProtectedRoute><AdminBugs /></ProtectedRoute>} />
-            <Route path="/admin/templates" element={<AdminRoute><ResponseTemplates /></AdminRoute>} />
-            <Route path="/vault" element={<ProtectedRoute><VaultPage /></ProtectedRoute>} />
-            <Route path="/transcriptions" element={<ProtectedRoute><Transcriptions /></ProtectedRoute>} />
-            {stubRoutes.map((r) => (
-              <Route key={r.path} path={r.path} element={<ProtectedRoute><StubPage title={r.title} /></ProtectedRoute>} />
-            ))}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          </Suspense>
-          </ErrorBoundary>
-          </RoleProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <RoleProvider>
+              <ErrorBoundary>
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
+                    <Route
+                      path="/login"
+                      element={
+                        <PublicRoute>
+                          <Login />
+                        </PublicRoute>
+                      }
+                    />
+                    <Route
+                      path="/register"
+                      element={
+                        <PublicRoute>
+                          <Register />
+                        </PublicRoute>
+                      }
+                    />
+                    <Route path="/update-password" element={<UpdatePassword />} />
+                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                    <Route
+                      path="/dashboard"
+                      element={
+                        <ProtectedRoute>
+                          <Dashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/my-day"
+                      element={
+                        <ProtectedRoute>
+                          <MyDay />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/tasks"
+                      element={
+                        <ProtectedRoute>
+                          <Tasks />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/tasks/archive"
+                      element={
+                        <ProtectedRoute>
+                          <TaskArchive />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/tasks/:id"
+                      element={
+                        <ProtectedRoute>
+                          <TaskDetail />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/clients"
+                      element={
+                        <ProtectedRoute>
+                          <Clients />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/clients/:id"
+                      element={
+                        <ProtectedRoute>
+                          <ClientDetail />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/projects"
+                      element={
+                        <ProtectedRoute>
+                          <Projects />
+                        </ProtectedRoute>
+                      }
+                    />
+                    {/* /projects/archive removed — now a tab inside /projects */}
+                    <Route
+                      path="/projects/:id"
+                      element={
+                        <ProtectedRoute>
+                          <ProjectDetail />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/pipeline"
+                      element={
+                        <ProtectedRoute>
+                          <Pipeline />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/crm"
+                      element={
+                        <ProtectedRoute>
+                          <CrmBoard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/messenger"
+                      element={
+                        <ProtectedRoute>
+                          <Messenger />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/okr"
+                      element={
+                        <ProtectedRoute>
+                          <OKR />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/operational"
+                      element={
+                        <ProtectedRoute>
+                          <OperationalBoard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route path="/team-board" element={<Navigate to="/tasks" replace />} />
+                    <Route
+                      path="/team/calendar"
+                      element={
+                        <ProtectedRoute>
+                          <TeamCalendar />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/reports/time"
+                      element={
+                        <ProtectedRoute>
+                          <TimeReports />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/team"
+                      element={
+                        <ProtectedRoute>
+                          <Team />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/settings"
+                      element={
+                        <ProtectedRoute>
+                          <Settings />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/automations"
+                      element={
+                        <ProtectedRoute>
+                          <Automations />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/automation-center"
+                      element={
+                        <ProtectedRoute>
+                          <AutomationCenter />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/analytics"
+                      element={
+                        <ProtectedRoute>
+                          <Analytics />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/whats-new"
+                      element={
+                        <ProtectedRoute>
+                          <WhatsNew />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/settings/permissions"
+                      element={
+                        <AdminRoute>
+                          <Permissions />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/client-ideas"
+                      element={
+                        <ProtectedRoute>
+                          <ClientIdeas />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/staff-ideas"
+                      element={
+                        <ProtectedRoute>
+                          <StaffIdeas />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/docs"
+                      element={
+                        <ProtectedRoute>
+                          <Documentation />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/tickets"
+                      element={
+                        <ProtectedRoute>
+                          <AdminTickets />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/tickets/new"
+                      element={
+                        <ProtectedRoute>
+                          <AdminNewTicket />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/tickets/:id"
+                      element={
+                        <ProtectedRoute>
+                          <AdminTicketDetails />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/client/tasks"
+                      element={
+                        <ProtectedRoute>
+                          <ClientTasks />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/client/tickets"
+                      element={
+                        <ProtectedRoute>
+                          <ClientTickets />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/client/tickets/new"
+                      element={
+                        <ProtectedRoute>
+                          <ClientNewTicket />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/client/tickets/:id"
+                      element={
+                        <ProtectedRoute>
+                          <ClientTicketDetails />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/bugs"
+                      element={
+                        <ProtectedRoute>
+                          <AdminBugs />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/templates"
+                      element={
+                        <AdminRoute>
+                          <ResponseTemplates />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/vault"
+                      element={
+                        <ProtectedRoute>
+                          <VaultPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/transcriptions"
+                      element={
+                        <ProtectedRoute>
+                          <Transcriptions />
+                        </ProtectedRoute>
+                      }
+                    />
+                    {stubRoutes.map((r) => (
+                      <Route
+                        key={r.path}
+                        path={r.path}
+                        element={
+                          <ProtectedRoute>
+                            <StubPage title={r.title} />
+                          </ProtectedRoute>
+                        }
+                      />
+                    ))}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
+              </ErrorBoundary>
+            </RoleProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   </ThemeProvider>
 );
 
