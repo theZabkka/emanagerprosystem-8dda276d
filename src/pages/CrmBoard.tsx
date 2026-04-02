@@ -40,7 +40,17 @@ export default function CrmBoard() {
   const [editingColumnName, setEditingColumnName] = useState("");
 
   // New deal form (no priority)
-  const [newDeal, setNewDeal] = useState({ title: "", column_id: "", due_date: "" });
+  const [newDeal, setNewDeal] = useState({ title: "", column_id: "", due_date: "", client_id: "" });
+
+  // Fetch clients for picker
+  const { data: clientsList = [] } = useQuery({
+    queryKey: ["clients-list-simple"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clients").select("id, name").order("name");
+      if (error) throw error;
+      return data as Array<{ id: string; name: string }>;
+    },
+  });
 
   // All labels for each deal
   const { data: allDealLabelsMap } = useCrmLabelsForDeals(deals.map(d => d.id));
