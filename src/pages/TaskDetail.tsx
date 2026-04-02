@@ -1438,13 +1438,8 @@ export default function TaskDetail() {
             {rightTab === "discussion" ? (
               <div className="space-y-3">
                 {(() => {
-                  let displayComments = filteredComments;
-                  if (isClient) {
-                    displayComments = (comments || []).filter((c: any) => c.type !== "internal");
-                  } else if (isPreviewMode) {
-                    displayComments = filteredComments.filter((c: any) => c.type !== "internal");
-                  }
-                  return displayComments.length > 0 ? [...displayComments].reverse().map((c: any) => (
+                  const internalComments = (comments || []).filter((c: any) => c.type === "internal");
+                  return internalComments.length > 0 ? [...internalComments].reverse().map((c: any) => (
                     <div key={c.id} className="space-y-1">
                       <div className="flex gap-2">
                         <Avatar className="h-6 w-6 mt-0.5 shrink-0">
