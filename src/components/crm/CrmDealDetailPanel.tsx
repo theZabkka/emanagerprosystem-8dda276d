@@ -33,7 +33,7 @@ interface Props {
 export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
   const navigate = useNavigate();
   const { session } = useAuth();
-  const { role } = useRole();
+  const { currentRole } = useRole();
   const { data: staff } = useStaffMembers();
   const { data: comments = [] } = useCrmDealComments(deal?.id ?? null);
   const { data: dealLabels = [] } = useCrmDealLabels(deal?.id ?? null);
@@ -57,7 +57,7 @@ export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
     title: "", description: "", due_date: "", assigned_to: "", client_id: "",
   });
 
-  const isAdmin = role === "superadmin" || role === "boss" || role === "admin" || role === "koordynator";
+  const isAdmin = currentRole === "superadmin" || currentRole === "boss" || currentRole === "koordynator";
   const currentUserId = session?.user.id;
 
   const startEdit = () => {
