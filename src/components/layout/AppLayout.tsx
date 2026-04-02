@@ -8,7 +8,6 @@ import { useRole } from "@/hooks/useRole";
 import { useRoutePrefetch } from "@/hooks/useRoutePrefetch";
 import { CoordinatorFreezeOverlay } from "@/components/tasks/CoordinatorFreezeOverlay";
 import { ProfileGatekeeper } from "./ProfileGatekeeper";
-import { VerificationBanner } from "./VerificationBanner";
 import { useVerificationLock } from "@/hooks/useVerificationLock";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -32,10 +31,12 @@ export function AppLayout({ children, title }: AppLayoutProps) {
     if (!isLocked) return;
 
     const handlePopState = (e: PopStateEvent) => {
+      // Push the locked task URL back
       window.history.pushState(null, "", `/tasks/${activeLockedTaskId}`);
       navigate(`/tasks/${activeLockedTaskId}`, { replace: true });
     };
 
+    // Push an extra entry so back goes to our handler
     window.history.pushState(null, "", location.pathname);
     window.addEventListener("popstate", handlePopState);
 
@@ -60,7 +61,9 @@ export function AppLayout({ children, title }: AppLayoutProps) {
             className="fixed inset-0 z-40 pointer-events-none"
             aria-hidden="true"
           >
+            {/* Block sidebar */}
             <div className="absolute left-0 top-0 bottom-0 w-[var(--sidebar-width,16rem)] pointer-events-auto bg-background/60 backdrop-blur-[1px]" />
+            {/* Block topbar */}
             <div className="absolute top-0 left-[var(--sidebar-width,16rem)] right-0 h-14 pointer-events-auto bg-background/60 backdrop-blur-[1px]" />
           </div>
         )}
@@ -68,7 +71,6 @@ export function AppLayout({ children, title }: AppLayoutProps) {
         {isClient ? <ClientSidebar /> : <AppSidebar />}
         <div className="flex-1 flex flex-col min-w-0">
           <Topbar title={title} />
-          {!isClient && <VerificationBanner />}
           <main className="flex-1 overflow-auto p-6 bg-background">
             {children}
           </main>
