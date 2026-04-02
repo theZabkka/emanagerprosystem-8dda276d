@@ -1,1 +1,0 @@
-ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS verification_snoozed_until TIMESTAMPTZ DEFAULT NULL, ADD COLUMN IF NOT EXISTS verification_snooze_count INTEGER NOT NULL DEFAULT 0;
