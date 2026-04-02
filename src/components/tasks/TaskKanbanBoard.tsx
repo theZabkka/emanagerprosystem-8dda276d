@@ -189,6 +189,10 @@ export default function TaskKanbanBoard({
     }
 
     if (task.status === "review" && newStatus === "client_review") {
+      if (!task.logged_time || task.logged_time <= 0) {
+        toast.error("Brak zalogowanego czasu. Musisz zalogować czas pracy przed wysłaniem zadania do klienta.");
+        return;
+      }
       setPendingMove({ taskId, newStatus });
       setResponsibilityOpen(true);
       return;
@@ -358,6 +362,7 @@ export default function TaskKanbanBoard({
       <ResponsibilityModal
         open={responsibilityOpen}
         onOpenChange={setResponsibilityOpen}
+        taskId={pendingMove?.taskId}
         onConfirm={() => {
           if (pendingMove) {
             onStatusChange(pendingMove.taskId, pendingMove.newStatus);

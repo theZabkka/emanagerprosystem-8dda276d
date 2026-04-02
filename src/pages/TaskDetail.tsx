@@ -252,6 +252,10 @@ export default function TaskDetail() {
 
     // Rule: review/corrections -> client_review requires responsibility confirmation
     if ((task.status === "review" || task.status === "corrections") && newStatus === "client_review") {
+      if (!task.logged_time || task.logged_time <= 0) {
+        toast.error("Brak zalogowanego czasu. Musisz zalogować czas pracy przed wysłaniem zadania do klienta.");
+        return;
+      }
       setPendingStatus(newStatus);
       setResponsibilityOpen(true);
       return;
@@ -732,6 +736,10 @@ export default function TaskDetail() {
               size="sm"
               className="text-xs gap-1.5 bg-amber-500 hover:bg-amber-600 text-white"
               onClick={() => {
+                if (!task.logged_time || task.logged_time <= 0) {
+                  toast.error("Brak zalogowanego czasu. Musisz zalogować czas pracy przed wysłaniem zadania do klienta.");
+                  return;
+                }
                 setPendingStatus("client_review");
                 setResponsibilityOpen(true);
               }}
@@ -1543,6 +1551,7 @@ export default function TaskDetail() {
       <ResponsibilityModal
         open={responsibilityOpen}
         onOpenChange={setResponsibilityOpen}
+        taskId={task?.id}
         onConfirm={async () => {
           if (pendingStatus && task) {
             await supabase.from("tasks").update({ accepted_responsibility_by: user?.id } as any).eq("id", task.id);
