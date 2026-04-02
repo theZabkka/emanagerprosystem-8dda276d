@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
-import { X, Send, Tag } from "lucide-react";
+import { Send, Tag, ExternalLink } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,9 +14,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useCrmDealComments, useCrmDealLabels, useCrmLabels, useCrmMutations, type CrmDeal } from "@/hooks/useCrmData";
+
+const NONE_SENTINEL = "__none__";
 
 interface Props {
   deal: CrmDeal | null;
@@ -24,6 +30,7 @@ interface Props {
 }
 
 export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
+  const navigate = useNavigate();
   const { session } = useAuth();
   const { data: staff } = useStaffMembers();
   const { data: comments = [] } = useCrmDealComments(deal?.id ?? null);
@@ -31,25 +38,78 @@ export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
   const { data: allLabels = [] } = useCrmLabels();
   const { updateDeal, addComment, toggleLabel, archiveDeal } = useCrmMutations();
 
+  // Fetch clients list for the picker
+  const { data: clients = [] } = useQuery({
+    queryKey: ["clients-list-simple"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clients")
+        .select("id, name")
+        .order("name");
+      if (error) throw error;
+      return data as Array<{ id: string; name: string }>;
+    },
+  });
+
   const [commentText, setCommentText] = useState("");
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", due_date: "", assigned_to: "" });
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    due_date: "",
+    assigned_to: "",
+    client_id: "",
+  });
 
   const startEdit = () => {
     if (!deal) return;
+    // Convert ISO date to datetime-local format (YYYY-MM-DDTHH:mm)
+    let dueDateLocal = "";
+    if (deal.due_date) {
+      try {
+        const d = new Date(deal.due_date);
+        dueDateLocal = format(d, "yyyy-MM-dd'T'HH:mm");
+      } catch {
+        dueDateLocal = deal.due_date.slice(0, 16); // fallback
+      }
+    }
     setForm({
       title: deal.title,
       description: deal.description || "",
-      due_date: deal.due_date || "",
+      due_date: dueDateLocal,
       assigned_to: deal.assigned_to || "",
+      client_id: deal.client_id || "",
     });
     setEditing(true);
   };
 
   const saveEdit = () => {
     if (!deal) return;
-    updateDeal.mutate({ id: deal.id, ...form });
-    setEditing(false);
+    if (!form.title.trim()) {
+      toast.error("Tytuł nie może być pusty");
+      return;
+    }
+    try {
+      const payload: Record<string, any> = {
+        id: deal.id,
+        title: form.title.trim(),
+        description: form.description || null,
+        due_date: form.due_date ? new Date(form.due_date).toISOString() : null,
+        assigned_to: form.assigned_to || null,
+        client_id: form.client_id || null,
+      };
+      updateDeal.mutate(payload as any, {
+        onSuccess: () => {
+          toast.success("Karta zaktualizowana");
+          setEditing(false);
+        },
+        onError: (err: any) => {
+          toast.error("Błąd zapisu: " + (err?.message || "Nieznany błąd"));
+        },
+      });
+    } catch (err: any) {
+      toast.error("Wystąpił błąd: " + (err?.message || "Nieznany błąd"));
+    }
   };
 
   const handleAddComment = () => {
@@ -83,32 +143,80 @@ export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
                   <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={4} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Termin</Label>
-                  <Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
+                  <Label>Termin (data i godzina)</Label>
+                  <Input
+                    type="datetime-local"
+                    value={form.due_date}
+                    onChange={(e) => setForm({ ...form, due_date: e.target.value })}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Przypisana osoba</Label>
-                  <Select value={form.assigned_to} onValueChange={(v) => setForm({ ...form, assigned_to: v })}>
+                  <Select
+                    value={form.assigned_to || NONE_SENTINEL}
+                    onValueChange={(v) => setForm({ ...form, assigned_to: v === NONE_SENTINEL ? "" : v })}
+                  >
                     <SelectTrigger><SelectValue placeholder="Wybierz..." /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Brak</SelectItem>
+                      <SelectItem value={NONE_SENTINEL}>Brak</SelectItem>
                       {(staff || []).map((s) => (
                         <SelectItem key={s.id} value={s.id}>{s.full_name || "Bez nazwy"}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label>Klient</Label>
+                  <Select
+                    value={form.client_id || NONE_SENTINEL}
+                    onValueChange={(v) => setForm({ ...form, client_id: v === NONE_SENTINEL ? "" : v })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Wybierz klienta..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE_SENTINEL}>Brak</SelectItem>
+                      {clients.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="flex gap-2">
-                  <Button onClick={saveEdit} size="sm">Zapisz</Button>
+                  <Button onClick={saveEdit} size="sm" disabled={updateDeal.isPending}>
+                    {updateDeal.isPending ? "Zapisywanie..." : "Zapisz"}
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => setEditing(false)}>Anuluj</Button>
                 </div>
               </div>
             ) : (
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">{deal.description || "Brak opisu"}</p>
-                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                  {deal.due_date && <span>Termin: <strong className="text-foreground">{format(new Date(deal.due_date), "d MMM yyyy", { locale: pl })}</strong></span>}
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  {deal.due_date && (
+                    <span>
+                      Termin:{" "}
+                      <strong className="text-foreground">
+                        {format(new Date(deal.due_date), "d MMM yyyy, HH:mm", { locale: pl })}
+                      </strong>
+                    </span>
+                  )}
                   <span>Osoba: <strong className="text-foreground">{deal.profiles?.full_name || "—"}</strong></span>
+                  <span className="flex items-center gap-1">
+                    Klient:{" "}
+                    {deal.clients?.name ? (
+                      <button
+                        className="text-primary hover:underline font-semibold inline-flex items-center gap-0.5"
+                        onClick={() => {
+                          onClose();
+                          navigate(`/clients/${deal.clients!.id}`);
+                        }}
+                      >
+                        {deal.clients.name}
+                        <ExternalLink className="h-3 w-3" />
+                      </button>
+                    ) : (
+                      <strong className="text-foreground">—</strong>
+                    )}
+                  </span>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={startEdit}>Edytuj</Button>
