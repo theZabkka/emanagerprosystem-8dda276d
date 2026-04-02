@@ -7,6 +7,7 @@ import { AIAssistantButton } from "./AIAssistantButton";
 import { useRole } from "@/hooks/useRole";
 import { useRoutePrefetch } from "@/hooks/useRoutePrefetch";
 import { CoordinatorFreezeOverlay } from "@/components/tasks/CoordinatorFreezeOverlay";
+import { VerificationBanner } from "./VerificationBanner";
 import { ProfileGatekeeper } from "./ProfileGatekeeper";
 import { useVerificationLock } from "@/hooks/useVerificationLock";
 import { useLocation, useNavigate } from "react-router-dom";
