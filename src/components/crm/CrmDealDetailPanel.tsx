@@ -324,7 +324,7 @@ export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
               </div>
             </div>
           </div>
-        </ScrollArea>
+        </div>
       </SheetContent>
     </Sheet>
   );
