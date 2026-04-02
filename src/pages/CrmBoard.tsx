@@ -319,31 +319,36 @@ export default function CrmBoard() {
                                   </div>
                                 )}
                               </div>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => { setEditingColumnId(col.id); setEditingColumnName(col.name); }}>
-                                    <Pencil className="h-3.5 w-3.5 mr-2" /> Zmień nazwę
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="text-destructive"
-                                    onClick={() => {
-                                      if (colDeals.length > 0) {
-                                        toast.error("Przenieś karty przed usunięciem kolumny");
-                                        return;
-                                      }
-                                      mutations.deleteColumn.mutate(col.id);
-                                      toast.success("Kolumna usunięta");
-                                    }}
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5 mr-2" /> Usuń
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openCreateForColumn(col.id)}>
+                                  <Plus className="h-3.5 w-3.5" />
+                                </Button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => { setEditingColumnId(col.id); setEditingColumnName(col.name); }}>
+                                      <Pencil className="h-3.5 w-3.5 mr-2" /> Zmień nazwę
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-destructive"
+                                      onClick={() => {
+                                        if (colDeals.length > 0) {
+                                          toast.error("Przenieś karty przed usunięciem kolumny");
+                                          return;
+                                        }
+                                        mutations.deleteColumn.mutate(col.id);
+                                        toast.success("Kolumna usunięta");
+                                      }}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5 mr-2" /> Usuń
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
                             </div>
 
                             {/* Cards */}
