@@ -136,6 +136,11 @@ export default function Tasks() {
     setUnassignedFilter(true);
   };
 
+  const handlePersonDrillDown = useCallback((userId: string) => {
+    setAssigneeFilter(userId);
+    setKanbanMode("status");
+  }, []);
+
   const handleStatusChange = useCallback(async (taskId: string, newStatus: string) => {
     const queryKey = ["tasks", priorityFilter];
     const previousTasks = queryClient.getQueryData<any[]>(queryKey);
