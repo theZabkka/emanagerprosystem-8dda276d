@@ -37,7 +37,8 @@ export default function Tasks() {
   const isTerminalStatus = (status?: string | null) => ["done", "cancelled", "closed"].includes(status || "");
   const hasNonEmptyTitle = (task: any) => typeof task.title === "string" && task.title.trim().length > 0;
   const isTaskUnassigned = (task: any) => (task.task_assignments || []).length === 0;
-  const isUnassignedAlertCandidate = (task: any) => !isTerminalStatus(task.status) && hasNonEmptyTitle(task) && isTaskUnassigned(task);
+  const isUnassignedAlertCandidate = (task: any) =>
+    !isTerminalStatus(task.status) && hasNonEmptyTitle(task) && isTaskUnassigned(task);
 
   // Read URL params on mount
   useEffect(() => {
@@ -74,16 +75,19 @@ export default function Tasks() {
     }
   }, []);
 
-  const { data: tasks, isLoading, refetch } = useQuery({
-    queryKey: ["tasks", priorityFilter],
+  const {
+    data: tasks,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["tasks"],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from("tasks")
-        .select("id, title, status, priority, due_date, lexo_rank, client_id, project_id, type, parent_task_id, not_understood, not_understood_at, is_misunderstood, correction_severity, is_archived, estimated_time, logged_time, updated_at, created_at, status_updated_at, clients(name, has_retainer), projects(name), task_assignments(user_id, role, profiles:user_id(full_name))")
+        .select("...")
         .eq("is_archived", false)
-        .order("lexo_rank" as any, { ascending: true });
-      if (priorityFilter !== "all") query = query.eq("priority", priorityFilter as any);
-      const { data, error } = await query;
+        .order("lexo_rank" as any, { ascending: true })
+        .limit(500);
       if (error) throw error;
       return data || [];
     },
@@ -93,7 +97,8 @@ export default function Tasks() {
 
   const filteredTasks = (tasks || []).filter((t: any) => {
     const title = typeof t.title === "string" ? t.title : "";
-    const matchesSearch = title.toLowerCase().includes(search.toLowerCase()) || t.id.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch =
+      title.toLowerCase().includes(search.toLowerCase()) || t.id.toLowerCase().includes(search.toLowerCase());
     if (!matchesSearch) return false;
     if (statusFilter !== "all" && t.status !== statusFilter) return false;
     if (overdueFilter && (!t.due_date || t.due_date >= today)) return false;
@@ -102,9 +107,12 @@ export default function Tasks() {
       const assigned = (t.task_assignments || []).some((a: any) => a.user_id === assigneeFilter);
       if (!assigned) return false;
     }
-    if (typeFilter === "parent") return !(t as any).parent_task_id && (tasks || []).some((mt: any) => mt.parent_task_id === t.id);
+    if (typeFilter === "parent")
+      return !(t as any).parent_task_id && (tasks || []).some((mt: any) => mt.parent_task_id === t.id);
     if (typeFilter === "subtask") return !!(t as any).parent_task_id;
-    if (typeFilter === "standalone") return !(t as any).parent_task_id && !(tasks || []).some((mt: any) => mt.parent_task_id === t.id);
+    if (typeFilter === "standalone")
+      return !(t as any).parent_task_id && !(tasks || []).some((mt: any) => mt.parent_task_id === t.id);
+    if (priorityFilter !== "all" && t.priority !== priorityFilter) return false;
     return true;
   });
 
@@ -118,7 +126,7 @@ export default function Tasks() {
     .map((t: any) => ({ id: t.id, not_understood_at: t.not_understood_at }));
 
   const handleFilterStatus = (status: string) => {
-    setStatusFilter(prev => prev === status ? "all" : status);
+    setStatusFilter((prev) => (prev === status ? "all" : status));
     setOverdueFilter(false);
     setUnassignedFilter(false);
   };
@@ -141,62 +149,80 @@ export default function Tasks() {
     setKanbanMode("status");
   }, []);
 
-  const handleStatusChange = useCallback(async (taskId: string, newStatus: string) => {
-    const queryKey = ["tasks", priorityFilter];
-    const previousTasks = queryClient.getQueryData<any[]>(queryKey);
+  const handleStatusChange = useCallback(
+    async (taskId: string, newStatus: string) => {
+      const queryKey = ["tasks"];
+      const previousTasks = queryClient.getQueryData<any[]>(queryKey);
 
-    queryClient.setQueryData<any[]>(queryKey, (old) =>
-      (old || []).map((t) =>
-        t.id === taskId
-          ? { ...t, status: newStatus, status_updated_at: new Date().toISOString(), updated_at: new Date().toISOString() }
-          : t
-      )
-    );
+      queryClient.setQueryData<any[]>(queryKey, (old) =>
+        (old || []).map((t) =>
+          t.id === taskId
+            ? {
+                ...t,
+                status: newStatus,
+                status_updated_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              }
+            : t,
+        ),
+      );
 
-    const { error } = await supabase.rpc("change_task_status", {
-      _task_id: taskId,
-      _new_status: newStatus as any,
-      _changed_by: user?.id!,
-    });
+      const { error } = await supabase.rpc("change_task_status", {
+        _task_id: taskId,
+        _new_status: newStatus as any,
+        _changed_by: user?.id!,
+      });
 
-    if (error) {
-      queryClient.setQueryData(queryKey, previousTasks);
-      toast.error("Nie udało się zapisać zmiany statusu.");
-      return;
-    }
+      if (error) {
+        queryClient.setQueryData(queryKey, previousTasks);
+        toast.error("Nie udało się zapisać zmiany statusu.");
+        return;
+      }
 
-    toast.success("Status zaktualizowany");
-    queryClient.invalidateQueries({ queryKey, refetchType: "none" });
-    refetch();
-  }, [priorityFilter, queryClient, user?.id, refetch]);
+      toast.success("Status zaktualizowany");
+      queryClient.invalidateQueries({ queryKey, refetchType: "none" });
+      refetch();
+    },
+    [priorityFilter, queryClient, user?.id, refetch],
+  );
 
-  const handleLexoRankUpdate = useCallback(async (taskId: string, newRank: string) => {
-    const queryKey = ["tasks", priorityFilter];
-    const previousTasks = queryClient.getQueryData<any[]>(queryKey);
+  const handleLexoRankUpdate = useCallback(
+    async (taskId: string, newRank: string) => {
+      const queryKey = ["tasks"];
+      const previousTasks = queryClient.getQueryData<any[]>(queryKey);
 
-    queryClient.setQueryData<any[]>(queryKey, (old) =>
-      (old || []).map((t) =>
-        t.id === taskId ? { ...t, lexo_rank: newRank } : t
-      )
-    );
+      queryClient.setQueryData<any[]>(queryKey, (old) =>
+        (old || []).map((t) => (t.id === taskId ? { ...t, lexo_rank: newRank } : t)),
+      );
 
-    const { error } = await supabase
-      .from("tasks")
-      .update({ lexo_rank: newRank } as any)
-      .eq("id", taskId);
+      const { error } = await supabase
+        .from("tasks")
+        .update({ lexo_rank: newRank } as any)
+        .eq("id", taskId);
 
-    if (error) {
-      queryClient.setQueryData(queryKey, previousTasks);
-      toast.error("Nie udało się zapisać kolejności.");
-    }
-  }, [priorityFilter, queryClient]);
+      if (error) {
+        queryClient.setQueryData(queryKey, previousTasks);
+        toast.error("Nie udało się zapisać kolejności.");
+      }
+    },
+    [priorityFilter, queryClient],
+  );
 
-  const handleArchive = useCallback(async (taskId: string) => {
-    const { error } = await supabase.from("tasks").update({ is_archived: true, updated_at: new Date().toISOString() } as any).eq("id", taskId);
-    if (error) { toast.error("Błąd archiwizacji"); return; }
-    toast.success("Zadanie zarchiwizowane");
-    refetch();
-  }, [refetch]);
+  const handleArchive = useCallback(
+    async (taskId: string) => {
+      const { error } = await supabase
+        .from("tasks")
+        .update({ is_archived: true, updated_at: new Date().toISOString() } as any)
+        .eq("id", taskId);
+      if (error) {
+        toast.error("Błąd archiwizacji");
+        return;
+      }
+      toast.success("Zadanie zarchiwizowane");
+      refetch();
+    },
+    [refetch],
+  );
 
   return (
     <AppLayout title="Zadania">
@@ -212,26 +238,41 @@ export default function Tasks() {
         />
 
         <TaskFilters
-          search={search} onSearchChange={setSearch}
-          priorityFilter={priorityFilter} onPriorityChange={setPriorityFilter}
-          typeFilter={typeFilter} onTypeChange={setTypeFilter}
-          viewMode={viewMode} onViewModeChange={setViewMode}
+          search={search}
+          onSearchChange={setSearch}
+          priorityFilter={priorityFilter}
+          onPriorityChange={setPriorityFilter}
+          typeFilter={typeFilter}
+          onTypeChange={setTypeFilter}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
           onCreateClick={() => setIsCreateOpen(true)}
-          sortField={sortField} onSortFieldChange={setSortField}
-          sortDirection={sortDirection} onSortDirectionToggle={() => setSortDirection(d => d === "asc" ? "desc" : "asc")}
-          kanbanMode={kanbanMode} onKanbanModeChange={setKanbanMode}
-          assigneeFilter={assigneeFilter} onAssigneeChange={setAssigneeFilter}
+          sortField={sortField}
+          onSortFieldChange={setSortField}
+          sortDirection={sortDirection}
+          onSortDirectionToggle={() => setSortDirection((d) => (d === "asc" ? "desc" : "asc"))}
+          kanbanMode={kanbanMode}
+          onKanbanModeChange={setKanbanMode}
+          assigneeFilter={assigneeFilter}
+          onAssigneeChange={setAssigneeFilter}
         />
 
         <CreateTaskDialog
           open={isCreateOpen}
-          onOpenChange={(v) => { setIsCreateOpen(v); if (!v) setQuickAddStatus(undefined); }}
+          onOpenChange={(v) => {
+            setIsCreateOpen(v);
+            if (!v) setQuickAddStatus(undefined);
+          }}
           onCreated={() => refetch()}
           defaultStatus={quickAddStatus}
         />
 
         {isLoading ? (
-          viewMode === "kanban" ? <KanbanSkeleton /> : <TableSkeleton columns={5} rows={8} />
+          viewMode === "kanban" ? (
+            <KanbanSkeleton />
+          ) : (
+            <TableSkeleton columns={5} rows={8} />
+          )
         ) : viewMode === "kanban" ? (
           kanbanMode === "team" ? (
             <TaskTeamBoard
@@ -244,13 +285,22 @@ export default function Tasks() {
             <TaskKanbanBoard
               tasks={filteredTasks}
               profiles={[]}
-              assignments={filteredTasks.flatMap((t: any) => (t.task_assignments || []).map((a: any) => ({ ...a, task_id: t.id })))}
-              clients={filteredTasks.map((t: any) => t.clients ? { id: t.client_id, name: t.clients.name, has_retainer: t.clients.has_retainer } : null).filter(Boolean)}
+              assignments={filteredTasks.flatMap((t: any) =>
+                (t.task_assignments || []).map((a: any) => ({ ...a, task_id: t.id })),
+              )}
+              clients={filteredTasks
+                .map((t: any) =>
+                  t.clients ? { id: t.client_id, name: t.clients.name, has_retainer: t.clients.has_retainer } : null,
+                )
+                .filter(Boolean)}
               onStatusChange={handleStatusChange}
               onArchive={handleArchive}
               onRefresh={refetch}
               onLexoRankUpdate={handleLexoRankUpdate}
-              onQuickAdd={(status) => { setQuickAddStatus(status); setIsCreateOpen(true); }}
+              onQuickAdd={(status) => {
+                setQuickAddStatus(status);
+                setIsCreateOpen(true);
+              }}
               sortField={sortField}
               sortDirection={sortDirection}
             />
