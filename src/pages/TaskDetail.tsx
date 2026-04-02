@@ -979,6 +979,7 @@ export default function TaskDetail() {
                 <TabsTrigger value="materials" className="text-xs">Materiały</TabsTrigger>
                 {!isPreviewMode && !isClient && <TabsTrigger value="time" className="text-xs">Czas pracy</TabsTrigger>}
                 {!isPreviewMode && !isClient && <TabsTrigger value="report" className="text-xs">Raport</TabsTrigger>}
+                {!isClient && <TabsTrigger value="preview" className="text-xs">Podgląd</TabsTrigger>}
               </TabsList>
 
               {/* TAB 1: Description + Brief */}
