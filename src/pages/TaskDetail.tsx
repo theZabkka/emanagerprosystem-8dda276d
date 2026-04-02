@@ -251,10 +251,13 @@ export default function TaskDetail() {
       return;
     }
 
-    // Rule: review/corrections -> client_review requires responsibility confirmation
+    // Rule: review/corrections -> client_review requires time validation + combined modal
     if ((task.status === "review" || task.status === "corrections") && newStatus === "client_review") {
-      setPendingStatus(newStatus);
-      setResponsibilityOpen(true);
+      if (totalLogged <= 0) {
+        toast.error("Brak zalogowanego czasu. Musisz zalogować czas pracy przed wysłaniem zadania do klienta.");
+        return;
+      }
+      setVerificationSendOpen(true);
       return;
     }
 
