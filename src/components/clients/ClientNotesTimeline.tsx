@@ -67,7 +67,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
   });
 
   // Fetch profiles for author names
-  import { useStaffMembers } from "@/hooks/useStaffMembers";
+  
 
   // ...
 
