@@ -1504,42 +1504,18 @@ export default function TaskDetail() {
           </div>
 
           {/* Sticky comment input */}
-          {rightTab === "discussion" && (
+          {rightTab === "discussion" && !isClient && (
             <div className="border-t border-border px-4 py-3 shrink-0">
-              {!isPreviewMode && !isClient && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="right-internal" checked={commentType === "internal"} onCheckedChange={(v) => setCommentType(v ? "internal" : "client")} className="h-3.5 w-3.5" />
-                    <Label htmlFor="right-internal" className="text-[10px] flex items-center gap-1 cursor-pointer">
-                      <Lock className="h-2.5 w-2.5 text-amber-500" />Wewnętrzny
-                    </Label>
-                    {!isPreviewMode && !isClient && (
-                      <div className="flex gap-0.5 ml-auto">
-                        {["all", "internal", "client"].map(f => (
-                          <Button key={f} variant={commentFilter === f ? "default" : "ghost"} size="sm" className="text-[9px] h-5 px-1.5"
-                            onClick={() => setCommentFilter(f)}>
-                            {f === "all" ? "Wsze" : f === "internal" ? "Wewn" : "Klient"}
-                          </Button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2 items-end">
-                    <Textarea value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Napisz komentarz..."
-                      onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); addComment(); } }}
-                      className="min-h-[40px] max-h-[100px] text-sm resize-none" />
-                    <Button size="icon" onClick={addComment} className="h-9 w-9 shrink-0"><Send className="h-4 w-4" /></Button>
-                  </div>
-                </div>
-              )}
-              {isClient && !isPreviewMode && (
-                <div className="flex gap-2 items-end">
-                  <Textarea value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Napisz wiadomość..."
-                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleClientComment(); } }}
-                    className="min-h-[40px] max-h-[100px] text-sm resize-none" />
-                  <Button size="icon" onClick={handleClientComment} className="h-9 w-9 shrink-0"><Send className="h-4 w-4" /></Button>
-                </div>
-              )}
+              <div className="flex items-center gap-1.5 mb-2">
+                <Lock className="h-3 w-3 text-amber-500" />
+                <span className="text-[10px] text-muted-foreground font-medium">Komentarze wewnętrzne — niewidoczne dla klienta</span>
+              </div>
+              <div className="flex gap-2 items-end">
+                <Textarea value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Napisz komentarz wewnętrzny..."
+                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); addComment(); } }}
+                  className="min-h-[40px] max-h-[100px] text-sm resize-none" />
+                <Button size="icon" onClick={addComment} className="h-9 w-9 shrink-0"><Send className="h-4 w-4" /></Button>
+              </div>
             </div>
           )}
         </div>
