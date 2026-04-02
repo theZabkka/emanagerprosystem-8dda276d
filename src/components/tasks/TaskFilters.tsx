@@ -2,12 +2,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Search, LayoutGrid, List, Layers, ArrowUpDown, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
+import { Plus, Search, LayoutGrid, List, Layers, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Users2 } from "lucide-react";
 
 const priorityLabels: Record<string, string> = { critical: "Pilny", high: "Wysoki", medium: "Średni", low: "Niski" };
 
 export type SortField = "created_at" | "status_updated_at" | "due_date" | "priority" | "manual";
 export type SortDirection = "asc" | "desc";
+export type KanbanMode = "status" | "team";
 
 interface TaskFiltersProps {
   search: string;
@@ -23,6 +24,8 @@ interface TaskFiltersProps {
   onSortFieldChange: (value: SortField) => void;
   sortDirection: SortDirection;
   onSortDirectionToggle: () => void;
+  kanbanMode?: KanbanMode;
+  onKanbanModeChange?: (mode: KanbanMode) => void;
 }
 
 const sortOptions: { value: SortField; label: string }[] = [
@@ -41,6 +44,7 @@ export function TaskFilters({
   onCreateClick,
   sortField, onSortFieldChange,
   sortDirection, onSortDirectionToggle,
+  kanbanMode = "status", onKanbanModeChange,
 }: TaskFiltersProps) {
   return (
     <div className="[&_svg]:pointer-events-none">
@@ -113,6 +117,25 @@ export function TaskFilters({
             <Layers className="h-3.5 w-3.5" />
             Pokaż podzadania
           </button>
+
+          {viewMode === "kanban" && onKanbanModeChange && (
+            <div className="flex items-center rounded-lg overflow-hidden border">
+              <button
+                onClick={() => onKanbanModeChange("status")}
+                className={`p-2 transition-colors ${kanbanMode === "status" ? "bg-destructive text-destructive-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}
+                title="Grupuj wg statusów"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => onKanbanModeChange("team")}
+                className={`p-2 transition-colors ${kanbanMode === "team" ? "bg-destructive text-destructive-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}
+                title="Grupuj wg osób"
+              >
+                <Users2 className="h-4 w-4" />
+              </button>
+            </div>
+          )}
 
           <div className="flex items-center rounded-lg overflow-hidden border">
             <button

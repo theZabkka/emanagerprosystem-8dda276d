@@ -6,10 +6,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import TaskKanbanBoard from "@/components/tasks/TaskKanbanBoard";
+import TaskTeamBoard from "@/components/tasks/TaskTeamBoard";
 import TaskListView from "@/components/tasks/TaskListView";
 import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";
 import { TaskAlertBanners } from "@/components/tasks/TaskAlertBanners";
-import { TaskFilters, type SortField, type SortDirection } from "@/components/tasks/TaskFilters";
+import { TaskFilters, type SortField, type SortDirection, type KanbanMode } from "@/components/tasks/TaskFilters";
 import { KanbanSkeleton } from "@/components/skeletons/KanbanSkeleton";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 
@@ -22,6 +23,7 @@ export default function Tasks() {
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+  const [kanbanMode, setKanbanMode] = useState<KanbanMode>("status");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [quickAddStatus, setQuickAddStatus] = useState<string | undefined>(undefined);
   const [sortField, setSortField] = useState<SortField>("due_date");
@@ -162,7 +164,6 @@ export default function Tasks() {
     const queryKey = ["tasks", priorityFilter];
     const previousTasks = queryClient.getQueryData<any[]>(queryKey);
 
-    // Optimistic update
     queryClient.setQueryData<any[]>(queryKey, (old) =>
       (old || []).map((t) =>
         t.id === taskId ? { ...t, lexo_rank: newRank } : t
@@ -208,6 +209,7 @@ export default function Tasks() {
           onCreateClick={() => setIsCreateOpen(true)}
           sortField={sortField} onSortFieldChange={setSortField}
           sortDirection={sortDirection} onSortDirectionToggle={() => setSortDirection(d => d === "asc" ? "desc" : "asc")}
+          kanbanMode={kanbanMode} onKanbanModeChange={setKanbanMode}
         />
 
         <CreateTaskDialog
@@ -220,19 +222,27 @@ export default function Tasks() {
         {isLoading ? (
           viewMode === "kanban" ? <KanbanSkeleton /> : <TableSkeleton columns={5} rows={8} />
         ) : viewMode === "kanban" ? (
-          <TaskKanbanBoard
-            tasks={filteredTasks}
-            profiles={[]}
-            assignments={filteredTasks.flatMap((t: any) => (t.task_assignments || []).map((a: any) => ({ ...a, task_id: t.id })))}
-            clients={filteredTasks.map((t: any) => t.clients ? { id: t.client_id, name: t.clients.name, has_retainer: t.clients.has_retainer } : null).filter(Boolean)}
-            onStatusChange={handleStatusChange}
-            onArchive={handleArchive}
-            onRefresh={refetch}
-            onLexoRankUpdate={handleLexoRankUpdate}
-            onQuickAdd={(status) => { setQuickAddStatus(status); setIsCreateOpen(true); }}
-            sortField={sortField}
-            sortDirection={sortDirection}
-          />
+          kanbanMode === "team" ? (
+            <TaskTeamBoard
+              tasks={filteredTasks}
+              onRefresh={refetch}
+              priorityFilter={priorityFilter}
+            />
+          ) : (
+            <TaskKanbanBoard
+              tasks={filteredTasks}
+              profiles={[]}
+              assignments={filteredTasks.flatMap((t: any) => (t.task_assignments || []).map((a: any) => ({ ...a, task_id: t.id })))}
+              clients={filteredTasks.map((t: any) => t.clients ? { id: t.client_id, name: t.clients.name, has_retainer: t.clients.has_retainer } : null).filter(Boolean)}
+              onStatusChange={handleStatusChange}
+              onArchive={handleArchive}
+              onRefresh={refetch}
+              onLexoRankUpdate={handleLexoRankUpdate}
+              onQuickAdd={(status) => { setQuickAddStatus(status); setIsCreateOpen(true); }}
+              sortField={sortField}
+              sortDirection={sortDirection}
+            />
+          )
         ) : (
           <TaskListView tasks={filteredTasks} isLoading={isLoading} />
         )}
