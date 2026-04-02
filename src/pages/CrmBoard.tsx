@@ -250,6 +250,9 @@ export default function CrmBoard() {
             <Button onClick={() => setCreateOpen(true)} className="bg-primary text-primary-foreground hover:bg-primary/90">
               <Plus className="h-4 w-4 mr-1" /> Nowa karta
             </Button>
+            <Button variant="outline" onClick={() => setLabelManagerOpen(true)}>
+              <Tag className="h-4 w-4 mr-1" /> Etykiety
+            </Button>
             <Button variant="outline" onClick={() => setArchiveOpen(true)}>
               <Archive className="h-4 w-4 mr-1" /> Archiwum
             </Button>
