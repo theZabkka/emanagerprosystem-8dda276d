@@ -7,8 +7,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { Clock, UserPlus, Archive, GripVertical, Plus, Trash2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Clock, UserPlus, Archive, GripVertical, Plus, Trash2, Check } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { toast } from "sonner";
@@ -62,6 +62,7 @@ export default function TaskKanbanBoard({
   onLexoRankUpdate, onQuickAdd, sortField = "manual", sortDirection = "asc",
 }: TaskKanbanBoardProps) {
   const { user, profile } = useAuth();
+  const queryClient = useQueryClient();
   const { currentRole, roleLoading } = useRole();
   const normalizedRole = (profile?.role ?? currentRole ?? "").toLowerCase().replace(/\s/g, "");
   const isSuperAdmin = !roleLoading && normalizedRole === "superadmin";
@@ -318,20 +319,58 @@ export default function TaskKanbanBoard({
     }
   };
 
-  const handleAssign = useCallback(async (taskId: string, userId: string) => {
-    await supabase.from("task_assignments").delete().eq("task_id", taskId).eq("role", "primary" as any);
-    const { error } = await supabase.from("task_assignments").insert({
-      task_id: taskId,
-      user_id: userId,
-      role: "primary" as any,
-    });
-    if (error) {
-      toast.error("Błąd przypisania");
-      return;
+  const handleToggleAssign = useCallback(async (taskId: string, userId: string) => {
+    // Snapshot all task queries for rollback
+    const allTaskQueries = queryClient.getQueriesData<any[]>({ queryKey: ["tasks"] });
+
+    // Check if user is already assigned
+    const task = (optimisticTasks || []).find((t: any) => t.id === taskId);
+    const currentAssignments: any[] = task?.task_assignments || [];
+    const isAlreadyAssigned = currentAssignments.some((a: any) => a.user_id === userId);
+
+    const applyOptimistic = (updater: (t: any) => any) => {
+      queryClient.setQueriesData<any[]>({ queryKey: ["tasks"] }, (old) =>
+        (old || []).map((t) => t.id === taskId ? updater(t) : t)
+      );
+    };
+
+    if (isAlreadyAssigned) {
+      applyOptimistic((t) => ({
+        ...t,
+        task_assignments: (t.task_assignments || []).filter((a: any) => a.user_id !== userId),
+      }));
+      const { error } = await supabase.from("task_assignments").delete()
+        .eq("task_id", taskId).eq("user_id", userId);
+      if (error) {
+        allTaskQueries.forEach(([key, data]) => queryClient.setQueryData(key, data));
+        toast.error("Błąd usuwania przypisania");
+        return;
+      }
+      toast.success("Usunięto przypisanie");
+    } else {
+      const role = currentAssignments.length === 0 ? "primary" : "collaborator";
+      const staffProfile = (allProfiles || []).find((p: any) => p.id === userId);
+      applyOptimistic((t) => ({
+        ...t,
+        task_assignments: [
+          ...(t.task_assignments || []),
+          { user_id: userId, role, profiles: { full_name: staffProfile?.full_name || "?" } },
+        ],
+      }));
+      const { error } = await supabase.from("task_assignments").insert({
+        task_id: taskId,
+        user_id: userId,
+        role: role as any,
+      });
+      if (error) {
+        allTaskQueries.forEach(([key, data]) => queryClient.setQueryData(key, data));
+        toast.error("Błąd przypisania");
+        return;
+      }
+      toast.success("Przypisano osobę");
     }
-    toast.success("Przypisano osobę");
     onRefresh?.();
-  }, [onRefresh]);
+  }, [onRefresh, optimisticTasks, allProfiles, queryClient]);
 
   const handleOpenDeleteModal = useCallback((task: any) => {
     setTaskToDelete(task);
@@ -420,7 +459,7 @@ export default function TaskKanbanBoard({
                                   getAvatarColor={getAvatarColor}
                                   getWaitingTime={getWaitingTime}
                                   allProfiles={allProfiles || []}
-                                  onAssign={handleAssign}
+                                  onAssign={handleToggleAssign}
                                   onArchive={onArchive}
                                   onOpenDeleteModal={handleOpenDeleteModal}
                                   isSuperAdmin={isSuperAdmin}
@@ -546,7 +585,7 @@ const KanbanCard = React.memo(function KanbanCard({
           ))}
           <AssignPopover
             taskId={task.id}
-            assignee={taskAssignees.length > 0 ? taskAssignees[0] : null}
+            assignedUserIds={taskAssignees.map((p: any) => p.id)}
             allProfiles={allProfiles}
             getInitials={getInitials}
             getAvatarColor={getAvatarColor}
@@ -602,14 +641,15 @@ const KanbanCard = React.memo(function KanbanCard({
 
 
 function AssignPopover({
-  taskId, assignee, allProfiles, getInitials, getAvatarColor, onAssign, showAvatarInTrigger = true,
+  taskId, assignedUserIds = [], allProfiles, getInitials, getAvatarColor, onAssign, showAvatarInTrigger = true,
 }: {
-  taskId: string; assignee: any; allProfiles: any[];
+  taskId: string; assignedUserIds: string[]; allProfiles: any[];
   getInitials: (name: string) => string; getAvatarColor: (id: string) => string;
   onAssign: (taskId: string, userId: string) => void;
   showAvatarInTrigger?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const hasAssignees = assignedUserIds.length > 0;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -624,21 +664,10 @@ function AssignPopover({
             <span className="inline-flex items-center justify-center h-4 w-4 rounded-full border border-dashed border-muted-foreground/40 text-muted-foreground hover:border-primary hover:text-primary">
               <UserPlus className="h-2 w-2" />
             </span>
-          ) : assignee ? (
-            <TooltipProvider delayDuration={200}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Avatar className="h-5 w-5">
-                    <AvatarFallback className={`text-[8px] text-white font-bold ${getAvatarColor(assignee.id)}`}>
-                      {getInitials(assignee.full_name || "?")}
-                    </AvatarFallback>
-                  </Avatar>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">
-                  {assignee.full_name}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+          ) : hasAssignees ? (
+            <span className="inline-flex items-center justify-center h-4 w-4 rounded-full border border-dashed border-muted-foreground/40 text-muted-foreground hover:border-primary hover:text-primary">
+              <UserPlus className="h-2 w-2" />
+            </span>
           ) : (
             <span className="inline-flex items-center rounded-full border border-transparent bg-destructive px-2 py-0.5 text-[8px] font-bold text-destructive-foreground gap-0.5">
               <UserPlus className="h-2.5 w-2.5" />
@@ -654,23 +683,27 @@ function AssignPopover({
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Przypisz osobę</p>
+        <p className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Przypisz / odpisz osobę</p>
         <div className="max-h-48 overflow-y-auto space-y-0.5">
-          {allProfiles.map((p: any) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => { onAssign(taskId, p.id); setOpen(false); }}
-              className="flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm hover:bg-accent transition-colors text-left"
-            >
-              <Avatar className="h-5 w-5">
-                <AvatarFallback className={`text-[8px] text-white font-bold ${getAvatarColor(p.id)}`}>
-                  {getInitials(p.full_name || "?")}
-                </AvatarFallback>
-              </Avatar>
-              <span className="truncate text-xs">{p.full_name}</span>
-            </button>
-          ))}
+          {allProfiles.map((p: any) => {
+            const isAssigned = assignedUserIds.includes(p.id);
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => onAssign(taskId, p.id)}
+                className={`flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm hover:bg-accent transition-colors text-left ${isAssigned ? "bg-accent/50" : ""}`}
+              >
+                <Avatar className="h-5 w-5 shrink-0">
+                  <AvatarFallback className={`text-[8px] text-white font-bold ${getAvatarColor(p.id)}`}>
+                    {getInitials(p.full_name || "?")}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="truncate text-xs flex-1">{p.full_name}</span>
+                {isAssigned && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
+              </button>
+            );
+          })}
         </div>
       </PopoverContent>
     </Popover>
