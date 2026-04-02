@@ -264,7 +264,7 @@ export default function CrmBoard() {
             </Button>
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" className="h-8 text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => setCreateOpen(true)}>
+            <Button size="sm" className="h-8 text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { setNewDeal(emptyDeal); setCreateOpen(true); }}>
               <Plus className="h-3.5 w-3.5 mr-1" /> Nowa karta
             </Button>
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setLabelManagerOpen(true)}>
