@@ -1091,6 +1091,49 @@ export default function TaskDetail() {
                   </CardContent>
                 </Card>
 
+                {/* Subtasks block */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold">Podzadania <span className="text-muted-foreground font-normal">({subtasks?.filter((s: any) => s.is_completed).length || 0}/{subtasks?.length || 0})</span></CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {subtasks && subtasks.length > 0 && (
+                      <div className="space-y-1.5">
+                        {subtasks.map((st: any) => (
+                          <div key={st.id} className="flex items-center gap-2 group">
+                            <Checkbox checked={st.is_completed} disabled={isPreviewMode || isClient}
+                              onCheckedChange={() => !isPreviewMode && !isClient && toggleSubtask(st.id, st.is_completed)} />
+                            <span className={cn("text-sm flex-1", st.is_completed && "line-through text-muted-foreground")}>{st.title}</span>
+                            {st.profiles?.full_name && (
+                              <span className="text-[10px] text-muted-foreground">{st.profiles.full_name}</span>
+                            )}
+                            {!isClient && !isPreviewMode && (
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                                onClick={() => deleteSubtask(st.id)}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {(!subtasks || subtasks.length === 0) && (
+                      <p className="text-sm text-muted-foreground">Brak podzadań.</p>
+                    )}
+                    {!isClient && !isPreviewMode && (
+                      <>
+                        <Separator />
+                        <div className="flex gap-2">
+                          <Input placeholder="Nowe podzadanie..." value={newSubtaskTitle}
+                            onChange={e => setNewSubtaskTitle(e.target.value)}
+                            onKeyDown={e => e.key === "Enter" && addSubtask()} className="text-sm h-8" />
+                          <Button variant="outline" size="sm" className="text-xs gap-1.5 h-8" onClick={addSubtask}><Plus className="h-3 w-3" />Dodaj</Button>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+
                 {/* Corrections history */}
                 {corrections && corrections.length > 0 && (
                   <Card>
