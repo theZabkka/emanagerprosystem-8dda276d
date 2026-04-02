@@ -35,34 +35,119 @@ export function ChecklistBlockModal({ open, onOpenChange }: { open: boolean; onO
   );
 }
 
-// Modal: Responsibility acceptance for review -> client_review
+// Helper: format seconds to human readable
+function formatDurationShort(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  if (mins < 60) return `${mins} min`;
+  const hours = Math.floor(mins / 60);
+  const remainMins = mins % 60;
+  return remainMins > 0 ? `${hours} godz. ${remainMins} min.` : `${hours} godz.`;
+}
+
+// Modal: Combined responsibility + time verification for review -> client_review
 export function ResponsibilityModal({
   open,
   onOpenChange,
   onConfirm,
+  taskId,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onConfirm: () => void;
+  taskId?: string;
 }) {
-  const [accepted, setAccepted] = useState(false);
+  const [timeChecked, setTimeChecked] = useState(false);
+  const [responsibilityChecked, setResponsibilityChecked] = useState(false);
+
+  const { data: statusHistory = [] } = useQuery({
+    queryKey: ["responsibility-status-history", taskId],
+    queryFn: async () => {
+      if (!taskId) return [];
+      const { data } = await supabase
+        .from("task_status_history")
+        .select("new_status, status_entered_at, status_exited_at, duration_seconds")
+        .eq("task_id", taskId)
+        .order("created_at", { ascending: true });
+      return data || [];
+    },
+    enabled: !!taskId && open,
+  });
+
+  // Compute aggregates per status
+  const now = Date.now();
+  const aggregates: Record<string, number> = {};
+  let totalSeconds = 0;
+  statusHistory.forEach((h: any) => {
+    const status = h.new_status;
+    let duration = h.duration_seconds || 0;
+    if (!h.status_exited_at && h.status_entered_at) {
+      duration = Math.floor((now - new Date(h.status_entered_at).getTime()) / 1000);
+    }
+    aggregates[status] = (aggregates[status] || 0) + duration;
+    totalSeconds += duration;
+  });
+
+  const reset = () => {
+    setTimeChecked(false);
+    setResponsibilityChecked(false);
+  };
+
+  useEffect(() => {
+    if (!open) reset();
+  }, [open]);
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) setAccepted(false); }}>
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) reset(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-primary" /> Oświadczenie odpowiedzialności
+            <ShieldCheck className="h-5 w-5 text-primary" /> Podsumowanie weryfikacji i wysyłka
           </DialogTitle>
           <DialogDescription>
-            Przesyłasz zadanie do akceptacji klienta. Potwierdź, że zadanie zostało zweryfikowane.
+            Sprawdź dane przed wysłaniem zadania do akceptacji klienta.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex items-start gap-3 py-4 px-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+
+        {/* SECTION 1: Time Summary */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-semibold">Łączny czas pracy: {formatDurationShort(totalSeconds)}</span>
+          </div>
+          {Object.keys(aggregates).length > 0 && (
+            <div className="rounded-md border bg-muted/30 p-3 space-y-1">
+              {Object.entries(aggregates)
+                .filter(([, secs]) => secs > 0)
+                .map(([status, secs]) => (
+                  <div key={status} className="flex justify-between text-xs text-muted-foreground">
+                    <span>{statusLabels[status] || status}</span>
+                    <span className="font-medium text-foreground/70">{formatDurationShort(secs)}</span>
+                  </div>
+                ))}
+            </div>
+          )}
+          <div className="flex items-start gap-3 py-2 px-3 rounded-lg bg-muted/40 border">
+            <Checkbox
+              id="time-confirm"
+              checked={timeChecked}
+              onCheckedChange={(v) => setTimeChecked(!!v)}
+              className="mt-0.5"
+            />
+            <Label htmlFor="time-confirm" className="text-sm cursor-pointer leading-relaxed">
+              Potwierdzam, że zaraportowany czas pracy jest poprawny i kompletny.
+            </Label>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* SECTION 2: Responsibility */}
+        <div className="flex items-start gap-3 py-2 px-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
           <Checkbox
             id="responsibility"
-            checked={accepted}
-            onCheckedChange={(v) => setAccepted(!!v)}
+            checked={responsibilityChecked}
+            onCheckedChange={(v) => setResponsibilityChecked(!!v)}
             className="mt-0.5"
           />
           <Label htmlFor="responsibility" className="text-sm cursor-pointer leading-relaxed">
@@ -70,11 +155,15 @@ export function ResponsibilityModal({
             Potwierdzam, że zadanie zostało sprawdzone i jest gotowe do przesłania klientowi.
           </Label>
         </div>
+
         <DialogFooter>
-          <Button variant="outline" onClick={() => { onOpenChange(false); setAccepted(false); }}>
+          <Button variant="outline" onClick={() => { onOpenChange(false); reset(); }}>
             Anuluj
           </Button>
-          <Button disabled={!accepted} onClick={() => { onConfirm(); setAccepted(false); onOpenChange(false); }}>
+          <Button
+            disabled={!timeChecked || !responsibilityChecked}
+            onClick={() => { onConfirm(); reset(); onOpenChange(false); }}
+          >
             Potwierdź i wyślij do klienta
           </Button>
         </DialogFooter>
