@@ -731,13 +731,16 @@ export default function TaskDetail() {
 
         {/* Action buttons row */}
         <div className="flex flex-wrap items-center gap-2">
-          {!isClient && !isPreviewMode && task.status === "review" && (
+          {!isClient && !isPreviewMode && (task.status === "review" || task.status === "corrections") && (
             <Button
               size="sm"
               className="text-xs gap-1.5 bg-amber-500 hover:bg-amber-600 text-white"
               onClick={() => {
-                setPendingStatus("client_review");
-                setResponsibilityOpen(true);
+                if (totalLogged <= 0) {
+                  toast.error("Brak zalogowanego czasu. Musisz zalogować czas pracy przed wysłaniem zadania do klienta.");
+                  return;
+                }
+                setVerificationSendOpen(true);
               }}
             >
               <ShieldCheck className="h-3 w-3" />Do akceptacji klienta
