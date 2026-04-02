@@ -785,7 +785,7 @@ export default function TaskDetail() {
               <CheckCircle2 className="h-3 w-3" />Przekaż do weryfikacji
             </Button>
           )}
-          {!isClient && !isPreviewMode && <Button size="sm" className="text-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={() => setIsChatOpen(true)}><MessageCircle className="h-3 w-3" />Czat zadania</Button>}
+          {!isClient && !isPreviewMode && <Button variant="outline" size="sm" className="text-xs gap-1.5 border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => setIsChatOpen(true)}><MessageCircle className="h-3 w-3" />Czat zadania</Button>}
         </div>
 
         {/* Misunderstood task banner - hidden from clients */}
