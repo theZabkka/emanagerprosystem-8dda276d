@@ -2,7 +2,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { useVerificationLock } from "@/hooks/useVerificationLock";
-import { AlertTriangle, Clock, ExternalLink, User, Snooze } from "lucide-react";
+import { AlertTriangle, Clock, ExternalLink, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
