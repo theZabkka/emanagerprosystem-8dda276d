@@ -223,8 +223,17 @@ export default function CrmBoard() {
       setIsCreating(false);
     }
   };
+  const handleCreateColumn = () => {
+    if (!newColumnName.trim()) return;
+    const lastRank = columns.length > 0 ? columns[columns.length - 1].lexo_rank : null;
+    const rank = lastRank ? generateRankAfter(lastRank) : generateMidpointRank(null, null);
+    mutations.createColumn.mutate({ name: newColumnName.trim(), lexo_rank: rank });
+    setCreateColumnOpen(false);
+    setNewColumnName("");
+    toast.success("Kolumna dodana");
+  };
 
-  const handleRenameColumn = (id: string) => {
+
     if (!editingColumnName.trim()) return;
     mutations.updateColumn.mutate({ id, name: editingColumnName.trim() });
     setEditingColumnId(null);
