@@ -176,7 +176,7 @@ export default function TaskTeamBoard({ tasks, onRefresh, priorityFilter, onPers
   );
 }
 
-function TeamColumn({ droppableId, label, labelColor, tasks, avatar, isUnassigned, getInitials, getAvatarColor }: {
+function TeamColumn({ droppableId, label, labelColor, tasks, avatar, isUnassigned, getInitials, getAvatarColor, onHeaderClick }: {
   droppableId: string;
   label: string;
   labelColor: string;
@@ -185,18 +185,24 @@ function TeamColumn({ droppableId, label, labelColor, tasks, avatar, isUnassigne
   isUnassigned?: boolean;
   getInitials: (name: string) => string;
   getAvatarColor: (id: string) => string;
+  onHeaderClick?: () => void;
 }) {
+  const isClickable = !!onHeaderClick;
+
   return (
     <div className="w-72 flex-shrink-0 self-stretch flex flex-col">
       <div className={`flex flex-col flex-1 min-h-0 rounded-xl border border-dashed ${isUnassigned ? "border-destructive/40" : "border-border"} bg-card/50`}>
-        <div className="px-4 h-14 flex items-center gap-2 border-b border-border/30">
+        <div
+          className={`px-4 h-14 flex items-center gap-2 border-b border-border/30 ${isClickable ? "cursor-pointer hover:bg-accent/50 transition-colors group" : ""}`}
+          onClick={onHeaderClick}
+        >
           {avatar && (
             <Avatar className="h-7 w-7">
               <AvatarFallback className={`text-[10px] text-white font-bold ${avatar.color}`}>{avatar.initials}</AvatarFallback>
             </Avatar>
           )}
           <div className="min-w-0 flex-1">
-            <h3 className={`text-[10px] font-semibold tracking-widest uppercase truncate ${labelColor}`}>{label}</h3>
+            <h3 className={`text-[10px] font-semibold tracking-widest uppercase truncate ${labelColor} ${isClickable ? "group-hover:text-primary transition-colors" : ""}`}>{label}</h3>
             <span className="text-[11px] text-muted-foreground">{tasks.length} zadań</span>
           </div>
         </div>
