@@ -392,8 +392,18 @@ export default function CrmBoard() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Termin</Label>
-              <Input type="date" value={newDeal.due_date} onChange={(e) => setNewDeal({ ...newDeal, due_date: e.target.value })} />
+              <Label>Termin (data i godzina)</Label>
+              <Input type="datetime-local" value={newDeal.due_date} onChange={(e) => setNewDeal({ ...newDeal, due_date: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Klient</Label>
+              <Select value={newDeal.client_id || "__none__"} onValueChange={(v) => setNewDeal({ ...newDeal, client_id: v === "__none__" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="Wybierz klienta..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Brak</SelectItem>
+                  {clientsList.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <Button onClick={handleCreateDeal} className="w-full">Dodaj kartę</Button>
           </div>
