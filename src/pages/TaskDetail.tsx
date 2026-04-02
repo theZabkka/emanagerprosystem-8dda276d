@@ -83,7 +83,7 @@ export default function TaskDetail() {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const [commentText, setCommentText] = useState("");
-  const [commentType, setCommentType] = useState("internal");
+  const commentType = "internal";
   const [commentFilter, setCommentFilter] = useState("all");
   const [briefOpen, setBriefOpen] = useState(false);
   const [briefForm, setBriefForm] = useState<Record<string, string>>({});
