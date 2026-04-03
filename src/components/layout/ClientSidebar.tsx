@@ -18,6 +18,7 @@ const clientItems: { title: string; url: string; icon: any; permKey: string | nu
   { title: "Moje Zadania", url: "/client/tasks", icon: CheckSquare, permKey: "projects" },
   { title: "Zgłoszenia", url: "/client/tickets", icon: TicketCheck, permKey: "support" },
   { title: "Zgłoś pomysł", url: "/client-ideas", icon: Lightbulb, permKey: null },
+  { title: "Raport", url: "/client-report", icon: FileBarChart, permKey: null },
 ];
 
 export function ClientSidebar() {
