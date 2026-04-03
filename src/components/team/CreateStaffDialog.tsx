@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserPlus, Loader2 } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const STAFF_ROLES = [
   { value: "boss", label: "Boss", description: "Zarząd — pełny dostęp" },
@@ -38,14 +39,47 @@ const initialForm = {
 
 export default function CreateStaffDialog({ open, onOpenChange, onCreated }: CreateStaffDialogProps) {
   const [form, setForm] = useState(initialForm);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
 
   const update = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
   const resetForm = () => setForm(initialForm);
 
-  const handleCreate = async () => {
+  const mutation = useMutation({
+    mutationFn: async (payload: typeof initialForm) => {
+      const { data, error } = await supabase.functions.invoke("create-staff-user", {
+        body: {
+          email: payload.email.trim(),
+          password: payload.password,
+          full_name: payload.full_name.trim(),
+          role: payload.role,
+          department: payload.department || null,
+          phone: payload.phone || null,
+          position: payload.position || null,
+        },
+      });
+      if (error) {
+        const msg = (data as any)?.error || error.message || "Nieznany błąd serwera";
+        throw new Error(msg);
+      }
+      if (!data?.success) throw new Error(data?.error || "Nieznany błąd");
+      return data;
+    },
+    onSuccess: () => {
+      toast.success(`Pracownik ${form.full_name} został dodany`);
+      queryClient.invalidateQueries({ queryKey: ["staff-members"] });
+      queryClient.invalidateQueries({ queryKey: ["profiles"] });
+      resetForm();
+      onOpenChange(false);
+      onCreated();
+    },
+    onError: (err: Error) => {
+      toast.error("Błąd", { description: err.message || "Nie udało się utworzyć użytkownika" });
+    },
+  });
+
+  const handleCreate = () => {
     if (!form.full_name.trim()) { toast.error("Podaj imię i nazwisko"); return; }
     if (!form.email.trim()) { toast.error("Podaj adres e-mail"); return; }
     if (!form.password || form.password.length < 6) { toast.error("Hasło musi mieć min. 6 znaków"); return; }
@@ -54,38 +88,7 @@ export default function CreateStaffDialog({ open, onOpenChange, onCreated }: Cre
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(form.email.trim())) { toast.error("Podaj poprawny adres e-mail"); return; }
 
-    setLoading(true);
-    try {
-      const payload = {
-        email: form.email.trim(),
-        password: form.password,
-        full_name: form.full_name.trim(),
-        role: form.role,
-        department: form.department || null,
-        phone: form.phone || null,
-        position: form.position || null,
-      };
-
-      const { data, error } = await supabase.functions.invoke("create-staff-user", {
-        body: payload,
-      });
-
-      // Edge Function returns 4xx — decode the real message
-      if (error) {
-        const msg = (data as any)?.error || error.message || "Nieznany błąd serwera";
-        throw new Error(msg);
-      }
-      if (!data?.success) throw new Error(data?.error || "Nieznany błąd");
-
-      toast.success(`Pracownik ${form.full_name} został dodany`);
-      resetForm();
-      onOpenChange(false);
-      onCreated();
-    } catch (err: any) {
-      toast.error("Błąd", { description: err.message || "Nie udało się utworzyć użytkownika" });
-    } finally {
-      setLoading(false);
-    }
+    mutation.mutate(form);
   };
 
   return (
@@ -99,46 +102,28 @@ export default function CreateStaffDialog({ open, onOpenChange, onCreated }: Cre
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Name + Email */}
           <div className="space-y-1.5">
             <Label>Imię i nazwisko *</Label>
-            <Input
-              value={form.full_name}
-              onChange={(e) => update("full_name", e.target.value)}
-              placeholder="np. Jan Kowalski"
-            />
+            <Input value={form.full_name} onChange={(e) => update("full_name", e.target.value)} placeholder="np. Jan Kowalski" />
           </div>
 
           <div className="space-y-1.5">
             <Label>Adres e-mail *</Label>
-            <Input
-              type="email"
-              value={form.email}
-              onChange={(e) => update("email", e.target.value)}
-              placeholder="jan@firma.pl"
-            />
+            <Input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} placeholder="jan@firma.pl" />
           </div>
 
           <div className="space-y-1.5">
             <Label>Hasło *</Label>
-            <Input
-              type="password"
-              value={form.password}
-              onChange={(e) => update("password", e.target.value)}
-              placeholder="Min. 6 znaków"
-            />
+            <Input type="password" value={form.password} onChange={(e) => update("password", e.target.value)} placeholder="Min. 6 znaków" />
           </div>
 
           <Separator />
 
-          {/* Role + Department */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Rola *</Label>
               <Select value={form.role} onValueChange={(v) => update("role", v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Wybierz rolę..." />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Wybierz rolę..." /></SelectTrigger>
                 <SelectContent>
                   {STAFF_ROLES.map((r) => (
                     <SelectItem key={r.value} value={r.value}>
@@ -155,9 +140,7 @@ export default function CreateStaffDialog({ open, onOpenChange, onCreated }: Cre
             <div className="space-y-1.5">
               <Label>Dział</Label>
               <Select value={form.department} onValueChange={(v) => update("department", v === "__none" ? "" : v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Wybierz dział..." />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Wybierz dział..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none">— Brak —</SelectItem>
                   {DEPARTMENTS.map((d) => (
@@ -168,32 +151,19 @@ export default function CreateStaffDialog({ open, onOpenChange, onCreated }: Cre
             </div>
           </div>
 
-          {/* Optional fields */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Stanowisko</Label>
-              <Input
-                value={form.position}
-                onChange={(e) => update("position", e.target.value)}
-                placeholder="np. Senior Designer"
-              />
+              <Input value={form.position} onChange={(e) => update("position", e.target.value)} placeholder="np. Senior Designer" />
             </div>
             <div className="space-y-1.5">
               <Label>Telefon</Label>
-              <Input
-                value={form.phone}
-                onChange={(e) => update("phone", e.target.value)}
-                placeholder="+48 123 456 789"
-              />
+              <Input value={form.phone} onChange={(e) => update("phone", e.target.value)} placeholder="+48 123 456 789" />
             </div>
           </div>
 
-          <Button
-            onClick={handleCreate}
-            disabled={loading}
-            className="w-full"
-          >
-            {loading ? (
+          <Button onClick={handleCreate} disabled={mutation.isPending} className="w-full">
+            {mutation.isPending ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Tworzenie...
