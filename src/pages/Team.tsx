@@ -12,6 +12,8 @@ import { Search, Users, CheckSquare, Clock, AlertTriangle, UserPlus, Trash2 } fr
 import { useState } from "react";
 import CreateStaffDialog from "@/components/team/CreateStaffDialog";
 import { toast } from "sonner";
+import { useMutation } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 
 export default function Team() {
   const [search, setSearch] = useState("");
@@ -72,21 +74,28 @@ export default function Team() {
     return tasks.filter(t => (taskIds.includes(t.id) || t.created_by === userId) && t.due_date && new Date(t.due_date) < new Date()).length;
   };
 
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  const handleDeleteStaff = async (person: any) => {
-    setDeletingId(person.id);
-    const { error } = await supabase.from("profiles").delete().eq("id", person.id);
-    if (error) {
-      toast.error("Błąd usuwania: " + error.message);
-      setDeletingId(null);
-      return;
-    }
-    queryClient.invalidateQueries({ queryKey: ["team-members"] });
-    queryClient.invalidateQueries({ queryKey: ["staff-members"] });
-    toast.success(`Pomyślnie usunięto pracownika "${person.full_name}"`);
-    setDeletingId(null);
-  };
+  const deleteMutation = useMutation({
+    mutationFn: async (targetUserId: string) => {
+      const { data, error } = await supabase.functions.invoke("delete-staff-user", {
+        body: { target_user_id: targetUserId },
+      });
+      if (error) {
+        const msg = (data as any)?.error || error.message || "Nieznany błąd serwera";
+        throw new Error(msg);
+      }
+      if (!data?.success) throw new Error(data?.error || "Nieznany błąd");
+      return data;
+    },
+    onSuccess: (_data, _vars) => {
+      toast.success("Pracownik został trwale usunięty z systemu");
+      queryClient.invalidateQueries({ queryKey: ["team-members"] });
+      queryClient.invalidateQueries({ queryKey: ["staff-members"] });
+      queryClient.invalidateQueries({ queryKey: ["profiles"] });
+    },
+    onError: (err: Error) => {
+      toast.error("Błąd usuwania", { description: err.message });
+    },
+  });
 
   return (
     <AppLayout title="Zespół">
@@ -151,8 +160,8 @@ export default function Team() {
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteStaff(p)} disabled={deletingId === p.id} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                              {deletingId === p.id ? "Usuwanie..." : "Tak, usuń"}
+                            <AlertDialogAction onClick={() => deleteMutation.mutate(p.id)} disabled={deleteMutation.isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                              {deleteMutation.isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Usuwanie...</> : "Tak, usuń"}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
