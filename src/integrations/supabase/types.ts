@@ -1094,6 +1094,7 @@ export type Database = {
           permissions: Json
           phone: string | null
           position: string | null
+          user_id: string | null
         }
         Insert: {
           can_view_all_tickets?: boolean | null
@@ -1107,6 +1108,7 @@ export type Database = {
           permissions?: Json
           phone?: string | null
           position?: string | null
+          user_id?: string | null
         }
         Update: {
           can_view_all_tickets?: boolean | null
@@ -1120,6 +1122,7 @@ export type Database = {
           permissions?: Json
           phone?: string | null
           position?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -2401,6 +2404,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_client_id_for_user: { Args: { _user_id: string }; Returns: string }
       get_copq_stats: {
         Args: {
           _from_date?: string
