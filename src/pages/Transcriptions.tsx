@@ -330,7 +330,7 @@ export default function Transcriptions() {
                           </h3>
                           <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
                             <Badge variant="outline" className="text-xs">
-                              {call.direction === "outbound" ? "Wychodzące" : "Przychodzące"}
+                              {normalizeDirection(call.direction) === "out" ? "Wychodzące" : "Przychodzące"}
                             </Badge>
                             <Badge
                               variant={call.status === "missed" || call.status === "no-answer" ? "destructive" : "secondary"}
