@@ -845,11 +845,11 @@ export default function TaskDetail() {
       <div className="mb-3">
         {isClient ? (
           <Link
-            to="/dashboard"
+            to="/client/tasks"
             className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Wróć do panelu
+            Wróć do zadań
           </Link>
         ) : (
           <div className="flex items-center gap-1 text-xs text-muted-foreground">

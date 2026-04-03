@@ -15,7 +15,7 @@ import { Separator } from "@/components/ui/separator";
 /** Permission key required for each menu item. null = always visible. */
 const clientItems: { title: string; url: string; icon: any; permKey: string | null }[] = [
   { title: "Mój Dashboard", url: "/dashboard", icon: LayoutDashboard, permKey: null },
-  { title: "Moje Zadania", url: "/client/tasks", icon: CheckSquare, permKey: "projects" },
+  { title: "Zadania", url: "/client/tasks", icon: CheckSquare, permKey: null },
   { title: "Zgłoszenia", url: "/client/tickets", icon: TicketCheck, permKey: "support" },
   { title: "Zgłoś pomysł", url: "/client-ideas", icon: Lightbulb, permKey: null },
   { title: "Raport", url: "/client-report", icon: FileBarChart, permKey: null },

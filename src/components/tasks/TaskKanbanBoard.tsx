@@ -53,6 +53,7 @@ interface TaskKanbanBoardProps {
   onQuickAdd?: (status: string) => void;
   sortField?: SortField;
   sortDirection?: SortDirection;
+  isClientMode?: boolean;
 }
 
 export default function TaskKanbanBoard({
@@ -67,6 +68,7 @@ export default function TaskKanbanBoard({
   onQuickAdd,
   sortField = "manual",
   sortDirection = "asc",
+  isClientMode = false,
 }: TaskKanbanBoardProps) {
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
@@ -291,6 +293,7 @@ export default function TaskKanbanBoard({
   );
 
   const handleDragEnd = (result: DropResult) => {
+    if (isClientMode) return;
     if (!result.destination) return;
 
     const { source, destination, draggableId } = result;
@@ -482,7 +485,7 @@ export default function TaskKanbanBoard({
                         {columnTasks.length === 1 ? "zadanie" : columnTasks.length < 5 ? "zadania" : "zadań"}
                       </span>
                     </div>
-                    {onQuickAdd && (
+                    {!isClientMode && onQuickAdd && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -502,7 +505,7 @@ export default function TaskKanbanBoard({
                         className={`flex-1 overflow-y-auto px-2 pb-2 space-y-1.5 transition-colors ${snapshot.isDraggingOver ? "bg-destructive/5" : ""}`}
                       >
                         {columnTasks.map((task: any, index: number) => (
-                          <Draggable key={task.id} draggableId={task.id} index={index}>
+                          <Draggable key={task.id} draggableId={task.id} index={index} isDragDisabled={isClientMode}>
                             {(provided, snapshot) => (
                               <KanbanCard
                                 task={task}
@@ -520,6 +523,7 @@ export default function TaskKanbanBoard({
                                 onArchive={onArchive}
                                 onOpenDeleteModal={handleOpenDeleteModal}
                                 isSuperAdmin={isSuperAdmin}
+                                isClientMode={isClientMode}
                               />
                             )}
                           </Draggable>
@@ -555,6 +559,7 @@ interface KanbanCardProps {
   onArchive?: (taskId: string) => void;
   onOpenDeleteModal?: (task: any) => void;
   isSuperAdmin?: boolean;
+  isClientMode?: boolean;
 }
 
 const KanbanCard = React.memo(function KanbanCard({
@@ -573,6 +578,7 @@ const KanbanCard = React.memo(function KanbanCard({
   onArchive,
   onOpenDeleteModal,
   isSuperAdmin,
+  isClientMode = false,
 }: KanbanCardProps) {
   const taskAssignees = getAllAssignees(task.id);
   const client = getClient(task.client_id);
@@ -647,90 +653,94 @@ const KanbanCard = React.memo(function KanbanCard({
       </Link>
 
       <div className="px-2 pb-1.5 flex items-end justify-between">
-        <div className="flex items-center gap-0.5 min-w-0">
-          {taskAssignees.slice(0, 3).map((person: any) => (
-            <Tooltip key={person.id} delayDuration={200}>
-              <TooltipTrigger asChild>
-                <Avatar className="h-4 w-4 -ml-0.5 first:ml-0 ring-1 ring-background">
-                  <AvatarFallback className={`text-[7px] text-white font-bold ${getAvatarColor(person.id)}`}>
-                    {getInitials(person.full_name || "?")}
-                  </AvatarFallback>
-                </Avatar>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="text-xs">
-                {person.full_name}
-                {person.assignRole !== "primary" ? ` (${person.assignRole})` : ""}
-              </TooltipContent>
-            </Tooltip>
-          ))}
-          {taskAssignees.length > 3 && (
-            <Tooltip delayDuration={200}>
-              <TooltipTrigger asChild>
-                <Avatar className="h-4 w-4 -ml-0.5 ring-1 ring-background">
-                  <AvatarFallback className="text-[6px] font-bold bg-muted text-muted-foreground">
-                    +{taskAssignees.length - 3}
-                  </AvatarFallback>
-                </Avatar>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="text-xs">
-                {taskAssignees.slice(3).map((p: any) => p.full_name).join(", ")}
-              </TooltipContent>
-            </Tooltip>
-          )}
-          <AssignPopover
-            taskId={task.id}
-            assignedUserIds={taskAssignees.map((p: any) => p.id)}
-            allProfiles={allProfiles}
-            getInitials={getInitials}
-            getAvatarColor={getAvatarColor}
-            onAssign={onAssign}
-            showAvatarInTrigger={false}
-          />
-        </div>
-        <div className="flex items-end gap-1 flex-shrink-0">
-          {task.estimated_time > 0 && task.logged_time > 0 && (
-            <span className="flex items-center gap-0.5 text-[9px] text-muted-foreground">
-              <Clock className="h-2 w-2" />
-              {(task.logged_time / 60).toFixed(1)}h
-            </span>
-          )}
-          {(columnKey === "closed" || (isSuperAdmin && onOpenDeleteModal)) && (
-            <div className="flex flex-col items-end gap-1 mt-2 relative z-10">
-              {columnKey === "closed" && onArchive && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-5 px-1 text-[8px] gap-0.5 text-muted-foreground hover:text-primary"
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onArchive(task.id);
-                  }}
-                >
-                  <Archive className="h-2 w-2" />
-                  Archiwizuj
-                </Button>
-              )}
-              {isSuperAdmin && onOpenDeleteModal && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-5 px-1 text-[8px] gap-0.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onOpenDeleteModal(task);
-                  }}
-                >
-                  <Trash2 className="h-2 w-2" />
-                  Usuń
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
+        {!isClientMode && (
+          <div className="flex items-center gap-0.5 min-w-0">
+            {taskAssignees.slice(0, 3).map((person: any) => (
+              <Tooltip key={person.id} delayDuration={200}>
+                <TooltipTrigger asChild>
+                  <Avatar className="h-4 w-4 -ml-0.5 first:ml-0 ring-1 ring-background">
+                    <AvatarFallback className={`text-[7px] text-white font-bold ${getAvatarColor(person.id)}`}>
+                      {getInitials(person.full_name || "?")}
+                    </AvatarFallback>
+                  </Avatar>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  {person.full_name}
+                  {person.assignRole !== "primary" ? ` (${person.assignRole})` : ""}
+                </TooltipContent>
+              </Tooltip>
+            ))}
+            {taskAssignees.length > 3 && (
+              <Tooltip delayDuration={200}>
+                <TooltipTrigger asChild>
+                  <Avatar className="h-4 w-4 -ml-0.5 ring-1 ring-background">
+                    <AvatarFallback className="text-[6px] font-bold bg-muted text-muted-foreground">
+                      +{taskAssignees.length - 3}
+                    </AvatarFallback>
+                  </Avatar>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  {taskAssignees.slice(3).map((p: any) => p.full_name).join(", ")}
+                </TooltipContent>
+              </Tooltip>
+            )}
+            <AssignPopover
+              taskId={task.id}
+              assignedUserIds={taskAssignees.map((p: any) => p.id)}
+              allProfiles={allProfiles}
+              getInitials={getInitials}
+              getAvatarColor={getAvatarColor}
+              onAssign={onAssign}
+              showAvatarInTrigger={false}
+            />
+          </div>
+        )}
+        {!isClientMode && (
+          <div className="flex items-end gap-1 flex-shrink-0">
+            {task.estimated_time > 0 && task.logged_time > 0 && (
+              <span className="flex items-center gap-0.5 text-[9px] text-muted-foreground">
+                <Clock className="h-2 w-2" />
+                {(task.logged_time / 60).toFixed(1)}h
+              </span>
+            )}
+            {(columnKey === "closed" || (isSuperAdmin && onOpenDeleteModal)) && (
+              <div className="flex flex-col items-end gap-1 mt-2 relative z-10">
+                {columnKey === "closed" && onArchive && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-5 px-1 text-[8px] gap-0.5 text-muted-foreground hover:text-primary"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onArchive(task.id);
+                    }}
+                  >
+                    <Archive className="h-2 w-2" />
+                    Archiwizuj
+                  </Button>
+                )}
+                {isSuperAdmin && onOpenDeleteModal && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-5 px-1 text-[8px] gap-0.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onOpenDeleteModal(task);
+                    }}
+                  >
+                    <Trash2 className="h-2 w-2" />
+                    Usuń
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
