@@ -238,7 +238,7 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
         </Section>
 
         {/* Sortowanie */}
-        <Section title="Sortowanie">
+        <Section title="Sortowanie" defaultOpen={false}>
           <div className="space-y-px">
             {SORT_OPTIONS.map((opt) => {
               const active = filters.sortField === opt.value;
