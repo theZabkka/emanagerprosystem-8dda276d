@@ -330,7 +330,91 @@ export function MiddleTabs({ ctx }: { ctx: any }) {
             )}
           </TabsContent>
         )}
+
+        {/* Tab 6: Management (Danger Zone) */}
+        {showManagementTab && (
+          <TabsContent value="management" className="mt-0 space-y-4">
+            <div className="rounded-lg border border-destructive/30 p-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-destructive" />
+                <h3 className="text-sm font-bold text-destructive">Strefa niebezpieczna</h3>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Poniższe akcje mogą trwale wpłynąć na dane zadania. Upewnij się, że rozumiesz konsekwencje.
+              </p>
+
+              {canArchive && (
+                <div className="flex items-center justify-between rounded border border-border p-3">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-semibold">Archiwizuj zadanie</p>
+                    <p className="text-[10px] text-muted-foreground">Przenosi zadanie do archiwum. Historia zostanie zachowana.</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-[10px] gap-1 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => setArchiveDialogOpen(true)}
+                  >
+                    <Archive className="h-3 w-3" />
+                    Archiwizuj
+                  </Button>
+                </div>
+              )}
+
+              {canDelete && (
+                <div className="flex items-center justify-between rounded border border-destructive/40 bg-destructive/5 p-3">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-semibold text-destructive">Usuń zadanie trwale</p>
+                    <p className="text-[10px] text-muted-foreground">Bezpowrotnie usuwa zadanie i wszystkie powiązane dane z bazy.</p>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="text-[10px] gap-1"
+                    onClick={() => setDeleteDialogOpen(true)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Usuń trwale
+                  </Button>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        )}
       </div>
+
+      {/* Archive confirmation modal */}
+      <AlertDialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archiwizacja zadania</AlertDialogTitle>
+            <AlertDialogDescription>
+              Czy na pewno chcesz przenieść to zadanie do archiwum? Zniknie ono z aktywnej tablicy, ale jego historia zostanie zachowana.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <Button
+              onClick={() => {
+                ctx.onArchiveTask?.(task.id);
+                setArchiveDialogOpen(false);
+              }}
+            >
+              Zarchiwizuj
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete confirmation modal */}
+      <DeleteTaskModal
+        open={deleteDialogOpen}
+        task={task}
+        onOpenChange={setDeleteDialogOpen}
+        onDeleted={(deletedId) => {
+          ctx.onDeleteTask?.(deletedId);
+        }}
+      />
     </Tabs>
   );
 }
