@@ -53,6 +53,7 @@ interface TaskKanbanBoardProps {
   onQuickAdd?: (status: string) => void;
   sortField?: SortField;
   sortDirection?: SortDirection;
+  isClientMode?: boolean;
 }
 
 export default function TaskKanbanBoard({
