@@ -485,7 +485,7 @@ export default function TaskKanbanBoard({
                         {columnTasks.length === 1 ? "zadanie" : columnTasks.length < 5 ? "zadania" : "zadań"}
                       </span>
                     </div>
-                    {onQuickAdd && (
+                    {!isClientMode && onQuickAdd && (
                       <Button
                         variant="ghost"
                         size="icon"
