@@ -510,7 +510,10 @@ export default function CrmBoard() {
       <Dialog open={labelManagerOpen} onOpenChange={setLabelManagerOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Zarządzaj etykietami</DialogTitle></DialogHeader>
-          <CrmLabelManager />
+          <CrmLabelManager
+            onFilterByLabel={(id) => { setLabelFilter(id); setLabelManagerOpen(false); }}
+            activeLabelFilter={labelFilter}
+          />
         </DialogContent>
       </Dialog>
 
