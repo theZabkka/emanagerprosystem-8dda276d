@@ -22,6 +22,7 @@ import { sortTasks } from "@/lib/taskSorting";
 import type { SortField, SortDirection } from "@/components/tasks/TaskFilters";
 
 const KANBAN_COLUMNS = [
+  { key: "new", label: "NOWE" },
   { key: "todo", label: "DO ZROBIENIA" },
   { key: "in_progress", label: "W REALIZACJI" },
   { key: "waiting_for_client", label: "OCZEKIWANIE NA KLIENTA" },
@@ -29,8 +30,12 @@ const KANBAN_COLUMNS = [
   { key: "corrections", label: "POPRAWKI" },
   { key: "client_review", label: "DO AKCEPTACJI KLIENTA" },
   { key: "client_verified", label: "ZWERYFIKOWANE" },
+  { key: "done", label: "GOTOWE" },
   { key: "closed", label: "ZAMKNIĘTE" },
+  { key: "cancelled", label: "ANULOWANE" },
 ] as const;
+
+const KANBAN_COLUMN_KEYS = new Set(KANBAN_COLUMNS.map((c) => c.key));
 
 const PRIORITY_CONFIG: Record<string, { label: string; border: string; bg: string; text: string }> = {
   critical: { label: "PILNY", border: "border-destructive", bg: "bg-destructive", text: "text-destructive-foreground" },
