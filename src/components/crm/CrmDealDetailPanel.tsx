@@ -91,7 +91,7 @@ export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
         id: deal.id,
         title: form.title.trim(),
         description: form.description || null,
-        due_date: form.due_date ? new Date(form.due_date).toISOString() : null,
+        due_date: form.due_date ? localDatetimeToISO(form.due_date) : null,
         assigned_to: form.assigned_to || null,
         client_id: form.client_id || null,
       } as any, {

@@ -256,7 +256,10 @@ export function useCrmMutations() {
         if (error) throw error;
       }
     },
-    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ["crm-deal-labels", vars.deal_id] }),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["crm-deal-labels", vars.deal_id] });
+      qc.invalidateQueries({ queryKey: ["crm-deals"] });
+    },
   });
 
   const createLabel = useMutation({
