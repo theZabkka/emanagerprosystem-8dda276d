@@ -1083,6 +1083,7 @@ export type Database = {
       }
       customer_contacts: {
         Row: {
+          can_view_all_tickets: boolean | null
           created_at: string
           customer_id: string
           email: string | null
@@ -1095,6 +1096,7 @@ export type Database = {
           position: string | null
         }
         Insert: {
+          can_view_all_tickets?: boolean | null
           created_at?: string
           customer_id: string
           email?: string | null
@@ -1107,6 +1109,7 @@ export type Database = {
           position?: string | null
         }
         Update: {
+          can_view_all_tickets?: boolean | null
           created_at?: string
           customer_id?: string
           email?: string | null
