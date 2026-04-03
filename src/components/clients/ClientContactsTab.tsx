@@ -6,37 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Plus, Pencil, Trash2, Shield, Eye, EyeOff } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
-
-interface ContactPermissions {
-  invoices: boolean;
-  estimates: boolean;
-  contracts: boolean;
-  support: boolean;
-  projects: boolean;
-}
-
-const DEFAULT_PERMISSIONS: ContactPermissions = {
-  invoices: true,
-  estimates: true,
-  contracts: true,
-  support: true,
-  projects: true,
-};
-
-const PERMISSION_LABELS: Record<keyof ContactPermissions, string> = {
-  invoices: "Faktury",
-  estimates: "Wyceny",
-  contracts: "Umowy",
-  support: "Zgłoszenia",
-  projects: "Projekty",
-};
 
 interface ContactForm {
   first_name: string;
@@ -46,7 +20,7 @@ interface ContactForm {
   phone: string;
   password: string;
   is_primary: boolean;
-  permissions: ContactPermissions;
+  can_view_all_tickets: boolean;
 }
 
 const emptyForm: ContactForm = {
@@ -57,7 +31,7 @@ const emptyForm: ContactForm = {
   phone: "",
   password: "",
   is_primary: false,
-  permissions: { ...DEFAULT_PERMISSIONS },
+  can_view_all_tickets: true,
 };
 
 export function ClientContactsTab({ clientId }: { clientId: string }) {
@@ -90,7 +64,6 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
   };
 
   const openEdit = (contact: any) => {
-    const perms = contact.permissions || DEFAULT_PERMISSIONS;
     setEditingId(contact.id);
     setForm({
       first_name: contact.first_name || "",
@@ -100,13 +73,7 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
       phone: contact.phone || "",
       password: "",
       is_primary: contact.is_primary || false,
-      permissions: {
-        invoices: perms.invoices ?? true,
-        estimates: perms.estimates ?? true,
-        contracts: perms.contracts ?? true,
-        support: perms.support ?? true,
-        projects: perms.projects ?? true,
-      },
+      can_view_all_tickets: contact.can_view_all_tickets ?? true,
     });
     setShowPassword(false);
     setShowDialog(true);
@@ -121,9 +88,11 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
     setIsSaving(true);
 
     try {
+      const isPrimary = form.is_primary;
+      const canViewAll = isPrimary ? true : form.can_view_all_tickets;
+
       if (editingId) {
-        // Editing existing contact – direct DB update (no auth user changes)
-        if (form.is_primary) {
+        if (isPrimary) {
           await (supabase.from("customer_contacts" as any) as any)
             .update({ is_primary: false })
             .eq("customer_id", clientId)
@@ -136,8 +105,8 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
           email: form.email,
           position: form.position,
           phone: form.phone,
-          is_primary: form.is_primary,
-          permissions: form.permissions,
+          is_primary: isPrimary,
+          can_view_all_tickets: canViewAll,
         };
 
         const { error } = await (supabase.from("customer_contacts" as any) as any)
@@ -146,7 +115,6 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
         if (error) { toast.error(error.message); return; }
         toast.success("Kontakt zaktualizowany");
       } else {
-        // New contact – use edge function to create auth user + contact
         if (!form.email.trim()) {
           toast.error("Email jest wymagany dla nowego kontaktu");
           return;
@@ -165,8 +133,8 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
             phone: form.phone,
             position: form.position,
             client_id: clientId,
-            is_primary: form.is_primary,
-            permissions: form.permissions,
+            is_primary: isPrimary,
+            can_view_all_tickets: canViewAll,
           },
         });
 
@@ -199,13 +167,6 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
     queryClient.invalidateQueries({ queryKey: ["customer-contacts", clientId] });
   };
 
-  const updatePermission = (key: keyof ContactPermissions, value: boolean) => {
-    setForm(prev => ({
-      ...prev,
-      permissions: { ...prev.permissions, [key]: value },
-    }));
-  };
-
   if (isLoading) {
     return <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Ładowanie...</CardContent></Card>;
   }
@@ -234,50 +195,41 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
                   <TableHead>Email</TableHead>
                   <TableHead>Stanowisko</TableHead>
                   <TableHead>Telefon</TableHead>
-                  <TableHead>Uprawnienia</TableHead>
+                  <TableHead>Dostęp</TableHead>
                   <TableHead className="w-24">Akcje</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {contacts.map((c: any) => {
-                  const perms = c.permissions || {};
-                  const activePerms = Object.entries(PERMISSION_LABELS)
-                    .filter(([key]) => perms[key])
-                    .map(([, label]) => label);
-
-                  return (
-                    <TableRow key={c.id}>
-                      <TableCell className="font-medium">
-                        {c.first_name} {c.last_name}
-                        {c.is_primary && (
-                          <Badge variant="secondary" className="ml-2 text-xs">Główny</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{c.email || "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">{c.position || "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">{c.phone || "—"}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {activePerms.length > 0 ? activePerms.map(p => (
-                            <Badge key={p} variant="outline" className="text-xs">{p}</Badge>
-                          )) : (
-                            <span className="text-xs text-muted-foreground">Brak</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(c)}>
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(c.id)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {contacts.map((c: any) => (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-medium">
+                      {c.first_name} {c.last_name}
+                      {c.is_primary && (
+                        <Badge variant="secondary" className="ml-2 text-xs">Główny</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{c.email || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{c.position || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{c.phone || "—"}</TableCell>
+                    <TableCell>
+                      {c.is_primary || c.can_view_all_tickets ? (
+                        <Badge variant="outline" className="text-xs">Pełny wgląd</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs text-muted-foreground">Ograniczony</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(c)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(c.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </CardContent>
@@ -313,7 +265,6 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
               )}
             </div>
 
-            {/* Password field – only for new contacts */}
             {!editingId && (
               <div className="space-y-1">
                 <Label>Hasło</Label>
@@ -345,33 +296,30 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
               <Label>Telefon</Label>
               <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                checked={form.is_primary}
-                onCheckedChange={(v) => setForm({ ...form, is_primary: !!v })}
-              />
-              <Label className="cursor-pointer">Główny kontakt</Label>
-            </div>
 
-            <Separator />
-
-            <div className="space-y-3">
+            <div className="space-y-2 pt-1">
               <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-muted-foreground" />
-                <Label className="font-semibold text-sm">Uprawnienia</Label>
+                <Checkbox
+                  checked={form.is_primary}
+                  onCheckedChange={(v) => setForm({ ...form, is_primary: !!v, can_view_all_tickets: !!v ? true : form.can_view_all_tickets })}
+                />
+                <Label className="cursor-pointer">Główny kontakt</Label>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Określ, do jakich modułów ten kontakt ma dostęp.
-              </p>
-              {(Object.keys(PERMISSION_LABELS) as Array<keyof ContactPermissions>).map((key) => (
-                <div key={key} className="flex items-center justify-between">
-                  <Label className="text-sm cursor-pointer">{PERMISSION_LABELS[key]}</Label>
-                  <Switch
-                    checked={form.permissions[key]}
-                    onCheckedChange={(v) => updatePermission(key, v)}
-                  />
-                </div>
-              ))}
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={form.is_primary ? true : form.can_view_all_tickets}
+                  disabled={form.is_primary}
+                  onCheckedChange={(v) => setForm({ ...form, can_view_all_tickets: !!v })}
+                />
+                <Label className={`cursor-pointer text-sm ${form.is_primary ? "text-muted-foreground" : ""}`}>
+                  Widzi wszystkie zgłoszenia firmy
+                </Label>
+              </div>
+              {form.is_primary && (
+                <p className="text-xs text-muted-foreground ml-6">
+                  Główny kontakt ma zawsze pełny wgląd we wszystkie zgłoszenia.
+                </p>
+              )}
             </div>
           </div>
           <DialogFooter>

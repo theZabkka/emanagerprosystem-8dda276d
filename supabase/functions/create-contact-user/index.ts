@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     if (!isStaff) throw new Error("Brak uprawnień");
 
     const body = await req.json();
-    const { email, password, first_name, last_name, phone, position, client_id, is_primary, permissions } = body;
+    const { email, password, first_name, last_name, phone, position, client_id, is_primary, can_view_all_tickets } = body;
 
     if (!email || !password) throw new Error("Email i hasło są wymagane");
     if (!client_id) throw new Error("Brak ID klienta");
@@ -70,10 +70,8 @@ Deno.serve(async (req) => {
 
     const userId = authData.user.id;
 
-    // 4. Create customer_contacts entry
-    const contactPerms = permissions || {
-      invoices: true, estimates: true, contracts: true, support: true, projects: true,
-    };
+    // 4. Create customer_contacts entry with new flag model
+    const resolvedCanViewAll = is_primary ? true : (can_view_all_tickets ?? true);
 
     const { error: contactErr } = await supabaseAdmin
       .from("customer_contacts")
@@ -85,7 +83,7 @@ Deno.serve(async (req) => {
         phone: phone || null,
         position: position || null,
         is_primary: is_primary || false,
-        permissions: contactPerms,
+        can_view_all_tickets: resolvedCanViewAll,
       });
 
     if (contactErr) {
