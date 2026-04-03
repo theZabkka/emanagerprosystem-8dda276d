@@ -89,6 +89,8 @@ export default function TaskKanbanBoard({
   const { currentRole, roleLoading } = useRole();
   const normalizedRole = (profile?.role ?? currentRole ?? "").toLowerCase().replace(/\s/g, "");
   const isSuperAdmin = !roleLoading && normalizedRole === "superadmin";
+  const isBoss = !roleLoading && normalizedRole === "boss";
+  const canDeleteTask = isSuperAdmin || isBoss;
   const isManualSort = sortField === "manual";
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
   const [responsibilityOpen, setResponsibilityOpen] = useState(false);
