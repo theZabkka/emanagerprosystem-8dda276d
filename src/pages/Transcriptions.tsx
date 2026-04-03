@@ -250,26 +250,25 @@ export default function Transcriptions() {
                         <DirIcon className="h-5 w-5" />
                       </div>
 
-                      {/* Main info */}
-                      <div className="flex-1 min-w-0 space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          {displayName ? (
-                            <span className="font-semibold text-sm truncate">{displayName}</span>
-                          ) : (
-                            <span className="font-bold text-sm font-mono text-foreground">
-                              {displayNumber || "Nieznany numer"}
-                            </span>
-                          )}
-                          {displayName && displayNumber && (
-                            <span className="text-xs text-muted-foreground font-mono">
-                              {displayNumber}
-                            </span>
-                          )}
-                        </div>
+                      {/* Client name / identifier – fixed width column */}
+                      <div className="shrink-0 w-[140px] md:w-[220px] min-w-0 space-y-0.5">
+                        <span className={`block text-sm truncate ${displayName ? "font-semibold text-foreground" : "font-bold font-mono text-foreground"}`}>
+                          {displayName || displayNumber || "Nieznany numer"}
+                        </span>
                         <p className="text-xs text-muted-foreground truncate">
                           {call.title || "Rozmowa bez tytułu"}
                         </p>
                       </div>
+
+                      {/* Phone number – aligned column, hidden on small screens if name exists */}
+                      <div className="hidden md:block shrink-0 w-[160px]">
+                        <span className="text-sm font-mono text-muted-foreground">
+                          {displayNumber || "—"}
+                        </span>
+                      </div>
+
+                      {/* Spacer */}
+                      <div className="flex-1 min-w-0" />
 
                       {/* Metadata */}
                       <div className="shrink-0 text-right space-y-0.5">
