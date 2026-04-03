@@ -74,10 +74,19 @@ export default function CrmBoard() {
 
   // Filtered deals
   const filteredDeals = useMemo(() => {
-    if (!search) return deals;
-    const s = search.toLowerCase();
-    return deals.filter((d) => d.title.toLowerCase().includes(s));
-  }, [deals, search]);
+    let result = deals;
+    if (search) {
+      const s = search.toLowerCase();
+      result = result.filter((d) => d.title.toLowerCase().includes(s));
+    }
+    if (labelFilter && allDealLabelsMap) {
+      result = result.filter((d) => {
+        const labels = allDealLabelsMap[d.id];
+        return labels && labels.some((l) => l.id === labelFilter);
+      });
+    }
+    return result;
+  }, [deals, search, labelFilter, allDealLabelsMap]);
 
   // Group deals by column
   const dealsByColumn = useMemo(() => {
