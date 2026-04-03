@@ -2,7 +2,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const VALID_STAFF_ROLES = ["boss", "koordynator", "specjalista", "praktykant"];
@@ -18,36 +19,37 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Pobranie nagłówka autoryzacji
+    // Verify caller via getClaims (stateless, no session needed)
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Brak nagłówka Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ success: false, error: "Brak nagłówka Authorization" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    // Stateless Auth Client - KRYTYCZNE DLA DENO EDGE FUNCTIONS
     const supabaseAuthClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       {
         global: { headers: { Authorization: authHeader } },
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-          detectSessionInUrl: false,
-        },
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
       }
     );
 
-    const { data: { user: caller }, error: verifyErr } = await supabaseAuthClient.auth.getUser();
-
-    if (verifyErr || !caller) {
-      console.error("Błąd weryfikacji tokenu wywołującego:", verifyErr);
-      throw new Error(`Sesja wygasła lub jest nieprawidłowa: ${verifyErr?.message || "Brak sesji"}`);
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsErr } = await supabaseAuthClient.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims) {
+      return new Response(JSON.stringify({ success: false, error: "Sesja wygasła lub jest nieprawidłowa" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
+    const callerId = claimsData.claims.sub;
 
     // Check caller's profile role
     const { data: callerProfile } = await supabaseAdmin
       .from("profiles")
       .select("role")
-      .eq("id", caller.id)
+      .eq("id", callerId)
       .single();
 
     if (!callerProfile || !["superadmin", "boss"].includes(callerProfile.role || "")) {

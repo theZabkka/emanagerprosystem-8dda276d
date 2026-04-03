@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Loader2, Search } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const voivodeships = [
   "dolnośląskie", "kujawsko-pomorskie", "lubelskie", "lubuskie",
@@ -100,9 +101,9 @@ async function fetchCompanyDataByNip(rawNip: string) {
 }
 
 export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClientDialogProps) {
-  const [loading, setLoading] = useState(false);
   const [nipLoading, setNipLoading] = useState(false);
   const firstNameRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
@@ -131,7 +132,6 @@ export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClie
     setNipLoading(true);
     try {
       const data = await fetchCompanyDataByNip(form.nip);
-      // ONLY update company fields — never touch first_name / last_name
       setForm((prev) => ({
         ...prev,
         company_name: data.company_name || prev.company_name,
@@ -141,7 +141,6 @@ export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClie
         voivodeship: data.voivodeship || prev.voivodeship,
       }));
       toast.success("Pomyślnie pobrano dane firmy!");
-      // Auto-focus the first name field for smooth UX flow
       setTimeout(() => firstNameRef.current?.focus(), 100);
     } catch (err: any) {
       if (err.message.includes("Nieprawidłowy NIP")) {
@@ -154,7 +153,52 @@ export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClie
     }
   }
 
-  async function handleCreate() {
+  const mutation = useMutation({
+    mutationFn: async (payload: typeof form) => {
+      const { data, error } = await supabase.functions.invoke("create-client-user", {
+        body: {
+          email: payload.email,
+          password: payload.password,
+          first_name: payload.first_name,
+          last_name: payload.last_name,
+          phone: payload.phone,
+          website: payload.website,
+          position: payload.position,
+          company_name: payload.company_name,
+          nip: payload.nip,
+          company_phone: payload.company_phone,
+          country: payload.country,
+          city: payload.city,
+          address: payload.address,
+          postal_code: payload.postal_code,
+          voivodeship: payload.voivodeship,
+          has_retainer: payload.has_retainer || false,
+        },
+      });
+      if (error) {
+        const msg = (data as any)?.error || error.message || "Nieznany błąd";
+        throw new Error(msg);
+      }
+      if (!data?.success) throw new Error(data?.error || "Nieznany błąd");
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Klient dodany pomyślnie");
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      setForm({
+        first_name: "", last_name: "", email: "", phone: "", website: "", position: "",
+        password: "", password_confirm: "", company_name: "", nip: "", company_phone: "",
+        country: "Poland", city: "", address: "", postal_code: "", voivodeship: "", has_retainer: false,
+      });
+      onOpenChange(false);
+      onCreated();
+    },
+    onError: (err: Error) => {
+      toast.error("Błąd", { description: err.message });
+    },
+  });
+
+  function handleCreate() {
     if (!form.first_name.trim()) { toast.error("Podaj imię"); return; }
     if (!form.last_name.trim()) { toast.error("Podaj nazwisko"); return; }
     if (!form.email.trim()) { toast.error("Podaj adres e-mail"); return; }
@@ -164,45 +208,7 @@ export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClie
     if (form.password.length < 6) { toast.error("Hasło musi mieć min. 6 znaków"); return; }
     if (form.password !== form.password_confirm) { toast.error("Hasła nie są identyczne"); return; }
     if (!form.company_name.trim()) { toast.error("Podaj nazwę firmy"); return; }
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("create-client-user", {
-        body: {
-          email: form.email,
-          password: form.password,
-          first_name: form.first_name,
-          last_name: form.last_name,
-          phone: form.phone,
-          website: form.website,
-          position: form.position,
-          company_name: form.company_name,
-          nip: form.nip,
-          company_phone: form.company_phone,
-          country: form.country,
-          city: form.city,
-          address: form.address,
-          postal_code: form.postal_code,
-          voivodeship: form.voivodeship,
-          has_retainer: (form as any).has_retainer || false,
-        },
-      });
-
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || "Nieznany błąd");
-
-      toast.success("Klient dodany pomyślnie");
-      setForm({
-        first_name: "", last_name: "", email: "", phone: "", website: "", position: "",
-        password: "", password_confirm: "", company_name: "", nip: "", company_phone: "",
-        country: "Poland", city: "", address: "", postal_code: "", voivodeship: "", has_retainer: false,
-      });
-      onOpenChange(false);
-      onCreated();
-    } catch (err: any) {
-      toast.error("Błąd", { description: err.message });
-    } finally {
-      setLoading(false);
-    }
+    mutation.mutate(form);
   }
 
   return (
@@ -320,8 +326,8 @@ export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClie
           </div>
         </div>
 
-        <Button onClick={handleCreate} className="w-full mt-4" disabled={loading}>
-          {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+        <Button onClick={handleCreate} className="w-full mt-4" disabled={mutation.isPending}>
+          {mutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Dodaj klienta
         </Button>
       </DialogContent>

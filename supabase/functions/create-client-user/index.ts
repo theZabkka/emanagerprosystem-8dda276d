@@ -2,7 +2,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 Deno.serve(async (req) => {
@@ -17,9 +18,13 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
     );
 
-    // Verify caller is staff
+    // Verify caller via getClaims
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Brak nagłówka Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ success: false, error: "Brak nagłówka Authorization" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const supabaseAuth = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -30,10 +35,16 @@ Deno.serve(async (req) => {
       }
     );
 
-    const { data: { user: caller }, error: verifyErr } = await supabaseAuth.auth.getUser();
-    if (verifyErr || !caller) throw new Error("Sesja wygasła lub jest nieprawidłowa");
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsErr } = await supabaseAuth.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims) {
+      return new Response(JSON.stringify({ success: false, error: "Sesja wygasła lub jest nieprawidłowa" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const callerId = claimsData.claims.sub;
 
-    const { data: isStaff } = await supabaseAdmin.rpc("is_staff", { _user_id: caller.id });
+    const { data: isStaff } = await supabaseAdmin.rpc("is_staff", { _user_id: callerId });
     if (!isStaff) throw new Error("Brak uprawnień");
 
     const body = await req.json();
