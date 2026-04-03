@@ -64,14 +64,7 @@ export default function ClientDashboard() {
         .eq("client_id", clientId)
         .eq("is_archived", false)
         .order("updated_at", { ascending: false });
-      if (!data) return [];
-      // Non-primary contacts only see tasks they're assigned to
-      if (!isPrimaryContact && user?.id) {
-        return data.filter((t: any) =>
-          (t.task_assignments || []).some((a: any) => a.user_id === user.id)
-        );
-      }
-      return data;
+      return data || [];
     },
     enabled: !!clientId,
   });

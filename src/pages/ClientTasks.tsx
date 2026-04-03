@@ -28,14 +28,7 @@ export default function ClientTasks() {
         .eq("is_archived", false)
         .neq("status", "closed")
         .order("created_at", { ascending: false });
-      if (!data) return [];
-      // Non-primary contacts see only tasks assigned to them
-      if (!isPrimaryContact && user?.id) {
-        return data.filter((t: any) =>
-          (t.task_assignments || []).some((a: any) => a.user_id === user.id)
-        );
-      }
-      return data;
+      return data || [];
     },
     enabled: !!clientId,
   });
