@@ -35,6 +35,15 @@ const KANBAN_COLUMNS = [
   { key: "cancelled", label: "ANULOWANE" },
 ] as const;
 
+const CLIENT_KANBAN_COLUMNS = [
+  { key: "todo", label: "DO ZROBIENIA" },
+  { key: "in_progress", label: "W REALIZACJI" },
+  { key: "waiting_for_client", label: "OCZEKIWANIE NA KLIENTA" },
+  { key: "client_review", label: "DO AKCEPTACJI KLIENTA" },
+  { key: "client_verified", label: "ZWERYFIKOWANE" },
+  { key: "done", label: "GOTOWE" },
+] as const;
+
 const KANBAN_COLUMN_KEYS = new Set(KANBAN_COLUMNS.map((c) => c.key));
 
 const PRIORITY_CONFIG: Record<string, { label: string; border: string; bg: string; text: string }> = {
