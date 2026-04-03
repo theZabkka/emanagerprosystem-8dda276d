@@ -1,5 +1,5 @@
 import { useStaffMembers } from "@/hooks/useStaffMembers";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -11,9 +11,12 @@ import TaskTeamBoard from "@/components/tasks/TaskTeamBoard";
 import TaskListView from "@/components/tasks/TaskListView";
 import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";
 import { TaskAlertBanners } from "@/components/tasks/TaskAlertBanners";
-import { TaskFilters, type SortField, type SortDirection, type KanbanMode } from "@/components/tasks/TaskFilters";
+import { TaskFiltersTopbar } from "@/components/tasks/TaskFiltersTopbar";
+import { TaskFilterSidebar, type SidebarFilters } from "@/components/tasks/TaskFilterSidebar";
+import type { SortField, SortDirection, KanbanMode } from "@/components/tasks/TaskFilters";
 import { KanbanSkeleton } from "@/components/skeletons/KanbanSkeleton";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
+import { FileX2 } from "lucide-react";
 
 export default function Tasks() {
   const { user } = useAuth();
@@ -22,19 +25,24 @@ export default function Tasks() {
   const { data: staffProfiles = [] } = useStaffMembers();
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
-  const [priorityFilter, setPriorityFilter] = useState<string>("all");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [kanbanMode, setKanbanMode] = useState<KanbanMode>("status");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [quickAddStatus, setQuickAddStatus] = useState<string | undefined>(undefined);
-  const [sortField, setSortField] = useState<SortField>("due_date");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [overdueFilter, setOverdueFilter] = useState(false);
   const [unassignedFilter, setUnassignedFilter] = useState(false);
-  const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
-  const [autoOpenTaskId, setAutoOpenTaskId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const [sidebarFilters, setSidebarFilters] = useState<SidebarFilters>({
+    clientIds: [],
+    projectIds: [],
+    assigneeIds: [],
+    priorities: [],
+    types: [],
+    sortField: "due_date",
+    sortDirection: "asc",
+  });
 
   const isTerminalStatus = (status?: string | null) => ["done", "cancelled", "closed"].includes(status || "");
   const hasNonEmptyTitle = (task: any) => typeof task.title === "string" && task.title.trim().length > 0;
@@ -51,8 +59,6 @@ export default function Tasks() {
 
     if (urlUnassigned === "true") {
       setSearch("");
-      setPriorityFilter("all");
-      setTypeFilter("all");
       setStatusFilter("all");
       setOverdueFilter(false);
       setUnassignedFilter(true);
@@ -62,11 +68,9 @@ export default function Tasks() {
     }
 
     if (urlTaskId) {
-      setAutoOpenTaskId(urlTaskId);
       navigate(`/tasks/${urlTaskId}`, { replace: true });
     }
 
-    // Clear params after reading
     if (urlStatus || urlFilter || urlTaskId || urlUnassigned) {
       const newParams = new URLSearchParams(searchParams);
       newParams.delete("status");
@@ -77,14 +81,15 @@ export default function Tasks() {
     }
   }, []);
 
+  // Server-side filtered query
   const {
     data: tasks,
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ["tasks"],
+    queryKey: ["tasks", sidebarFilters.clientIds, sidebarFilters.projectIds, sidebarFilters.assigneeIds, sidebarFilters.priorities],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("tasks")
         .select(
           "id, title, status, priority, due_date, lexo_rank, client_id, project_id, type, " +
@@ -95,6 +100,19 @@ export default function Tasks() {
         .eq("is_archived", false)
         .order("lexo_rank" as any, { ascending: true })
         .limit(500);
+
+      // Server-side filters (AND logic)
+      if (sidebarFilters.clientIds.length > 0) {
+        q = q.in("client_id", sidebarFilters.clientIds);
+      }
+      if (sidebarFilters.projectIds.length > 0) {
+        q = q.in("project_id", sidebarFilters.projectIds);
+      }
+      if (sidebarFilters.priorities.length > 0) {
+        q = q.in("priority", sidebarFilters.priorities);
+      }
+
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
@@ -103,26 +121,52 @@ export default function Tasks() {
 
   const today = new Date().toISOString().split("T")[0];
 
-  const filteredTasks = (tasks || []).filter((t: any) => {
-    const title = typeof t.title === "string" ? t.title : "";
-    const matchesSearch =
-      title.toLowerCase().includes(search.toLowerCase()) || t.id.toLowerCase().includes(search.toLowerCase());
-    if (!matchesSearch) return false;
-    if (statusFilter !== "all" && t.status !== statusFilter) return false;
-    if (overdueFilter && (!t.due_date || t.due_date >= today)) return false;
-    if (unassignedFilter && !isUnassignedAlertCandidate(t)) return false;
-    if (assigneeFilter !== "all") {
-      const assigned = (t.task_assignments || []).some((a: any) => a.user_id === assigneeFilter);
-      if (!assigned) return false;
-    }
-    if (typeFilter === "parent")
-      return !(t as any).parent_task_id && (tasks || []).some((mt: any) => mt.parent_task_id === t.id);
-    if (typeFilter === "subtask") return !!(t as any).parent_task_id;
-    if (typeFilter === "standalone")
-      return !(t as any).parent_task_id && !(tasks || []).some((mt: any) => mt.parent_task_id === t.id);
-    if (priorityFilter !== "all" && t.priority !== priorityFilter) return false;
-    return true;
-  });
+  // Client-side filters for things that can't easily be done server-side
+  const filteredTasks = useMemo(() => {
+    return (tasks || []).filter((t: any) => {
+      const title = typeof t.title === "string" ? t.title : "";
+      const matchesSearch =
+        title.toLowerCase().includes(search.toLowerCase()) || t.id.toLowerCase().includes(search.toLowerCase());
+      if (!matchesSearch) return false;
+      if (statusFilter !== "all" && t.status !== statusFilter) return false;
+      if (overdueFilter && (!t.due_date || t.due_date >= today)) return false;
+      if (unassignedFilter && !isUnassignedAlertCandidate(t)) return false;
+
+      // Assignee filter (needs client-side because it's through task_assignments join)
+      if (sidebarFilters.assigneeIds.length > 0) {
+        const assigned = (t.task_assignments || []).some((a: any) => sidebarFilters.assigneeIds.includes(a.user_id));
+        if (!assigned) return false;
+      }
+
+      // Type filter
+      if (sidebarFilters.types.length > 0) {
+        const allTasks = tasks || [];
+        const isParent = !(t as any).parent_task_id && allTasks.some((mt: any) => mt.parent_task_id === t.id);
+        const isSubtask = !!(t as any).parent_task_id;
+        const isStandalone = !(t as any).parent_task_id && !allTasks.some((mt: any) => mt.parent_task_id === t.id);
+        const matchesType = sidebarFilters.types.some((type) => {
+          if (type === "parent") return isParent;
+          if (type === "subtask") return isSubtask;
+          if (type === "standalone") return isStandalone;
+          return false;
+        });
+        if (!matchesType) return false;
+      }
+
+      return true;
+    });
+  }, [tasks, search, statusFilter, overdueFilter, unassignedFilter, sidebarFilters.assigneeIds, sidebarFilters.types, today]);
+
+  // Task counts by client for sidebar badges
+  const taskCountsByClient = useMemo(() => {
+    const counts: Record<string, number> = {};
+    (tasks || []).forEach((t: any) => {
+      if (t.client_id) counts[t.client_id] = (counts[t.client_id] || 0) + 1;
+    });
+    return counts;
+  }, [tasks]);
+
+  const activeFilterCount = sidebarFilters.clientIds.length + sidebarFilters.projectIds.length + sidebarFilters.assigneeIds.length + sidebarFilters.priorities.length + sidebarFilters.types.length;
 
   const allTasks = tasks || [];
   const unassignedCount = allTasks.filter((t: any) => isUnassignedAlertCandidate(t)).length;
@@ -145,32 +189,28 @@ export default function Tasks() {
       return;
     }
     setSearch("");
-    setPriorityFilter("all");
-    setTypeFilter("all");
     setStatusFilter("all");
     setOverdueFilter(false);
     setUnassignedFilter(true);
   };
 
   const handlePersonDrillDown = useCallback((userId: string) => {
-    setAssigneeFilter(userId);
+    setSidebarFilters((prev) => ({
+      ...prev,
+      assigneeIds: [userId],
+    }));
     setKanbanMode("status");
   }, []);
 
   const handleStatusChange = useCallback(
     async (taskId: string, newStatus: string) => {
-      const queryKey = ["tasks"];
+      const queryKey = ["tasks", sidebarFilters.clientIds, sidebarFilters.projectIds, sidebarFilters.assigneeIds, sidebarFilters.priorities];
       const previousTasks = queryClient.getQueryData<any[]>(queryKey);
 
       queryClient.setQueryData<any[]>(queryKey, (old) =>
         (old || []).map((t) =>
           t.id === taskId
-            ? {
-                ...t,
-                status: newStatus,
-                status_updated_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              }
+            ? { ...t, status: newStatus, status_updated_at: new Date().toISOString(), updated_at: new Date().toISOString() }
             : t,
         ),
       );
@@ -191,12 +231,12 @@ export default function Tasks() {
       queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       refetch();
     },
-    [priorityFilter, queryClient, user?.id, refetch],
+    [sidebarFilters, queryClient, user?.id, refetch],
   );
 
   const handleLexoRankUpdate = useCallback(
     async (taskId: string, newRank: string) => {
-      const queryKey = ["tasks"];
+      const queryKey = ["tasks", sidebarFilters.clientIds, sidebarFilters.projectIds, sidebarFilters.assigneeIds, sidebarFilters.priorities];
       const previousTasks = queryClient.getQueryData<any[]>(queryKey);
 
       queryClient.setQueryData<any[]>(queryKey, (old) =>
@@ -213,7 +253,7 @@ export default function Tasks() {
         toast.error("Nie udało się zapisać kolejności.");
       }
     },
-    [priorityFilter, queryClient],
+    [sidebarFilters, queryClient],
   );
 
   const handleArchive = useCallback(
@@ -232,6 +272,8 @@ export default function Tasks() {
     [refetch],
   );
 
+  const emptyState = !isLoading && filteredTasks.length === 0 && (search || activeFilterCount > 0 || statusFilter !== "all" || unassignedFilter || overdueFilter);
+
   return (
     <AppLayout title="Zadania">
       <div className="space-y-4 mx-auto">
@@ -245,24 +287,16 @@ export default function Tasks() {
           onFilterUnassigned={handleFilterUnassigned}
         />
 
-        <TaskFilters
+        <TaskFiltersTopbar
           search={search}
           onSearchChange={setSearch}
-          priorityFilter={priorityFilter}
-          onPriorityChange={setPriorityFilter}
-          typeFilter={typeFilter}
-          onTypeChange={setTypeFilter}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           onCreateClick={() => setIsCreateOpen(true)}
-          sortField={sortField}
-          onSortFieldChange={setSortField}
-          sortDirection={sortDirection}
-          onSortDirectionToggle={() => setSortDirection((d) => (d === "asc" ? "desc" : "asc"))}
           kanbanMode={kanbanMode}
           onKanbanModeChange={setKanbanMode}
-          assigneeFilter={assigneeFilter}
-          onAssigneeChange={setAssigneeFilter}
+          onToggleSidebar={() => setSidebarOpen((v) => !v)}
+          activeFilterCount={activeFilterCount}
         />
 
         <CreateTaskDialog
@@ -275,47 +309,61 @@ export default function Tasks() {
           defaultStatus={quickAddStatus}
         />
 
-        {isLoading ? (
-          viewMode === "kanban" ? (
-            <KanbanSkeleton />
-          ) : (
-            <TableSkeleton columns={5} rows={8} />
-          )
-        ) : viewMode === "kanban" ? (
-          kanbanMode === "team" ? (
-            <TaskTeamBoard
-              tasks={filteredTasks}
-              onRefresh={() => queryClient.invalidateQueries({ queryKey: ["tasks"] })}
-              priorityFilter={priorityFilter}
-              onPersonClick={handlePersonDrillDown}
-            />
-          ) : (
-            <TaskKanbanBoard
-              tasks={filteredTasks}
-              profiles={staffProfiles}
-              assignments={filteredTasks.flatMap((t: any) =>
-                (t.task_assignments || []).map((a: any) => ({ ...a, task_id: t.id })),
-              )}
-              clients={filteredTasks
-                .map((t: any) =>
-                  t.clients ? { id: t.client_id, name: t.clients.name, has_retainer: t.clients.has_retainer } : null,
-                )
-                .filter(Boolean)}
-              onStatusChange={handleStatusChange}
-              onArchive={handleArchive}
-              onRefresh={() => queryClient.invalidateQueries({ queryKey: ["tasks"] })}
-              onLexoRankUpdate={handleLexoRankUpdate}
-              onQuickAdd={(status) => {
-                setQuickAddStatus(status);
-                setIsCreateOpen(true);
-              }}
-              sortField={sortField}
-              sortDirection={sortDirection}
-            />
-          )
-        ) : (
-          <TaskListView tasks={filteredTasks} isLoading={isLoading} />
-        )}
+        <div className="flex gap-0">
+          <TaskFilterSidebar
+            filters={sidebarFilters}
+            onFiltersChange={setSidebarFilters}
+            taskCountsByClient={taskCountsByClient}
+            open={sidebarOpen}
+            onOpenChange={setSidebarOpen}
+          />
+
+          <div className="flex-1 min-w-0">
+            {emptyState ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <FileX2 className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                <p className="text-muted-foreground text-sm">Brak zadań spełniających wybrane kryteria.</p>
+                <p className="text-muted-foreground/70 text-xs mt-1">Spróbuj zmienić ustawienia filtrów.</p>
+              </div>
+            ) : isLoading ? (
+              viewMode === "kanban" ? <KanbanSkeleton /> : <TableSkeleton columns={5} rows={8} />
+            ) : viewMode === "kanban" ? (
+              kanbanMode === "team" ? (
+                <TaskTeamBoard
+                  tasks={filteredTasks}
+                  onRefresh={() => queryClient.invalidateQueries({ queryKey: ["tasks"] })}
+                  priorityFilter={sidebarFilters.priorities.length === 1 ? sidebarFilters.priorities[0] : "all"}
+                  onPersonClick={handlePersonDrillDown}
+                />
+              ) : (
+                <TaskKanbanBoard
+                  tasks={filteredTasks}
+                  profiles={staffProfiles}
+                  assignments={filteredTasks.flatMap((t: any) =>
+                    (t.task_assignments || []).map((a: any) => ({ ...a, task_id: t.id })),
+                  )}
+                  clients={filteredTasks
+                    .map((t: any) =>
+                      t.clients ? { id: t.client_id, name: t.clients.name, has_retainer: t.clients.has_retainer } : null,
+                    )
+                    .filter(Boolean)}
+                  onStatusChange={handleStatusChange}
+                  onArchive={handleArchive}
+                  onRefresh={() => queryClient.invalidateQueries({ queryKey: ["tasks"] })}
+                  onLexoRankUpdate={handleLexoRankUpdate}
+                  onQuickAdd={(status) => {
+                    setQuickAddStatus(status);
+                    setIsCreateOpen(true);
+                  }}
+                  sortField={sidebarFilters.sortField}
+                  sortDirection={sidebarFilters.sortDirection}
+                />
+              )
+            ) : (
+              <TaskListView tasks={filteredTasks} isLoading={isLoading} />
+            )}
+          </div>
+        </div>
       </div>
     </AppLayout>
   );
