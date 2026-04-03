@@ -39,6 +39,7 @@ export default function CrmBoard() {
   const mutations = useCrmMutations();
 
   const [search, setSearch] = useState("");
+  const [labelFilter, setLabelFilter] = useState<string | null>(null);
   const [selectedDeal, setSelectedDeal] = useState<CrmDeal | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -73,10 +74,19 @@ export default function CrmBoard() {
 
   // Filtered deals
   const filteredDeals = useMemo(() => {
-    if (!search) return deals;
-    const s = search.toLowerCase();
-    return deals.filter((d) => d.title.toLowerCase().includes(s));
-  }, [deals, search]);
+    let result = deals;
+    if (search) {
+      const s = search.toLowerCase();
+      result = result.filter((d) => d.title.toLowerCase().includes(s));
+    }
+    if (labelFilter && allDealLabelsMap) {
+      result = result.filter((d) => {
+        const labels = allDealLabelsMap[d.id];
+        return labels && labels.some((l) => l.id === labelFilter);
+      });
+    }
+    return result;
+  }, [deals, search, labelFilter, allDealLabelsMap]);
 
   // Group deals by column
   const dealsByColumn = useMemo(() => {
@@ -264,6 +274,11 @@ export default function CrmBoard() {
             </Button>
           </div>
           <div className="flex items-center gap-2">
+            {labelFilter && (
+              <Button variant="secondary" size="sm" className="h-8 text-xs" onClick={() => setLabelFilter(null)}>
+                ✕ Filtr: {allLabels.find((l) => l.id === labelFilter)?.name || "Etykieta"}
+              </Button>
+            )}
             <Button size="sm" className="h-8 text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { setNewDeal(emptyDeal); setCreateOpen(true); }}>
               <Plus className="h-3.5 w-3.5 mr-1" /> Nowa karta
             </Button>
@@ -277,8 +292,8 @@ export default function CrmBoard() {
         </div>
 
         {/* Kanban board */}
-        <div className="flex-1 overflow-x-auto overflow-y-hidden">
-          <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="flex-1 overflow-x-auto overflow-y-hidden" style={{ WebkitOverflowScrolling: "touch" }}>
+          <DragDropContext onDragEnd={handleDragEnd} autoScrollerOptions={{ startFromPercentage: 0.2, maxScrollAtPercentage: 0.05, maxPixelScroll: 25 }}>
             <Droppable droppableId="board" type="COLUMN" direction="horizontal">
               {(boardProvided) => (
                 <div
@@ -500,7 +515,10 @@ export default function CrmBoard() {
       <Dialog open={labelManagerOpen} onOpenChange={setLabelManagerOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Zarządzaj etykietami</DialogTitle></DialogHeader>
-          <CrmLabelManager />
+          <CrmLabelManager
+            onFilterByLabel={(id) => { setLabelFilter(id); setLabelManagerOpen(false); }}
+            activeLabelFilter={labelFilter}
+          />
         </DialogContent>
       </Dialog>
 
