@@ -274,6 +274,11 @@ export default function CrmBoard() {
             </Button>
           </div>
           <div className="flex items-center gap-2">
+            {labelFilter && (
+              <Button variant="secondary" size="sm" className="h-8 text-xs" onClick={() => setLabelFilter(null)}>
+                ✕ Filtr: {allLabels.find((l) => l.id === labelFilter)?.name || "Etykieta"}
+              </Button>
+            )}
             <Button size="sm" className="h-8 text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { setNewDeal(emptyDeal); setCreateOpen(true); }}>
               <Plus className="h-3.5 w-3.5 mr-1" /> Nowa karta
             </Button>
