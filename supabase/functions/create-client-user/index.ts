@@ -13,31 +13,25 @@ Deno.serve(async (req) => {
   try {
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
     );
 
+    // Verify caller is staff
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Brak nagłówka Authorization");
 
-    const supabaseAuthClient = createClient(
+    const supabaseAuth = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       {
         global: { headers: { Authorization: authHeader } },
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-          detectSessionInUrl: false,
-        },
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
       }
     );
 
-    const { data: { user: caller }, error: verifyErr } = await supabaseAuthClient.auth.getUser();
-
-    if (verifyErr || !caller) {
-      console.error("Błąd weryfikacji tokenu wywołującego:", verifyErr);
-      throw new Error(`Sesja wygasła lub jest nieprawidłowa: ${verifyErr?.message || "Brak sesji"}`);
-    }
+    const { data: { user: caller }, error: verifyErr } = await supabaseAuth.auth.getUser();
+    if (verifyErr || !caller) throw new Error("Sesja wygasła lub jest nieprawidłowa");
 
     const { data: isStaff } = await supabaseAdmin.rpc("is_staff", { _user_id: caller.id });
     if (!isStaff) throw new Error("Brak uprawnień");
@@ -45,105 +39,101 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const {
       email, password, first_name, last_name, phone, website, position,
-      company_name, nip, company_phone, country, city, address, postal_code, voivodeship,
+      company_name, nip, company_phone, country, city, address, postal_code, voivodeship, has_retainer,
     } = body;
 
     if (!email || !password || !first_name || !last_name || !company_name) {
       throw new Error("Wymagane pola: email, hasło, imię, nazwisko, firma");
     }
 
-    // 1. Create client (company) record
-    const { data: client, error: clientErr } = await supabaseAdmin
-      .from("clients")
-      .insert({
-        name: company_name,
-        email: email,
-        phone: company_phone || null,
-        nip: nip || null,
-        country: country || "Poland",
-        city: city || null,
-        address: address || null,
-        postal_code: postal_code || null,
-        voivodeship: voivodeship || null,
-        contact_person: `${first_name} ${last_name}`,
-        status: "active",
-      })
-      .select("id")
-      .single();
-
-    if (clientErr) throw new Error(`Błąd tworzenia klienta: ${clientErr.message}`);
-
-    // 2. Create primary contact in customer_contacts
-    const allPermissions = {
-      invoices: true,
-      estimates: true,
-      contracts: true,
-      support: true,
-      projects: true,
-    };
-
-    const { error: contactErr } = await supabaseAdmin
-      .from("customer_contacts")
-      .insert({
-        customer_id: client.id,
-        first_name: first_name,
-        last_name: last_name,
-        email: email,
-        phone: phone || null,
-        position: position || null,
-        is_primary: true,
-        permissions: allPermissions,
-      });
-
-    if (contactErr) {
-      console.error("Primary contact insert error:", contactErr.message);
-    }
-
-    // 3. Create auth user
+    // AKCJA A: Create auth user FIRST
     const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
-      user_metadata: { full_name: `${first_name} ${last_name}` },
+      user_metadata: { full_name: `${first_name} ${last_name}`.trim() },
     });
 
-    if (authErr) {
-      await supabaseAdmin.from("clients").delete().eq("id", client.id);
-      throw new Error(`Błąd tworzenia użytkownika: ${authErr.message}`);
-    }
-
+    if (authErr) throw new Error(`Błąd tworzenia użytkownika: ${authErr.message}`);
     const userId = authData.user.id;
 
-    // 4. Update profile with extra fields
-    const { error: profileErr } = await supabaseAdmin
-      .from("profiles")
-      .update({
-        full_name: `${first_name} ${last_name}`,
-        role: "klient",
-        client_id: client.id,
-        phone: phone || null,
-        website: website || null,
-        position: position || null,
-      })
-      .eq("id", userId);
+    try {
+      // AKCJA B: Create client (company) record
+      const { data: client, error: clientErr } = await supabaseAdmin
+        .from("clients")
+        .insert({
+          name: company_name,
+          email,
+          phone: company_phone || null,
+          nip: nip || null,
+          country: country || "Poland",
+          city: city || null,
+          address: address || null,
+          postal_code: postal_code || null,
+          voivodeship: voivodeship || null,
+          contact_person: `${first_name} ${last_name}`.trim(),
+          status: "active",
+          has_retainer: has_retainer || false,
+        })
+        .select("id")
+        .single();
 
-    if (profileErr) {
-      console.error("Profile update error:", profileErr.message);
+      if (clientErr) throw new Error(`Błąd tworzenia firmy: ${clientErr.message}`);
+      const clientId = client.id;
+
+      try {
+        // AKCJA C + D: Create customer_contacts with hardcoded primary + full access
+        const { error: contactErr } = await supabaseAdmin
+          .from("customer_contacts")
+          .insert({
+            customer_id: clientId,
+            first_name,
+            last_name,
+            email,
+            phone: phone || null,
+            position: position || null,
+            is_primary: true,
+            can_view_all_tickets: true,
+          });
+
+        if (contactErr) throw new Error(`Błąd tworzenia kontaktu: ${contactErr.message}`);
+
+        // Update profile
+        const { error: profileErr } = await supabaseAdmin
+          .from("profiles")
+          .update({
+            full_name: `${first_name} ${last_name}`.trim(),
+            role: "klient",
+            client_id: clientId,
+            phone: phone || null,
+            website: website || null,
+            position: position || null,
+          })
+          .eq("id", userId);
+
+        if (profileErr) console.error("Profile update error:", profileErr.message);
+
+        // Add user_roles entry
+        const { error: roleErr } = await supabaseAdmin
+          .from("user_roles")
+          .insert({ user_id: userId, role: "user" });
+
+        if (roleErr) console.error("Role insert error:", roleErr.message);
+
+        return new Response(
+          JSON.stringify({ success: true, client_id: clientId, user_id: userId }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (contactError) {
+        // Rollback: delete client record
+        await supabaseAdmin.from("clients").delete().eq("id", clientId);
+        throw contactError;
+      }
+    } catch (innerError) {
+      // Rollback: delete auth user
+      await supabaseAdmin.auth.admin.deleteUser(userId);
+      throw innerError;
     }
-
-    // 5. Add user_roles entry
-    const { error: roleErr } = await supabaseAdmin
-      .from("user_roles")
-      .insert({ user_id: userId, role: "user" });
-
-    if (roleErr) {
-      console.error("Role insert error:", roleErr.message);
-    }
-
-    return new Response(
-      JSON.stringify({ success: true, client_id: client.id, user_id: userId }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
   } catch (err) {
     return new Response(
       JSON.stringify({ success: false, error: err.message }),
