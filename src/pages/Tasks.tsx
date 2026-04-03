@@ -277,8 +277,8 @@ export default function Tasks() {
   return (
     <AppLayout title="Zadania">
       <div className="flex flex-col h-[calc(100vh-4rem)] -m-6 overflow-hidden">
-        {/* Top banners + toolbar - fixed at top */}
-        <div className="shrink-0 px-6 pt-4 pb-2 space-y-3 bg-background">
+        {/* Banners above everything */}
+        <div className="shrink-0 px-6 pt-4 pb-2 bg-background">
           <TaskAlertBanners
             unassignedCount={unassignedCount}
             reviewCount={reviewCount}
@@ -288,7 +288,10 @@ export default function Tasks() {
             onFilterStatus={handleFilterStatus}
             onFilterUnassigned={handleFilterUnassigned}
           />
+        </div>
 
+        {/* Toolbar */}
+        <div className="shrink-0 px-6 pb-2 bg-background">
           <TaskFiltersTopbar
             search={search}
             onSearchChange={setSearch}
@@ -312,7 +315,7 @@ export default function Tasks() {
           defaultStatus={quickAddStatus}
         />
 
-        {/* Main area: Sidebar + Board fill remaining height */}
+        {/* Sidebar + Board fill remaining height */}
         <div className="flex flex-1 min-h-0">
           <TaskFilterSidebar
             filters={sidebarFilters}

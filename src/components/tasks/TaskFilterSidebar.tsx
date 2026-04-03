@@ -166,7 +166,7 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
       {/* Scrollable filter sections */}
       <div className="flex-1 overflow-y-auto py-2 space-y-0.5">
         {/* Klient */}
-        <Section title="Klient" active={filters.clientIds.length > 0}>
+        <Section title="Klient" defaultOpen={false} active={filters.clientIds.length > 0}>
           {clients.length > 6 && <MiniSearch value={clientSearch} onChange={setClientSearch} placeholder="Szukaj klienta..." />}
           <div className="max-h-[180px] overflow-y-auto space-y-px">
             {filteredClients.map((c) => (
@@ -214,7 +214,7 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
         </Section>
 
         {/* Priorytet */}
-        <Section title="Priorytet" active={filters.priorities.length > 0}>
+        <Section title="Priorytet" defaultOpen={false} active={filters.priorities.length > 0}>
           <div className="space-y-px">
             {PRIORITY_OPTIONS.map((p) => (
               <label key={p.value} className={optionCls}>
@@ -238,7 +238,7 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
         </Section>
 
         {/* Sortowanie */}
-        <Section title="Sortowanie">
+        <Section title="Sortowanie" defaultOpen={false}>
           <div className="space-y-px">
             {SORT_OPTIONS.map((opt) => {
               const active = filters.sortField === opt.value;
