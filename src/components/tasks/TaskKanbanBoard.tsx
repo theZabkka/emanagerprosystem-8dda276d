@@ -505,7 +505,7 @@ export default function TaskKanbanBoard({
                         className={`flex-1 overflow-y-auto px-2 pb-2 space-y-1.5 transition-colors ${snapshot.isDraggingOver ? "bg-destructive/5" : ""}`}
                       >
                         {columnTasks.map((task: any, index: number) => (
-                          <Draggable key={task.id} draggableId={task.id} index={index}>
+                          <Draggable key={task.id} draggableId={task.id} index={index} isDragDisabled={isClientMode}>
                             {(provided, snapshot) => (
                               <KanbanCard
                                 task={task}
@@ -523,6 +523,7 @@ export default function TaskKanbanBoard({
                                 onArchive={onArchive}
                                 onOpenDeleteModal={handleOpenDeleteModal}
                                 isSuperAdmin={isSuperAdmin}
+                                isClientMode={isClientMode}
                               />
                             )}
                           </Draggable>
