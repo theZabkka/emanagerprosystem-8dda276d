@@ -742,7 +742,7 @@ const KanbanCard = React.memo(function KanbanCard({
                     Archiwizuj
                   </Button>
                 )}
-                {isSuperAdmin && onOpenDeleteModal && (
+                {canDeleteTask && onOpenDeleteModal && (
                   <Button
                     size="sm"
                     variant="ghost"
