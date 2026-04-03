@@ -43,9 +43,10 @@ interface Props {
   deal: CrmDeal | null;
   open: boolean;
   onClose: () => void;
+  readOnly?: boolean;
 }
 
-export function CrmDealDetailPanel({ deal, open, onClose }: Props) {
+export function CrmDealDetailPanel({ deal, open, onClose, readOnly = false }: Props) {
   const navigate = useNavigate();
   const { session } = useAuth();
   const { currentRole } = useRole();
