@@ -10,12 +10,22 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { DescriptionCard } from "@/components/tasks/DescriptionCard";
 import { StatusTimeline } from "@/components/tasks/StatusTimeline";
+import { DeleteTaskModal } from "@/components/tasks/DeleteTaskModal";
 import {
   Plus, Clock, Play, FileText, Link as LinkIcon, Upload, Timer,
-  Edit3, Eye, Trash2, AlertTriangle, X, Bug
+  Edit3, Eye, Trash2, AlertTriangle, X, Bug, Archive, Shield
 } from "lucide-react";
 
 const briefFields = [
