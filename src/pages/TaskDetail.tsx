@@ -48,6 +48,7 @@ export default function TaskDetail() {
   const { user } = useAuth();
   const { isClient, currentRole } = useRole();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // ─── State ───
   const [commentText, setCommentText] = useState("");
