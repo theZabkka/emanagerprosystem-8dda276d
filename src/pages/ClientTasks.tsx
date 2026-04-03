@@ -26,6 +26,7 @@ export default function ClientTasks() {
         `)
         .eq("client_id", clientId)
         .eq("is_archived", false)
+        .neq("status", "closed")
         .order("created_at", { ascending: false });
       if (!data) return [];
       // Non-primary contacts see only tasks assigned to them
