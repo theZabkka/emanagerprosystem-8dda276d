@@ -92,8 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (profileData.role === "klient" && profileData.client_id) {
       const { data: contactData } = await supabase
         .from("customer_contacts")
-        .select("first_name, last_name, phone, position, is_primary, permissions, customer_id")
-        .eq("id", userId)
+        .select("first_name, last_name, phone, position, is_primary, permissions, customer_id, can_view_all_tickets")
+        .eq("user_id", userId)
         .maybeSingle();
 
       if (contactData) {

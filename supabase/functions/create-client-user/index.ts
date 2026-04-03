@@ -98,6 +98,7 @@ Deno.serve(async (req) => {
           .from("customer_contacts")
           .insert({
             customer_id: clientId,
+            user_id: userId,
             first_name,
             last_name,
             email,
