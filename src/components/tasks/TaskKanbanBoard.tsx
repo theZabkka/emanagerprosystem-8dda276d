@@ -559,6 +559,7 @@ interface KanbanCardProps {
   onArchive?: (taskId: string) => void;
   onOpenDeleteModal?: (task: any) => void;
   isSuperAdmin?: boolean;
+  isClientMode?: boolean;
 }
 
 const KanbanCard = React.memo(function KanbanCard({
