@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -48,6 +48,7 @@ export default function TaskDetail() {
   const { user } = useAuth();
   const { isClient, currentRole } = useRole();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // ─── State ───
   const [commentText, setCommentText] = useState("");
@@ -786,6 +787,23 @@ export default function TaskDetail() {
     queryClient,
     statusLabels,
     statusColors,
+    currentRole,
+    onArchiveTask: async (taskId: string) => {
+      const { error } = await supabase
+        .from("tasks")
+        .update({ is_archived: true, archived_at: new Date().toISOString() } as any)
+        .eq("id", taskId);
+      if (error) {
+        toast.error("Nie udało się zarchiwizować zadania");
+        return;
+      }
+      toast.success("Zadanie zarchiwizowane");
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      navigate("/tasks");
+    },
+    onDeleteTask: (_deletedId: string) => {
+      navigate("/tasks");
+    },
   };
 
   return (

@@ -89,6 +89,8 @@ export default function TaskKanbanBoard({
   const { currentRole, roleLoading } = useRole();
   const normalizedRole = (profile?.role ?? currentRole ?? "").toLowerCase().replace(/\s/g, "");
   const isSuperAdmin = !roleLoading && normalizedRole === "superadmin";
+  const isBoss = !roleLoading && normalizedRole === "boss";
+  const canDeleteTask = isSuperAdmin || isBoss;
   const isManualSort = sortField === "manual";
   const [checklistBlockOpen, setChecklistBlockOpen] = useState(false);
   const [responsibilityOpen, setResponsibilityOpen] = useState(false);
@@ -541,7 +543,7 @@ export default function TaskKanbanBoard({
                                 onAssign={handleToggleAssign}
                                 onArchive={onArchive}
                                 onOpenDeleteModal={handleOpenDeleteModal}
-                                isSuperAdmin={isSuperAdmin}
+                                canDeleteTask={canDeleteTask}
                                 isClientMode={isClientMode}
                               />
                             )}
@@ -577,7 +579,7 @@ interface KanbanCardProps {
   onAssign: (taskId: string, userId: string) => void;
   onArchive?: (taskId: string) => void;
   onOpenDeleteModal?: (task: any) => void;
-  isSuperAdmin?: boolean;
+  canDeleteTask?: boolean;
   isClientMode?: boolean;
 }
 
@@ -596,7 +598,7 @@ const KanbanCard = React.memo(function KanbanCard({
   onAssign,
   onArchive,
   onOpenDeleteModal,
-  isSuperAdmin,
+  canDeleteTask,
   isClientMode = false,
 }: KanbanCardProps) {
   const taskAssignees = getAllAssignees(task.id);
@@ -722,7 +724,7 @@ const KanbanCard = React.memo(function KanbanCard({
                 {(task.logged_time / 60).toFixed(1)}h
               </span>
             )}
-            {(columnKey === "closed" || (isSuperAdmin && onOpenDeleteModal)) && (
+            {(columnKey === "closed" || (canDeleteTask && onOpenDeleteModal)) && (
               <div className="flex flex-col items-end gap-1 mt-2 relative z-10">
                 {columnKey === "closed" && onArchive && (
                   <Button
@@ -740,7 +742,7 @@ const KanbanCard = React.memo(function KanbanCard({
                     Archiwizuj
                   </Button>
                 )}
-                {isSuperAdmin && onOpenDeleteModal && (
+                {canDeleteTask && onOpenDeleteModal && (
                   <Button
                     size="sm"
                     variant="ghost"

@@ -136,6 +136,7 @@ export type Database = {
           ai_summary: string | null
           called_at: string | null
           client_id: string | null
+          client_number: string | null
           created_at: string | null
           details: string | null
           direction: string
@@ -155,6 +156,7 @@ export type Database = {
           ai_summary?: string | null
           called_at?: string | null
           client_id?: string | null
+          client_number?: string | null
           created_at?: string | null
           details?: string | null
           direction?: string
@@ -174,6 +176,7 @@ export type Database = {
           ai_summary?: string | null
           called_at?: string | null
           client_id?: string | null
+          client_number?: string | null
           created_at?: string | null
           details?: string | null
           direction?: string
