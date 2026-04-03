@@ -578,6 +578,7 @@ const KanbanCard = React.memo(function KanbanCard({
   onArchive,
   onOpenDeleteModal,
   isSuperAdmin,
+  isClientMode = false,
 }: KanbanCardProps) {
   const taskAssignees = getAllAssignees(task.id);
   const client = getClient(task.client_id);
