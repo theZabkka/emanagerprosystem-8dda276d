@@ -54,6 +54,15 @@ export function MiddleTabs({ ctx }: { ctx: any }) {
   const showTimeTab = !isPreviewMode && !isClient;
   const showHistoryTab = !isPreviewMode && !isClient;
 
+  const currentRole: string = ctx.currentRole || "";
+  const normalizedRole = currentRole.toLowerCase().replace(/\s/g, "");
+  const canArchive = ["superadmin", "boss", "koordynator"].includes(normalizedRole);
+  const canDelete = ["superadmin", "boss"].includes(normalizedRole);
+  const showManagementTab = !isClient && !isPreviewMode && (canArchive || canDelete);
+
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
   return (
     <Tabs defaultValue="description" className="h-full flex flex-col">
       <TabsList className="w-full justify-start overflow-x-auto shrink-0 bg-transparent rounded-none border-b border-border h-9 gap-1 p-0">
@@ -62,6 +71,7 @@ export function MiddleTabs({ ctx }: { ctx: any }) {
         {showTimeTab && <TabsTrigger value="time" className="text-[11px] px-3 py-1 rounded-none border-b-2 border-transparent text-muted-foreground hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-destructive data-[state=active]:border-destructive data-[state=active]:shadow-none">Czas pracy</TabsTrigger>}
         <TabsTrigger value="materials" className="text-[11px] px-3 py-1 rounded-none border-b-2 border-transparent text-muted-foreground hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-destructive data-[state=active]:border-destructive data-[state=active]:shadow-none">Materiały</TabsTrigger>
         {showHistoryTab && <TabsTrigger value="history" className="text-[11px] px-3 py-1 rounded-none border-b-2 border-transparent text-muted-foreground hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-destructive data-[state=active]:border-destructive data-[state=active]:shadow-none">Historia</TabsTrigger>}
+        {showManagementTab && <TabsTrigger value="management" className="text-[11px] px-3 py-1 rounded-none border-b-2 border-transparent text-muted-foreground hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-destructive data-[state=active]:border-destructive data-[state=active]:shadow-none">Zarządzanie</TabsTrigger>}
       </TabsList>
 
       <div className="flex-1 overflow-y-auto p-3 lg:p-4">
