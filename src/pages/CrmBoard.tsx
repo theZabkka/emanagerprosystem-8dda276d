@@ -287,8 +287,8 @@ export default function CrmBoard() {
         </div>
 
         {/* Kanban board */}
-        <div className="flex-1 overflow-x-auto overflow-y-hidden">
-          <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="flex-1 overflow-x-auto overflow-y-hidden" style={{ WebkitOverflowScrolling: "touch" }}>
+          <DragDropContext onDragEnd={handleDragEnd} autoScrollerOptions={{ startFromPercentage: 0.2, maxScrollAtPercentage: 0.05, maxPixelScroll: 25 }}>
             <Droppable droppableId="board" type="COLUMN" direction="horizontal">
               {(boardProvided) => (
                 <div
