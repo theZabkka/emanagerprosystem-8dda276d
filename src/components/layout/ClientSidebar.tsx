@@ -52,7 +52,7 @@ export function ClientSidebar() {
           )}
           <SidebarGroupContent>
             <SidebarMenu>
-              {visibleItems.map((item) => (
+              {clientItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton
                     asChild
