@@ -488,7 +488,7 @@ export default function TaskKanbanBoard({
       />
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex h-[calc(100vh-16rem)] items-stretch gap-3 overflow-x-auto overflow-y-hidden w-full pb-4 min-h-0">
-          {KANBAN_COLUMNS.map((col) => {
+          {activeColumns.map((col) => {
             const columnTasks = getColumnTasks(col.key);
             const isEmpty = columnTasks.length === 0;
             return (
