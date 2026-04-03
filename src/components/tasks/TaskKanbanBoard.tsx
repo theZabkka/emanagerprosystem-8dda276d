@@ -293,6 +293,7 @@ export default function TaskKanbanBoard({
   );
 
   const handleDragEnd = (result: DropResult) => {
+    if (isClientMode) return;
     if (!result.destination) return;
 
     const { source, destination, draggableId } = result;
