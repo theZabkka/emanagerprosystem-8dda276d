@@ -166,7 +166,7 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
       {/* Scrollable filter sections */}
       <div className="flex-1 overflow-y-auto py-2 space-y-0.5">
         {/* Klient */}
-        <Section title="Klient" active={filters.clientIds.length > 0}>
+        <Section title="Klient" defaultOpen={false} active={filters.clientIds.length > 0}>
           {clients.length > 6 && <MiniSearch value={clientSearch} onChange={setClientSearch} placeholder="Szukaj klienta..." />}
           <div className="max-h-[180px] overflow-y-auto space-y-px">
             {filteredClients.map((c) => (
