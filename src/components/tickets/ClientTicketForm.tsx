@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,7 +22,7 @@ const DEPARTMENTS = [
 
 export default function ClientTicketForm() {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState("");
@@ -30,6 +30,19 @@ export default function ClientTicketForm() {
   const [description, setDescription] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
+  const [contactId, setContactId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase
+      .from("customer_contacts")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setContactId(data.id);
+      });
+  }, [user?.id]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
@@ -48,6 +61,11 @@ export default function ClientTicketForm() {
     const clientId = profile?.client_id;
     if (!clientId) { toast.error("Brak powiązanego klienta"); return; }
 
+    if (profile?.role === "klient" && !contactId) {
+      toast.error("Nie znaleziono powiązanego kontaktu. Spróbuj odświeżyć stronę.");
+      return;
+    }
+
     setLoading(true);
     try {
       // Step 1: INSERT ticket
@@ -59,6 +77,7 @@ export default function ClientTicketForm() {
           description,
           client_id: clientId,
           created_by: profile?.id || null,
+          contact_id: contactId,
           priority: "Średni",
         } as any)
         .select("id")
