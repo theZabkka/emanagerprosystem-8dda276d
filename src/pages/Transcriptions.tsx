@@ -100,8 +100,11 @@ export default function Transcriptions() {
   /* ── helpers ── */
   const getDisplayName = (call: any) => {
     if (call.client?.name) return call.client.name;
+    const d = call.details as any;
     const num =
-      call.direction === "outbound" ? call.callee_number : call.caller_number;
+      call.direction === "outbound"
+        ? d?.callee_number ?? d?.phone
+        : d?.caller_number ?? d?.phone;
     return num || "Nieznany numer";
   };
 
