@@ -87,11 +87,11 @@ export default function Transcriptions() {
 
     if (phoneSearch.trim()) {
       const q = phoneSearch.trim().toLowerCase();
-      list = list.filter(
-        (c) =>
-          (c.caller_number ?? "").toLowerCase().includes(q) ||
-          (c.callee_number ?? "").toLowerCase().includes(q)
-      );
+      list = list.filter((c) => {
+        const d = c.details as any;
+        const nums = [d?.caller_number, d?.callee_number, d?.phone].filter(Boolean);
+        return nums.some((n: string) => n.toLowerCase().includes(q));
+      });
     }
 
     return list;
