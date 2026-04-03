@@ -267,34 +267,38 @@ export default function TaskKanbanBoard({
     onStatusChange(taskId, newStatus);
   };
 
+  const activeColumns = isClientMode ? CLIENT_KANBAN_COLUMNS : KANBAN_COLUMNS;
+  const activeColumnKeys = useMemo(() => new Set(activeColumns.map((c) => c.key)), [isClientMode]);
+
   // Source of truth: always sorted by lexo_rank (never mutated)
   const tasksByColumnRaw = useMemo(() => {
     const grouped: Record<string, any[]> = {};
-    KANBAN_COLUMNS.forEach((col) => {
+    activeColumns.forEach((col) => {
       grouped[col.key] = [];
     });
 
     optimisticTasks.forEach((task: any) => {
       if (!task?.is_archived && task?.status) {
-        const col = KANBAN_COLUMN_KEYS.has(task.status) ? task.status : "todo";
+        // Map to valid column; fallback to "todo" for unknown/internal statuses
+        const col = activeColumnKeys.has(task.status) ? task.status : "todo";
         grouped[col].push(task);
       }
     });
 
     // Always sort source of truth by lexo_rank
-    KANBAN_COLUMNS.forEach((col) => {
+    activeColumns.forEach((col) => {
       grouped[col.key].sort((a: any, b: any) => compareRanks(a.lexo_rank, b.lexo_rank));
     });
 
     return grouped;
-  }, [optimisticTasks]);
+  }, [optimisticTasks, activeColumnKeys]);
 
   // Derived state: sorted copy for display based on current sortField
   const tasksByColumn = useMemo(() => {
     if (sortField === "manual") return tasksByColumnRaw;
 
     const derived: Record<string, any[]> = {};
-    KANBAN_COLUMNS.forEach((col) => {
+    activeColumns.forEach((col) => {
       derived[col.key] = sortTasks([...tasksByColumnRaw[col.key]], sortField, sortDirection);
     });
     return derived;
