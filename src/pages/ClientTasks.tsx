@@ -12,11 +12,6 @@ export default function ClientTasks() {
   const { clientId, isClient, isPrimaryContact } = useRole();
   const { user } = useAuth();
 
-  // Guard: only clients
-  if (!isClient) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["client-kanban-tasks", clientId, isPrimaryContact, user?.id],
     queryFn: async () => {
