@@ -214,7 +214,7 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
         </Section>
 
         {/* Priorytet */}
-        <Section title="Priorytet" active={filters.priorities.length > 0}>
+        <Section title="Priorytet" defaultOpen={false} active={filters.priorities.length > 0}>
           <div className="space-y-px">
             {PRIORITY_OPTIONS.map((p) => (
               <label key={p.value} className={optionCls}>
