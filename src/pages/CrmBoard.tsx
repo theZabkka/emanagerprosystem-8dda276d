@@ -39,6 +39,7 @@ export default function CrmBoard() {
   const mutations = useCrmMutations();
 
   const [search, setSearch] = useState("");
+  const [labelFilter, setLabelFilter] = useState<string | null>(null);
   const [selectedDeal, setSelectedDeal] = useState<CrmDeal | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
