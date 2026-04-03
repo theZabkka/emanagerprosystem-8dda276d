@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     const { data: callerProfile } = await supabaseAdmin
       .from("profiles")
       .select("role")
-      .eq("id", caller.id)
+      .eq("id", callerId)
       .single();
 
     if (!callerProfile || !["superadmin", "boss"].includes(callerProfile.role || "")) {

@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
     }
     const callerId = claimsData.claims.sub;
 
-    const { data: isStaff } = await supabaseAdmin.rpc("is_staff", { _user_id: caller.id });
+    const { data: isStaff } = await supabaseAdmin.rpc("is_staff", { _user_id: callerId });
     if (!isStaff) throw new Error("Brak uprawnień");
 
     const body = await req.json();
