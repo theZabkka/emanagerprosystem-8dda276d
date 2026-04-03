@@ -266,8 +266,9 @@ export default function TaskKanbanBoard({
     });
 
     optimisticTasks.forEach((task: any) => {
-      if (!task?.is_archived && task?.status && grouped[task.status]) {
-        grouped[task.status].push(task);
+      if (!task?.is_archived && task?.status) {
+        const col = KANBAN_COLUMN_KEYS.has(task.status) ? task.status : "todo";
+        grouped[col].push(task);
       }
     });
 
