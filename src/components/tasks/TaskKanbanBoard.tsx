@@ -68,6 +68,7 @@ export default function TaskKanbanBoard({
   onQuickAdd,
   sortField = "manual",
   sortDirection = "asc",
+  isClientMode = false,
 }: TaskKanbanBoardProps) {
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
