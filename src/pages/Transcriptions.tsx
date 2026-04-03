@@ -244,51 +244,72 @@ export default function Transcriptions() {
                     }`}
                     onClick={() => toggleExpanded(call.id)}
                   >
-                    <CardContent className="p-3 flex items-center gap-3">
-                      {/* Direction icon */}
-                      <div className={`shrink-0 ${color}`}>
-                        <DirIcon className="h-5 w-5" />
+                    <CardContent className="p-3">
+                      {/* Mobile: flex layout */}
+                      <div className="flex items-center gap-3 md:hidden">
+                        <div className={`shrink-0 ${color}`}>
+                          <DirIcon className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 min-w-0 space-y-0.5">
+                          <span className={`block text-sm truncate ${displayName ? "font-semibold text-foreground" : "font-bold font-mono text-foreground"}`}>
+                            {displayName || displayNumber || "Nieznany numer"}
+                          </span>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {call.title || "Rozmowa bez tytułu"}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right space-y-0.5">
+                          <p className="text-xs text-muted-foreground">
+                            {call.called_at ? format(new Date(call.called_at), "d MMM yyyy, HH:mm", { locale: pl }) : "—"}
+                          </p>
+                          <p className="text-xs font-medium font-mono flex items-center justify-end gap-1">
+                            <Clock className="h-3 w-3" />
+                            {formatDuration(call.duration)}
+                          </p>
+                        </div>
+                        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
                       </div>
 
-                      {/* Client name / identifier – fixed width column */}
-                      <div className="shrink-0 w-[140px] md:w-[220px] min-w-0 space-y-0.5">
-                        <span className={`block text-sm truncate ${displayName ? "font-semibold text-foreground" : "font-bold font-mono text-foreground"}`}>
-                          {displayName || displayNumber || "Nieznany numer"}
-                        </span>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {call.title || "Rozmowa bez tytułu"}
-                        </p>
+                      {/* Desktop: 3-column grid */}
+                      <div className="hidden md:grid items-center" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
+                        {/* Col 1: Icon + Name + Title */}
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`shrink-0 ${color}`}>
+                            <DirIcon className="h-5 w-5" />
+                          </div>
+                          <div className="min-w-0 space-y-0.5">
+                            <span className={`block text-sm truncate ${displayName ? "font-semibold text-foreground" : "font-bold font-mono text-foreground"}`}>
+                              {displayName || displayNumber || "Nieznany numer"}
+                            </span>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {call.title || "Rozmowa bez tytułu"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Col 2: Phone number – centered */}
+                        <div className="justify-self-center">
+                          {displayNumber ? (
+                            <span className="text-sm font-mono text-muted-foreground">{displayNumber}</span>
+                          ) : (
+                            <span />
+                          )}
+                        </div>
+
+                        {/* Col 3: Metadata + chevron – right aligned */}
+                        <div className="flex items-center justify-end gap-3">
+                          <div className="text-right space-y-0.5">
+                            <p className="text-xs text-muted-foreground">
+                              {call.called_at ? format(new Date(call.called_at), "d MMM yyyy, HH:mm", { locale: pl }) : "—"}
+                            </p>
+                            <p className="text-xs font-medium font-mono flex items-center justify-end gap-1">
+                              <Clock className="h-3 w-3" />
+                              {formatDuration(call.duration)}
+                            </p>
+                          </div>
+                          <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+                        </div>
                       </div>
-
-                      {/* Phone number – aligned column, hidden on small screens if name exists */}
-                      <div className="hidden md:block shrink-0 w-[160px]">
-                        <span className="text-sm font-mono text-muted-foreground">
-                          {displayNumber || "—"}
-                        </span>
-                      </div>
-
-                      {/* Spacer */}
-                      <div className="flex-1 min-w-0" />
-
-                      {/* Metadata */}
-                      <div className="shrink-0 text-right space-y-0.5">
-                        <p className="text-xs text-muted-foreground">
-                          {call.called_at
-                            ? format(new Date(call.called_at), "d MMM yyyy, HH:mm", { locale: pl })
-                            : "—"}
-                        </p>
-                        <p className="text-xs font-medium font-mono flex items-center justify-end gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatDuration(call.duration)}
-                        </p>
-                      </div>
-
-                      {/* Expand indicator */}
-                      <ChevronDown
-                        className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${
-                          isExpanded ? "rotate-180" : ""
-                        }`}
-                      />
                     </CardContent>
                   </Card>
 
