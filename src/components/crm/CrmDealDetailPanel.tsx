@@ -22,6 +22,21 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCrmDealComments, useCrmDealLabels, useCrmLabels, useCrmMutations, type CrmDeal } from "@/hooks/useCrmData";
 
+/** Converts a datetime-local value (e.g. "2026-04-10T14:30") to an ISO string
+ *  that preserves the user's local timezone offset, avoiding the UTC-shift bug. */
+function localDatetimeToISO(dtLocal: string): string {
+  const d = new Date(dtLocal);
+  if (isNaN(d.getTime())) return dtLocal;
+  const off = -d.getTimezoneOffset();
+  const sign = off >= 0 ? "+" : "-";
+  const pad = (n: number) => String(Math.floor(Math.abs(n))).padStart(2, "0");
+  return (
+    d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) +
+    "T" + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":00" +
+    sign + pad(off / 60) + ":" + pad(off % 60)
+  );
+}
+
 const NONE_SENTINEL = "__none__";
 
 interface Props {
