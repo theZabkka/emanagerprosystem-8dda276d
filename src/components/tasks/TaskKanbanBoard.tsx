@@ -579,7 +579,7 @@ interface KanbanCardProps {
   onAssign: (taskId: string, userId: string) => void;
   onArchive?: (taskId: string) => void;
   onOpenDeleteModal?: (task: any) => void;
-  isSuperAdmin?: boolean;
+  canDeleteTask?: boolean;
   isClientMode?: boolean;
 }
 
