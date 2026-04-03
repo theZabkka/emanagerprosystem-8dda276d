@@ -433,6 +433,14 @@ const App = () => (
                         </ProtectedRoute>
                       }
                     />
+                    <Route
+                      path="/client-report"
+                      element={
+                        <ProtectedRoute>
+                          <ClientReport />
+                        </ProtectedRoute>
+                      }
+                    />
                     {stubRoutes.map((r) => (
                       <Route
                         key={r.path}
