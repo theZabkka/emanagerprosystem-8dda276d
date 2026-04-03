@@ -63,13 +63,19 @@ export function useCrmDeals(archived = false) {
   return useQuery({
     queryKey: ["crm-deals", archived],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const query = supabase
         .from("crm_deals" as any)
         .select("*, profiles:assigned_to(full_name), clients:client_id(id, name)")
-        .eq("is_archived", archived)
-        .order("lexo_rank");
+        .eq("is_archived", archived);
+      if (archived) {
+        query.order("created_at", { ascending: false });
+      } else {
+        query.order("lexo_rank");
+      }
+      const { data, error } = await query;
       if (error) throw error;
-      return (data as unknown as CrmDeal[]).sort((a, b) => compareRanks(a.lexo_rank, b.lexo_rank));
+      const deals = data as unknown as CrmDeal[];
+      return archived ? deals : deals.sort((a, b) => compareRanks(a.lexo_rank, b.lexo_rank));
     },
   });
 }
