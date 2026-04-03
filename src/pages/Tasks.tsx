@@ -276,28 +276,31 @@ export default function Tasks() {
 
   return (
     <AppLayout title="Zadania">
-      <div className="space-y-4 mx-auto">
-        <TaskAlertBanners
-          unassignedCount={unassignedCount}
-          reviewCount={reviewCount}
-          clientReviewCount={clientReviewCount}
-          notUnderstoodCount={notUnderstoodCount}
-          misunderstoodTasks={misunderstoodTasks}
-          onFilterStatus={handleFilterStatus}
-          onFilterUnassigned={handleFilterUnassigned}
-        />
+      <div className="flex flex-col h-[calc(100vh-4rem)] -m-6 overflow-hidden">
+        {/* Top banners + toolbar - fixed at top */}
+        <div className="shrink-0 px-6 pt-4 pb-2 space-y-3 bg-background">
+          <TaskAlertBanners
+            unassignedCount={unassignedCount}
+            reviewCount={reviewCount}
+            clientReviewCount={clientReviewCount}
+            notUnderstoodCount={notUnderstoodCount}
+            misunderstoodTasks={misunderstoodTasks}
+            onFilterStatus={handleFilterStatus}
+            onFilterUnassigned={handleFilterUnassigned}
+          />
 
-        <TaskFiltersTopbar
-          search={search}
-          onSearchChange={setSearch}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          onCreateClick={() => setIsCreateOpen(true)}
-          kanbanMode={kanbanMode}
-          onKanbanModeChange={setKanbanMode}
-          onToggleSidebar={() => setSidebarOpen((v) => !v)}
-          activeFilterCount={activeFilterCount}
-        />
+          <TaskFiltersTopbar
+            search={search}
+            onSearchChange={setSearch}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            onCreateClick={() => setIsCreateOpen(true)}
+            kanbanMode={kanbanMode}
+            onKanbanModeChange={setKanbanMode}
+            onToggleSidebar={() => setSidebarOpen((v) => !v)}
+            activeFilterCount={activeFilterCount}
+          />
+        </div>
 
         <CreateTaskDialog
           open={isCreateOpen}
@@ -309,7 +312,8 @@ export default function Tasks() {
           defaultStatus={quickAddStatus}
         />
 
-        <div className="flex gap-0">
+        {/* Main area: Sidebar + Board fill remaining height */}
+        <div className="flex flex-1 min-h-0">
           <TaskFilterSidebar
             filters={sidebarFilters}
             onFiltersChange={setSidebarFilters}
@@ -318,7 +322,7 @@ export default function Tasks() {
             onOpenChange={setSidebarOpen}
           />
 
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 overflow-auto">
             {emptyState ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <FileX2 className="h-12 w-12 text-muted-foreground/50 mb-4" />

@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -55,14 +54,14 @@ function Section({ title, defaultOpen = true, active = false, children }: { titl
   const [open, setOpen] = useState(defaultOpen);
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-1.5 group">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/60 group-hover:text-muted-foreground transition-colors">
+      <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-2 group">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/50 group-hover:text-muted-foreground/70 transition-colors">
           {title}
         </span>
-        <ChevronRight className={`h-3 w-3 text-muted-foreground/30 transition-transform duration-150 ${open ? "rotate-90" : ""}`} />
+        <ChevronRight className={`h-3 w-3 text-muted-foreground/25 transition-transform duration-200 ${open ? "rotate-90" : ""}`} />
       </CollapsibleTrigger>
-      <CollapsibleContent>
-        <div className={`px-3 pb-3 pt-0.5 ${active ? "border-l border-destructive/50 ml-2.5 pl-2.5" : ""}`}>
+      <CollapsibleContent className="transition-all data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0">
+        <div className={`px-4 pb-3 pt-0.5 ${active ? "border-l-2 border-destructive/40 ml-3 pl-3" : ""}`}>
           {children}
         </div>
       </CollapsibleContent>
@@ -77,7 +76,7 @@ function MiniSearch({ value, onChange, placeholder = "Szukaj..." }: { value: str
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full h-6 px-2 mb-1 text-[11px] bg-transparent border-b border-[hsl(var(--foreground)/0.06)] text-foreground/70 placeholder:text-muted-foreground/30 focus:outline-none focus:border-[hsl(var(--foreground)/0.15)] transition-colors"
+      className="w-full h-7 px-2 mb-1.5 text-xs bg-transparent border-b border-[hsl(var(--foreground)/0.06)] text-foreground/70 placeholder:text-muted-foreground/25 focus:outline-none focus:border-[hsl(var(--foreground)/0.15)] transition-colors"
     />
   );
 }
@@ -141,18 +140,18 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
     onFiltersChange({ ...filters, clientIds: [], projectIds: [], assigneeIds: [], priorities: [], types: [] });
   };
 
-  const checkboxCls = "h-3 w-3 rounded-sm border-[hsl(var(--foreground)/0.12)] data-[state=checked]:bg-destructive data-[state=checked]:border-destructive";
-  const optionCls = "flex items-center gap-2 px-1.5 py-[3px] rounded hover:bg-[hsl(var(--foreground)/0.04)] cursor-pointer transition-colors group";
-  const labelCls = "truncate flex-1 text-xs text-foreground/60 group-hover:text-foreground/80 transition-colors";
+  const checkboxCls = "h-3.5 w-3.5 rounded-sm border-[hsl(var(--foreground)/0.12)] data-[state=checked]:bg-destructive data-[state=checked]:border-destructive";
+  const optionCls = "flex items-center gap-2.5 px-2 py-1 rounded-md hover:bg-[hsl(var(--foreground)/0.04)] cursor-pointer transition-colors group";
+  const labelCls = "truncate flex-1 text-sm text-foreground/60 group-hover:text-foreground/80 transition-colors";
 
   const content = (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2.5 shrink-0">
-        <span className="text-xs font-medium text-foreground/80">Filtry</span>
+      <div className="flex items-center justify-between px-4 py-3 shrink-0">
+        <span className="text-sm font-medium text-foreground/80">Filtry</span>
         <div className="flex items-center gap-1">
           {hasAnyFilter && (
-            <button onClick={clearAll} className="text-[10px] text-destructive/60 hover:text-destructive transition-colors px-1">
+            <button onClick={clearAll} className="text-[11px] text-destructive/60 hover:text-destructive transition-colors px-1.5">
               Reset
             </button>
           )}
@@ -164,46 +163,47 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
 
       <div className="w-full h-px bg-[hsl(var(--foreground)/0.05)] shrink-0" />
 
-      <div className="flex-1 overflow-y-auto py-1.5 space-y-0.5">
+      {/* Scrollable filter sections */}
+      <div className="flex-1 overflow-y-auto py-2 space-y-0.5">
         {/* Klient */}
         <Section title="Klient" active={filters.clientIds.length > 0}>
           {clients.length > 6 && <MiniSearch value={clientSearch} onChange={setClientSearch} placeholder="Szukaj klienta..." />}
-          <div className="max-h-[160px] overflow-y-auto space-y-px">
+          <div className="max-h-[180px] overflow-y-auto space-y-px">
             {filteredClients.map((c) => (
               <label key={c.id} className={optionCls}>
                 <Checkbox checked={filters.clientIds.includes(c.id)} onCheckedChange={() => toggleArrayFilter("clientIds", c.id)} className={checkboxCls} />
                 <span className={labelCls}>{c.name}</span>
                 {taskCountsByClient[c.id] != null && taskCountsByClient[c.id] > 0 && (
-                  <span className="text-[9px] tabular-nums text-muted-foreground/30 bg-[hsl(var(--foreground)/0.04)] px-1 py-px rounded">{taskCountsByClient[c.id]}</span>
+                  <span className="text-[10px] tabular-nums text-muted-foreground/30 bg-[hsl(var(--foreground)/0.04)] px-1.5 py-0.5 rounded">{taskCountsByClient[c.id]}</span>
                 )}
               </label>
             ))}
-            {filteredClients.length === 0 && <p className="text-[10px] text-muted-foreground/30 px-1.5 py-1">Brak wyników</p>}
+            {filteredClients.length === 0 && <p className="text-[11px] text-muted-foreground/30 px-2 py-1">Brak wyników</p>}
           </div>
         </Section>
 
         {/* Projekt */}
         <Section title="Projekt" defaultOpen={false} active={filters.projectIds.length > 0}>
           {projects.length > 6 && <MiniSearch value={projectSearch} onChange={setProjectSearch} placeholder="Szukaj projektu..." />}
-          <div className="max-h-[160px] overflow-y-auto space-y-px">
+          <div className="max-h-[180px] overflow-y-auto space-y-px">
             {filteredProjects.map((p) => (
               <label key={p.id} className={optionCls}>
                 <Checkbox checked={filters.projectIds.includes(p.id)} onCheckedChange={() => toggleArrayFilter("projectIds", p.id)} className={checkboxCls} />
                 <span className={labelCls}>{p.name}</span>
               </label>
             ))}
-            {filteredProjects.length === 0 && <p className="text-[10px] text-muted-foreground/30 px-1.5 py-1">Brak projektów</p>}
+            {filteredProjects.length === 0 && <p className="text-[11px] text-muted-foreground/30 px-2 py-1">Brak projektów</p>}
           </div>
         </Section>
 
         {/* Osoby */}
         <Section title="Osoby" defaultOpen={false} active={filters.assigneeIds.length > 0}>
-          <div className="max-h-[180px] overflow-y-auto space-y-px">
+          <div className="max-h-[200px] overflow-y-auto space-y-px">
             {staffMembers.map((s, idx) => (
               <label key={s.id} className={optionCls}>
                 <Checkbox checked={filters.assigneeIds.includes(s.id)} onCheckedChange={() => toggleArrayFilter("assigneeIds", s.id)} className={checkboxCls} />
-                <Avatar className="h-4 w-4">
-                  <AvatarFallback className={`${AVATAR_COLORS[idx % AVATAR_COLORS.length]} text-[7px] text-white font-medium`}>
+                <Avatar className="h-[18px] w-[18px]">
+                  <AvatarFallback className={`${AVATAR_COLORS[idx % AVATAR_COLORS.length]} text-[8px] text-white font-medium`}>
                     {(s.full_name || "?").slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
@@ -245,11 +245,11 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
               return (
                 <button
                   key={opt.value}
-                  className="flex items-center gap-2 w-full px-1.5 py-[3px] rounded hover:bg-[hsl(var(--foreground)/0.04)] transition-colors text-left"
+                  className="flex items-center gap-2 w-full px-2 py-1 rounded-md hover:bg-[hsl(var(--foreground)/0.04)] transition-colors text-left"
                   onClick={() => onFiltersChange({ ...filters, sortField: opt.value as SortField })}
                 >
-                  <span className={`h-1 w-1 rounded-full shrink-0 ${active ? "bg-destructive" : "bg-transparent"}`} />
-                  <span className={`text-xs transition-colors ${active ? "text-foreground/90 font-medium" : "text-foreground/45"}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full shrink-0 transition-colors ${active ? "bg-destructive" : "bg-transparent"}`} />
+                  <span className={`text-sm transition-colors ${active ? "text-foreground/90 font-medium" : "text-foreground/40"}`}>
                     {opt.label}
                   </span>
                 </button>
@@ -257,12 +257,12 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
             })}
           </div>
           {filters.sortField !== "manual" && (
-            <div className="flex items-center justify-between mt-1.5 px-1.5">
-              <span className="text-[10px] text-muted-foreground/40">Malejąco</span>
+            <div className="flex items-center justify-between mt-2 px-2">
+              <span className="text-[11px] text-muted-foreground/40">Malejąco</span>
               <Switch
                 checked={filters.sortDirection === "desc"}
                 onCheckedChange={(checked) => onFiltersChange({ ...filters, sortDirection: checked ? "desc" : "asc" })}
-                className="scale-75"
+                className="scale-80"
               />
             </div>
           )}
@@ -274,7 +274,7 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
   return (
     <>
       {/* Desktop */}
-      <aside className="hidden md:flex flex-col w-[240px] max-w-[240px] shrink-0 border-r border-[hsl(var(--foreground)/0.06)] overflow-hidden bg-[hsl(var(--card)/0.5)]">
+      <aside className="hidden md:flex flex-col w-[300px] shrink-0 border-r border-[hsl(var(--foreground)/0.06)] overflow-hidden bg-background">
         {content}
       </aside>
 
@@ -282,7 +282,7 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
       {open && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => onOpenChange(false)} />
-          <div className="relative w-[240px] bg-[hsl(var(--card))] border-r border-[hsl(var(--foreground)/0.06)] flex flex-col z-10 shadow-2xl">
+          <div className="relative w-[300px] bg-background border-r border-[hsl(var(--foreground)/0.06)] flex flex-col z-10 shadow-2xl">
             {content}
           </div>
         </div>
