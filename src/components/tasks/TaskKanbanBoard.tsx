@@ -543,7 +543,7 @@ export default function TaskKanbanBoard({
                                 onAssign={handleToggleAssign}
                                 onArchive={onArchive}
                                 onOpenDeleteModal={handleOpenDeleteModal}
-                                isSuperAdmin={isSuperAdmin}
+                                canDeleteTask={canDeleteTask}
                                 isClientMode={isClientMode}
                               />
                             )}
