@@ -160,8 +160,8 @@ export default function Team() {
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteStaff(p)} disabled={deletingId === p.id} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                              {deletingId === p.id ? "Usuwanie..." : "Tak, usuń"}
+                            <AlertDialogAction onClick={() => deleteMutation.mutate(p.id)} disabled={deleteMutation.isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                              {deleteMutation.isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Usuwanie...</> : "Tak, usuń"}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
