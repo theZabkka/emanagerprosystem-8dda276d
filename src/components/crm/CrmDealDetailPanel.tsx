@@ -330,18 +330,20 @@ export function CrmDealDetailPanel({ deal, open, onClose, readOnly = false }: Pr
                   </div>
                 );
               })}
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Dodaj komentarz..."
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
-                  className="text-sm"
-                />
-                <Button size="icon" variant="ghost" onClick={handleAddComment} disabled={!commentText.trim()}>
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
+              {!readOnly && (
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Dodaj komentarz..."
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
+                    className="text-sm"
+                  />
+                  <Button size="icon" variant="ghost" onClick={handleAddComment} disabled={!commentText.trim()}>
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
