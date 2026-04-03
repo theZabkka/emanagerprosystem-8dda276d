@@ -61,6 +61,11 @@ export default function ClientTicketForm() {
     const clientId = profile?.client_id;
     if (!clientId) { toast.error("Brak powiązanego klienta"); return; }
 
+    if (profile?.role === "klient" && !contactId) {
+      toast.error("Nie znaleziono powiązanego kontaktu. Spróbuj odświeżyć stronę.");
+      return;
+    }
+
     setLoading(true);
     try {
       // Step 1: INSERT ticket
@@ -72,6 +77,7 @@ export default function ClientTicketForm() {
           description,
           client_id: clientId,
           created_by: profile?.id || null,
+          contact_id: contactId,
           priority: "Średni",
         } as any)
         .select("id")
