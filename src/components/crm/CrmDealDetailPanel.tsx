@@ -243,30 +243,32 @@ export function CrmDealDetailPanel({ deal, open, onClose, readOnly = false }: Pr
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {dealLabels.map((l) => (
-                  <Badge key={l.id} className="text-[10px] text-white cursor-pointer" style={{ backgroundColor: l.color }}
-                    onClick={() => toggleLabel.mutate({ deal_id: deal.id, label_id: l.id, attach: false })}>
-                    {l.name} ×
+                  <Badge key={l.id} className={cn("text-[10px] text-white", !readOnly && "cursor-pointer")} style={{ backgroundColor: l.color }}
+                    onClick={() => !readOnly && toggleLabel.mutate({ deal_id: deal.id, label_id: l.id, attach: false })}>
+                    {l.name}{!readOnly && " ×"}
                   </Badge>
                 ))}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-5 text-[10px] px-2">+ Dodaj</Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-48 p-2" align="start">
-                    {allLabels.map((l) => (
-                      <button
-                        key={l.id}
-                        className="flex items-center gap-2 w-full px-2 py-1 rounded text-xs hover:bg-accent"
-                        onClick={() => toggleLabel.mutate({ deal_id: deal.id, label_id: l.id, attach: !dealLabelIds.has(l.id) })}
-                      >
-                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: l.color }} />
-                        {l.name}
-                        {dealLabelIds.has(l.id) && <span className="ml-auto text-primary">✓</span>}
-                      </button>
-                    ))}
-                    {allLabels.length === 0 && <p className="text-xs text-muted-foreground p-2">Brak etykiet</p>}
-                  </PopoverContent>
-                </Popover>
+                {!readOnly && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-5 text-[10px] px-2">+ Dodaj</Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-48 p-2" align="start">
+                      {allLabels.map((l) => (
+                        <button
+                          key={l.id}
+                          className="flex items-center gap-2 w-full px-2 py-1 rounded text-xs hover:bg-accent"
+                          onClick={() => toggleLabel.mutate({ deal_id: deal.id, label_id: l.id, attach: !dealLabelIds.has(l.id) })}
+                        >
+                          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: l.color }} />
+                          {l.name}
+                          {dealLabelIds.has(l.id) && <span className="ml-auto text-primary">✓</span>}
+                        </button>
+                      ))}
+                      {allLabels.length === 0 && <p className="text-xs text-muted-foreground p-2">Brak etykiet</p>}
+                    </PopoverContent>
+                  </Popover>
+                )}
               </div>
             </div>
 
