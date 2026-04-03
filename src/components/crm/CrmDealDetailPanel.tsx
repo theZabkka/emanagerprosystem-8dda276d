@@ -226,10 +226,12 @@ export function CrmDealDetailPanel({ deal, open, onClose, readOnly = false }: Pr
                     )}
                   </span>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={startEdit}>Edytuj</Button>
-                  <Button variant="outline" size="sm" className="text-destructive" onClick={() => { archiveDeal.mutate(deal.id); onClose(); }}>Archiwizuj</Button>
-                </div>
+                {!readOnly && (
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={startEdit}>Edytuj</Button>
+                    <Button variant="outline" size="sm" className="text-destructive" onClick={() => { archiveDeal.mutate(deal.id); onClose(); }}>Archiwizuj</Button>
+                  </div>
+                )}
               </div>
             )}
 
