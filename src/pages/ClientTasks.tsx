@@ -46,6 +46,11 @@ export default function ClientTasks() {
     );
   }, [tasks]);
 
+  // Guard: only clients (hooks called above)
+  if (!isClient) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   if (isLoading) {
     return (
       <AppLayout title="Zadania">
