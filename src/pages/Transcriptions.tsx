@@ -44,10 +44,15 @@ function formatDuration(seconds: number | null) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+function normalizeDirection(raw: string): "in" | "out" {
+  if (raw === "out" || raw === "outbound" || raw === "outgoing") return "out";
+  return "in";
+}
+
 function getCallIcon(direction: string, duration: number | null, status: string) {
   const isMissed = status === "missed" || status === "no-answer" || duration === 0;
   if (isMissed) return { Icon: PhoneMissed, color: "text-destructive" };
-  if (direction === "outbound") return { Icon: PhoneOutgoing, color: "text-blue-500" };
+  if (normalizeDirection(direction) === "out") return { Icon: PhoneOutgoing, color: "text-blue-500" };
   return { Icon: PhoneIncoming, color: "text-green-500" };
 }
 
