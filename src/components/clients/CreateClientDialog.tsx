@@ -326,8 +326,8 @@ export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClie
           </div>
         </div>
 
-        <Button onClick={handleCreate} className="w-full mt-4" disabled={loading}>
-          {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+        <Button onClick={handleCreate} className="w-full mt-4" disabled={mutation.isPending}>
+          {mutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Dodaj klienta
         </Button>
       </DialogContent>
