@@ -104,6 +104,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profileData.is_contact = true;
         profileData.is_primary_contact = contactData.is_primary;
         profileData.contact_permissions = (contactData.permissions as ContactPermissions) || {};
+        // Override client_id with the actual company ID from customer_contacts
+        if (contactData.customer_id) {
+          profileData.client_id = contactData.customer_id;
+        }
         // Override full_name with contact's personal name
         const contactName = `${contactData.first_name || ""} ${contactData.last_name || ""}`.trim();
         if (contactName) {
