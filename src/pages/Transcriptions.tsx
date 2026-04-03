@@ -134,8 +134,7 @@ export default function Transcriptions() {
     }
 
     if (directionFilter !== "all") {
-      const dir = directionFilter === "in" ? "inbound" : "outbound";
-      list = list.filter((c) => c.direction === dir);
+      list = list.filter((c) => normalizeDirection(c.direction) === directionFilter);
     }
 
     if (phoneSearch.trim()) {
