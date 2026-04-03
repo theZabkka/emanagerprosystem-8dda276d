@@ -787,6 +787,23 @@ export default function TaskDetail() {
     queryClient,
     statusLabels,
     statusColors,
+    currentRole,
+    onArchiveTask: async (taskId: string) => {
+      const { error } = await supabase
+        .from("tasks")
+        .update({ is_archived: true, archived_at: new Date().toISOString() } as any)
+        .eq("id", taskId);
+      if (error) {
+        toast.error("Nie udało się zarchiwizować zadania");
+        return;
+      }
+      toast.success("Zadanie zarchiwizowane");
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      navigate("/tasks");
+    },
+    onDeleteTask: (_deletedId: string) => {
+      navigate("/tasks");
+    },
   };
 
   return (
