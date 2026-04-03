@@ -55,6 +55,7 @@ const ResponseTemplates = lazy(() => import("./pages/ResponseTemplates"));
 const VaultPage = lazy(() => import("./pages/VaultPage"));
 const UpdatePassword = lazy(() => import("./pages/UpdatePassword"));
 const Transcriptions = lazy(() => import("./pages/Transcriptions"));
+const ClientReport = lazy(() => import("./pages/ClientReport"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -429,6 +430,14 @@ const App = () => (
                       element={
                         <ProtectedRoute>
                           <Transcriptions />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/client-report"
+                      element={
+                        <ProtectedRoute>
+                          <ClientReport />
                         </ProtectedRoute>
                       }
                     />

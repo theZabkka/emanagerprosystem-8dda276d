@@ -1,4 +1,4 @@
-import { LayoutDashboard, TicketCheck, Lightbulb, LogOut, CheckSquare } from "lucide-react";
+import { LayoutDashboard, TicketCheck, Lightbulb, LogOut, CheckSquare, FileBarChart } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,6 +18,7 @@ const clientItems: { title: string; url: string; icon: any; permKey: string | nu
   { title: "Moje Zadania", url: "/client/tasks", icon: CheckSquare, permKey: "projects" },
   { title: "Zgłoszenia", url: "/client/tickets", icon: TicketCheck, permKey: "support" },
   { title: "Zgłoś pomysł", url: "/client-ideas", icon: Lightbulb, permKey: null },
+  { title: "Raport", url: "/client-report", icon: FileBarChart, permKey: null },
 ];
 
 export function ClientSidebar() {
