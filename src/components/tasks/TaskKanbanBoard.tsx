@@ -724,7 +724,7 @@ const KanbanCard = React.memo(function KanbanCard({
                 {(task.logged_time / 60).toFixed(1)}h
               </span>
             )}
-            {(columnKey === "closed" || (isSuperAdmin && onOpenDeleteModal)) && (
+            {(columnKey === "closed" || (canDeleteTask && onOpenDeleteModal)) && (
               <div className="flex flex-col items-end gap-1 mt-2 relative z-10">
                 {columnKey === "closed" && onArchive && (
                   <Button
