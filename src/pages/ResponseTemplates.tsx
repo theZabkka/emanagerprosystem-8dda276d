@@ -40,7 +40,7 @@ export default function ResponseTemplates() {
     queryKey: ["response-templates"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("response_templates" as any)
+        .from("response_templates")
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
