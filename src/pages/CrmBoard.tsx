@@ -421,93 +421,18 @@ export default function CrmBoard() {
       {/* Archive drawer */}
       <CrmArchiveDrawer open={archiveOpen} onClose={() => setArchiveOpen(false)} />
 
-      {/* Create deal dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Nowa karta</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2 sm:col-span-2">
-                <Label>Tytuł *</Label>
-                <Input value={newDeal.title} onChange={(e) => setNewDeal({ ...newDeal, title: e.target.value })} placeholder="Nazwa karty" />
-              </div>
-              <div className="space-y-2">
-                <Label>Etap *</Label>
-                <Select value={newDeal.column_id} onValueChange={(v) => setNewDeal({ ...newDeal, column_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Wybierz etap..." /></SelectTrigger>
-                  <SelectContent>
-                    {columns.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Termin</Label>
-                <Input type="datetime-local" value={newDeal.due_date} onChange={(e) => setNewDeal({ ...newDeal, due_date: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Klient</Label>
-                <Select value={newDeal.client_id || NONE_SENTINEL} onValueChange={(v) => setNewDeal({ ...newDeal, client_id: v === NONE_SENTINEL ? "" : v })}>
-                  <SelectTrigger><SelectValue placeholder="Wybierz klienta..." /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE_SENTINEL}>Brak</SelectItem>
-                    {clientsList.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Przypisana osoba</Label>
-                <Select value={newDeal.assigned_to || NONE_SENTINEL} onValueChange={(v) => setNewDeal({ ...newDeal, assigned_to: v === NONE_SENTINEL ? "" : v })}>
-                  <SelectTrigger><SelectValue placeholder="Wybierz osobę..." /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE_SENTINEL}>Brak</SelectItem>
-                    {staff.map((s) => <SelectItem key={s.id} value={s.id}>{s.full_name || "Bez nazwy"}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Opis</Label>
-              <Textarea
-                value={newDeal.description}
-                onChange={(e) => setNewDeal({ ...newDeal, description: e.target.value })}
-                placeholder="Opcjonalny opis karty..."
-                rows={3}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Etykiety</Label>
-              <div className="flex flex-wrap gap-1.5">
-                {allLabels.map((l) => {
-                  const isSelected = newDeal.selectedLabels.includes(l.id);
-                  return (
-                    <button
-                      key={l.id}
-                      type="button"
-                      onClick={() => setNewDeal({
-                        ...newDeal,
-                        selectedLabels: isSelected
-                          ? newDeal.selectedLabels.filter((id) => id !== l.id)
-                          : [...newDeal.selectedLabels, l.id],
-                      })}
-                      className={cn(
-                        "text-[11px] font-medium px-2 py-0.5 rounded-full border transition-all",
-                        isSelected ? "text-white border-transparent" : "text-foreground border-border bg-muted/50"
-                      )}
-                      style={isSelected ? { backgroundColor: l.color } : undefined}
-                    >
-                      {l.name} {isSelected && "✓"}
-                    </button>
-                  );
-                })}
-                {allLabels.length === 0 && <span className="text-xs text-muted-foreground">Brak etykiet — utwórz je przyciskiem "Etykiety"</span>}
-              </div>
-            </div>
-            <Button onClick={handleCreateDeal} className="w-full" disabled={createDealMutation.isPending || !newDeal.title.trim() || !newDeal.column_id}>
-              {createDealMutation.isPending ? "Tworzenie..." : "Dodaj kartę"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <CreateDealDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        newDeal={newDeal}
+        onNewDealChange={setNewDeal}
+        onSubmit={handleCreateDeal}
+        isPending={createDealMutation.isPending}
+        columns={columns}
+        clientsList={clientsList}
+        staff={staff}
+        allLabels={allLabels}
+      />
 
       {/* Label manager dialog */}
       <Dialog open={labelManagerOpen} onOpenChange={setLabelManagerOpen}>
