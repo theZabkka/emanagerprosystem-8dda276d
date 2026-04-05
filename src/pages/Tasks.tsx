@@ -82,43 +82,89 @@ export default function Tasks() {
     }
   }, []);
 
-  // Server-side filtered query
+  const SELECT_FIELDS =
+    "id, title, status, priority, due_date, lexo_rank, client_id, project_id, type, " +
+    "parent_task_id, not_understood, not_understood_at, is_misunderstood, correction_severity, " +
+    "is_archived, estimated_time, logged_time, updated_at, created_at, status_updated_at, " +
+    "clients(name, has_retainer), projects(name), task_assignments(user_id, role, profiles:user_id(full_name))";
+
+  const KANBAN_STATUSES = ["new","todo","in_progress","waiting_for_client","review","corrections","client_review","client_verified","done","cancelled"] as const;
+  const PER_STATUS_LIMIT = 300;
+
+  const applyServerFilters = (q: any) => {
+    if (sidebarFilters.clientIds.length > 0) q = q.in("client_id", sidebarFilters.clientIds);
+    if (sidebarFilters.projectIds.length > 0) q = q.in("project_id", sidebarFilters.projectIds);
+    if (sidebarFilters.priorities.length > 0) q = q.in("priority", sidebarFilters.priorities as ("critical" | "high" | "medium" | "low")[]);
+    return q;
+  };
+
+  // Kanban: per-status queries with 300 limit each
   const {
-    data: tasks,
-    isLoading,
-    refetch,
-  } = useQuery<TaskWithRelations[]>({
-    queryKey: ["tasks", sidebarFilters.clientIds, sidebarFilters.projectIds, sidebarFilters.assigneeIds, sidebarFilters.priorities],
+    data: kanbanData,
+    isLoading: kanbanLoading,
+    refetch: kanbanRefetch,
+  } = useQuery<{ tasks: TaskWithRelations[]; truncatedColumns: string[] }>({
+    queryKey: ["tasks-kanban", sidebarFilters.clientIds, sidebarFilters.projectIds, sidebarFilters.assigneeIds, sidebarFilters.priorities],
     queryFn: async () => {
+      const results = await Promise.all(
+        KANBAN_STATUSES.map((status) => {
+          let q = supabase
+            .from("tasks")
+            .select(SELECT_FIELDS)
+            .eq("is_archived", false)
+            .eq("status", status)
+            .order("lexo_rank", { ascending: true })
+            .limit(PER_STATUS_LIMIT);
+          q = applyServerFilters(q);
+          return q;
+        }),
+      );
+      const tasks = results.flatMap((r) => (r.data ?? []));
+      const truncatedColumns = KANBAN_STATUSES.filter((_, i) => (results[i].data?.length ?? 0) >= PER_STATUS_LIMIT);
+      return { tasks: tasks as unknown as TaskWithRelations[], truncatedColumns: [...truncatedColumns] };
+    },
+    staleTime: 2 * 60 * 1000,
+    enabled: viewMode === "kanban",
+  });
+
+  // List: infinite query with pagination
+  const PAGE_SIZE = 50;
+  const {
+    data: listData,
+    isLoading: listLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch: listRefetch,
+  } = useInfiniteQuery<TaskWithRelations[]>({
+    queryKey: ["tasks-list", sidebarFilters.clientIds, sidebarFilters.projectIds, sidebarFilters.assigneeIds, sidebarFilters.priorities],
+    queryFn: async ({ pageParam = 0 }) => {
+      const from = (pageParam as number) * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
       let q = supabase
         .from("tasks")
-        .select(
-          "id, title, status, priority, due_date, lexo_rank, client_id, project_id, type, " +
-            "parent_task_id, not_understood, not_understood_at, is_misunderstood, correction_severity, " +
-            "is_archived, estimated_time, logged_time, updated_at, created_at, status_updated_at, " +
-            "clients(name, has_retainer), projects(name), task_assignments(user_id, role, profiles:user_id(full_name))",
-        )
+        .select(SELECT_FIELDS)
         .eq("is_archived", false)
         .order("lexo_rank", { ascending: true })
-        .limit(500);
-
-      // Server-side filters (AND logic)
-      if (sidebarFilters.clientIds.length > 0) {
-        q = q.in("client_id", sidebarFilters.clientIds);
-      }
-      if (sidebarFilters.projectIds.length > 0) {
-        q = q.in("project_id", sidebarFilters.projectIds);
-      }
-      if (sidebarFilters.priorities.length > 0) {
-        q = q.in("priority", sidebarFilters.priorities as ("critical" | "high" | "medium" | "low")[]);
-      }
-
+        .range(from, to);
+      q = applyServerFilters(q);
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as unknown as TaskWithRelations[];
     },
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.length < PAGE_SIZE) return undefined;
+      return allPages.length;
+    },
+    initialPageParam: 0,
     staleTime: 2 * 60 * 1000,
+    enabled: viewMode === "list",
   });
+
+  const tasks = viewMode === "kanban" ? (kanbanData?.tasks ?? []) : (listData?.pages.flat() ?? []);
+  const truncatedColumns = kanbanData?.truncatedColumns ?? [];
+  const isLoading = viewMode === "kanban" ? kanbanLoading : listLoading;
+  const refetch = viewMode === "kanban" ? kanbanRefetch : listRefetch;
 
   const today = new Date().toISOString().split("T")[0];
 
