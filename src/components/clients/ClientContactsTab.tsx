@@ -46,7 +46,7 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
     queryKey: ["customer-contacts", clientId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("customer_contacts" as any)
+        .from("customer_contacts")
         .select("*")
         .eq("customer_id", clientId)
         .order("is_primary", { ascending: false })
