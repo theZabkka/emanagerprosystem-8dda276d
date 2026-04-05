@@ -273,7 +273,7 @@ export default function Tasks() {
       });
 
       if (error) {
-        queryClient.setQueryData(queryKey, previousTasks);
+        queryClient.setQueryData(queryKey, previousData);
         toast.error("Nie udało się zapisać zmiany statusu.");
         return;
       }
