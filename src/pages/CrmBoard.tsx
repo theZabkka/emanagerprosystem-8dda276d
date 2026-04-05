@@ -546,14 +546,15 @@ function useCrmLabelsForDeals(dealIds: string[]) {
     enabled: dealIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("crm_deal_labels" as any)
+        .from("crm_deal_labels")
         .select("deal_id, crm_labels(id, name, color)")
         .in("deal_id", dealIds);
       if (error) throw error;
       const map: Record<string, Array<{ id: string; name: string; color: string }>> = {};
-      (data as any[]).forEach((row: any) => {
-        if (!map[row.deal_id]) map[row.deal_id] = [];
-        if (row.crm_labels) map[row.deal_id].push(row.crm_labels);
+      (data ?? []).forEach((row) => {
+        const dealId = row.deal_id;
+        if (!map[dealId]) map[dealId] = [];
+        if ((row as any).crm_labels) map[dealId].push((row as any).crm_labels);
       });
       return map;
     },
