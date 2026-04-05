@@ -104,7 +104,7 @@ export default function AdminTicketForm() {
             ticket_id: ticket.id,
             file_url: urlData.publicUrl,
             file_name: file.name,
-          } as any);
+          });
         }
       }
 
