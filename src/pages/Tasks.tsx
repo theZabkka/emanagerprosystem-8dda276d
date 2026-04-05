@@ -301,7 +301,7 @@ export default function Tasks() {
         .eq("id", taskId);
 
       if (error) {
-        queryClient.setQueryData(queryKey, previousTasks);
+        queryClient.setQueryData(queryKey, previousData);
         toast.error("Nie udało się zapisać kolejności.");
       }
     },
