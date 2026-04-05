@@ -282,7 +282,7 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
       {open && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => onOpenChange(false)} />
-          <div className="relative w-[300px] bg-background border-r border-[hsl(var(--foreground)/0.06)] flex flex-col z-10 shadow-2xl">
+          <div className="relative w-[240px] bg-background border-r border-[hsl(var(--foreground)/0.06)] flex flex-col z-10 shadow-2xl">
             {content}
           </div>
         </div>
