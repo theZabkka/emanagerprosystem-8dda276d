@@ -185,7 +185,7 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
         {/* Projekt */}
         <Section title="Projekt" defaultOpen={false} active={filters.projectIds.length > 0}>
           {projects.length > 6 && <MiniSearch value={projectSearch} onChange={setProjectSearch} placeholder="Szukaj projektu..." />}
-          <div className="max-h-[180px] overflow-y-auto space-y-px">
+          <div className="max-h-[160px] overflow-y-auto space-y-px">
             {filteredProjects.map((p) => (
               <label key={p.id} className={optionCls}>
                 <Checkbox checked={filters.projectIds.includes(p.id)} onCheckedChange={() => toggleArrayFilter("projectIds", p.id)} className={checkboxCls} />
