@@ -124,7 +124,7 @@ export default function Tasks() {
 
   // Client-side filters for things that can't easily be done server-side
   const filteredTasks = useMemo(() => {
-    return (tasks || []).filter((t: any) => {
+    return (tasks || []).filter((t) => {
       const title = typeof t.title === "string" ? t.title : "";
       const matchesSearch =
         title.toLowerCase().includes(search.toLowerCase()) || t.id.toLowerCase().includes(search.toLowerCase());
@@ -135,16 +135,16 @@ export default function Tasks() {
 
       // Assignee filter (needs client-side because it's through task_assignments join)
       if (sidebarFilters.assigneeIds.length > 0) {
-        const assigned = (t.task_assignments || []).some((a: any) => sidebarFilters.assigneeIds.includes(a.user_id));
+        const assigned = (t.task_assignments || []).some((a) => sidebarFilters.assigneeIds.includes(a.user_id));
         if (!assigned) return false;
       }
 
       // Type filter
       if (sidebarFilters.types.length > 0) {
         const allTasks = tasks || [];
-        const isParent = !(t as any).parent_task_id && allTasks.some((mt: any) => mt.parent_task_id === t.id);
-        const isSubtask = !!(t as any).parent_task_id;
-        const isStandalone = !(t as any).parent_task_id && !allTasks.some((mt: any) => mt.parent_task_id === t.id);
+        const isParent = !t.parent_task_id && allTasks.some((mt) => mt.parent_task_id === t.id);
+        const isSubtask = !!t.parent_task_id;
+        const isStandalone = !t.parent_task_id && !allTasks.some((mt) => mt.parent_task_id === t.id);
         const matchesType = sidebarFilters.types.some((type) => {
           if (type === "parent") return isParent;
           if (type === "subtask") return isSubtask;
@@ -161,7 +161,7 @@ export default function Tasks() {
   // Task counts by client for sidebar badges
   const taskCountsByClient = useMemo(() => {
     const counts: Record<string, number> = {};
-    (tasks || []).forEach((t: any) => {
+    (tasks || []).forEach((t) => {
       if (t.client_id) counts[t.client_id] = (counts[t.client_id] || 0) + 1;
     });
     return counts;
@@ -170,13 +170,13 @@ export default function Tasks() {
   const activeFilterCount = sidebarFilters.clientIds.length + sidebarFilters.projectIds.length + sidebarFilters.assigneeIds.length + sidebarFilters.priorities.length + sidebarFilters.types.length;
 
   const allTasks = tasks || [];
-  const unassignedCount = allTasks.filter((t: any) => isUnassignedAlertCandidate(t)).length;
-  const reviewCount = allTasks.filter((t: any) => t.status === "review").length;
-  const clientReviewCount = allTasks.filter((t: any) => t.status === "client_review").length;
-  const notUnderstoodCount = allTasks.filter((t: any) => t.not_understood).length;
+  const unassignedCount = allTasks.filter((t) => isUnassignedAlertCandidate(t)).length;
+  const reviewCount = allTasks.filter((t) => t.status === "review").length;
+  const clientReviewCount = allTasks.filter((t) => t.status === "client_review").length;
+  const notUnderstoodCount = allTasks.filter((t) => t.not_understood).length;
   const misunderstoodTasks = allTasks
-    .filter((t: any) => t.not_understood)
-    .map((t: any) => ({ id: t.id, not_understood_at: t.not_understood_at }));
+    .filter((t) => t.not_understood)
+    .map((t) => ({ id: t.id, not_understood_at: t.not_understood_at }));
 
   const handleFilterStatus = (status: string) => {
     setStatusFilter((prev) => (prev === status ? "all" : status));
