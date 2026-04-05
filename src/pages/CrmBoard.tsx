@@ -26,6 +26,7 @@ import { CrmDealCard } from "@/components/crm/CrmDealCard";
 import { CrmDealDetailPanel } from "@/components/crm/CrmDealDetailPanel";
 import { CrmArchiveDrawer } from "@/components/crm/CrmArchiveDrawer";
 import { CrmLabelManager } from "@/components/crm/CrmLabelManager";
+import { CreateDealDialog, type NewDealFormData } from "@/components/crm/CreateDealDialog";
 
 const NONE_SENTINEL = "__none__";
 
