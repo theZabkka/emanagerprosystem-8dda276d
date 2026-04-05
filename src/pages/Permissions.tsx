@@ -43,9 +43,10 @@ export default function Permissions() {
 
     const { error } = await supabase
       .from("role_permissions")
-      .update({ can_view: newVal } as any)
-      .eq("role_name", role)
-      .eq("module_name", module);
+      .upsert(
+        { role_name: role, module_name: module, can_view: newVal },
+        { onConflict: "role_name,module_name" }
+      );
     if (error) {
       toast.error("Błąd zapisu: " + error.message);
       refreshPermissions();

@@ -402,9 +402,9 @@ const App = () => (
                     <Route
                       path="/admin/bugs"
                       element={
-                        <ProtectedRoute>
+                        <AdminRoute>
                           <AdminBugs />
-                        </ProtectedRoute>
+                        </AdminRoute>
                       }
                     />
                     <Route

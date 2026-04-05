@@ -75,7 +75,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
   const { data: profiles = [] } = useStaffMembers();
 
   const profileMap = new Map(profiles.map((p) => [p.id, p]));
-  const isStaff = profile?.role && ["superadmin", "boss", "koordynator", "admin"].includes(profile.role);
+  const isStaff = profile?.role && ["superadmin", "boss", "koordynator"].includes(profile.role);
 
   const canManageNote = (authorId: string | null) => {
     if (!user) return false;

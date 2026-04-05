@@ -45,7 +45,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const roleLoading = authLoading || (!!session && !profile);
   const currentRole: AppRoleName = (profile?.role as AppRoleName) || "specjalista";
   const isClient = currentRole === "klient";
-  const clientId = (profile as any)?.client_id || null;
+  const clientId = profile?.client_id || null;
   const isPrimaryContact = profile?.is_primary_contact ?? false;
   const contactPermissions: ContactPermissions = profile?.contact_permissions ?? {};
 
