@@ -80,7 +80,7 @@ export default function AdminTicketForm() {
           created_by: profile?.id || null,
           priority,
           assigned_to: assignedTo,
-        } as any)
+        })
         .select("id")
         .single();
 
