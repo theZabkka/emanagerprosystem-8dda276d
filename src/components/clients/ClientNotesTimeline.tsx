@@ -148,7 +148,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
     queryClient.setQueryData<ClientNote[]>(queryKey, (old) => (old || []).filter((n) => n.id !== noteId));
 
     try {
-      const { error } = await (supabase.from("client_notes" as any) as any).delete().eq("id", noteId);
+      const { error } = await supabase.from("client_notes").delete().eq("id", noteId);
       if (error) throw error;
       toast.success("Notatka usunięta");
     } catch {
