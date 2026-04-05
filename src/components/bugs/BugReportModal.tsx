@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Paperclip, X, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface BugReportModalProps {
   open: boolean;
@@ -84,12 +84,12 @@ export function BugReportModal({ open, onOpenChange }: BugReportModalProps) {
         });
       }
 
-      toast({ title: "Zgłoszenie zostało wysłane", description: "Dziękujemy za raport błędu." });
+      toast.success("Zgłoszenie zostało wysłane", { description: "Dziękujemy za raport błędu." });
       reset();
       onOpenChange(false);
     } catch (err: any) {
       console.error(err);
-      toast({ title: "Błąd", description: err.message || "Nie udało się wysłać zgłoszenia.", variant: "destructive" });
+      toast.error("Błąd", { description: err.message || "Nie udało się wysłać zgłoszenia." });
     } finally {
       setSubmitting(false);
     }

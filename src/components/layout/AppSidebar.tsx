@@ -26,6 +26,13 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { ThemeLogo } from "@/components/ThemeLogo";
 
+const STUB_URLS = new Set([
+  "/routines", "/contracts", "/orders", "/micro-interventions", "/client-inbox",
+  "/meetings", "/absences", "/equipment", "/retention", "/reports",
+  "/team-results", "/team-notes", "/team-analytics", "/recurring-tasks",
+  "/suggestions", "/project-guide",
+]);
+
 const sections = [
   {
     label: "GŁÓWNE",
@@ -205,25 +212,43 @@ export function AppSidebar() {
               )}
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {visibleItems.map((item) => (
+                  {visibleItems.map((item) => {
+                    const isStub = STUB_URLS.has(item.url);
+                    return (
                     <SidebarMenuItem key={item.url}>
                       <SidebarMenuButton
-                        asChild
-                        isActive={location.pathname === item.url || location.pathname.startsWith(item.url + "/")}
+                        asChild={!isStub}
+                        isActive={!isStub && (location.pathname === item.url || location.pathname.startsWith(item.url + "/"))}
                         tooltip={item.title}
+                        className={isStub ? "opacity-50 cursor-not-allowed pointer-events-none" : ""}
                       >
-                        <NavLink
-                          to={item.url}
-                          end
-                          className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                          activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                        >
-                          <item.icon className="h-4 w-4 shrink-0" />
-                          {!collapsed && <span>{item.title}</span>}
-                        </NavLink>
+                        {isStub ? (
+                          <span className="flex items-center gap-2 hover:bg-transparent">
+                            <item.icon className="h-4 w-4 shrink-0" />
+                            {!collapsed && (
+                              <>
+                                <span>{item.title}</span>
+                                <Badge variant="outline" className="ml-auto text-[9px] h-4 px-1 text-muted-foreground border-muted-foreground/30">
+                                  Wkrótce
+                                </Badge>
+                              </>
+                            )}
+                          </span>
+                        ) : (
+                          <NavLink
+                            to={item.url}
+                            end
+                            className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                            activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                          >
+                            <item.icon className="h-4 w-4 shrink-0" />
+                            {!collapsed && <span>{item.title}</span>}
+                          </NavLink>
+                        )}
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                  ))}
+                    );
+                  })}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>

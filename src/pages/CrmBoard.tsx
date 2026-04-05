@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { Plus, Archive, Search, MoreHorizontal, GripVertical, Pencil, Trash2, Tag } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,41 @@ export default function CrmBoard() {
   const [newColumnName, setNewColumnName] = useState("");
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
   const [editingColumnName, setEditingColumnName] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
+  const createDealMutation = useMutation({
+    mutationFn: async (deal: typeof emptyDeal) => {
+      const colDeals = deals.filter((d) => d.column_id === deal.column_id);
+      const lastRank = colDeals.length > 0 ? colDeals[colDeals.length - 1].lexo_rank : null;
+      const rank = lastRank ? generateRankAfter(lastRank) : generateMidpointRank(null, null);
+
+      const { data: inserted, error } = await supabase.from("crm_deals" as any).insert({
+        title: deal.title.trim(),
+        column_id: deal.column_id,
+        priority: "medium",
+        due_date: deal.due_date ? new Date(deal.due_date).toISOString() : null,
+        lexo_rank: rank,
+        reminder_active: true,
+        description: deal.description || null,
+        assigned_to: deal.assigned_to || null,
+        client_id: deal.client_id || null,
+      } as any).select("id").maybeSingle();
+      if (error) throw error;
+
+      if (inserted && deal.selectedLabels.length > 0) {
+        const rows = deal.selectedLabels.map((label_id) => ({ deal_id: (inserted as any).id, label_id }));
+        await supabase.from("crm_deal_labels" as any).insert(rows as any);
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["crm-deals"] });
+      qc.invalidateQueries({ queryKey: ["crm-all-deal-labels"] });
+      setCreateOpen(false);
+      setNewDeal(emptyDeal);
+      toast.success("Karta dodana");
+    },
+    onError: (err: any) => {
+      toast.error("Błąd tworzenia: " + (err?.message || "Nieznany błąd"));
+    },
+  });
 
   const emptyDeal = { title: "", column_id: "", due_date: "", client_id: "", description: "", assigned_to: "", selectedLabels: [] as string[] };
   const [newDeal, setNewDeal] = useState(emptyDeal);
@@ -195,47 +229,13 @@ export default function CrmBoard() {
     [columns, dealsByColumn, qc, mutations]
   );
 
-  const handleCreateDeal = async () => {
+  const handleCreateDeal = () => {
     if (!newDeal.title.trim() || !newDeal.column_id) {
       toast.error("Podaj tytuł i wybierz kolumnę");
       return;
     }
-    setIsCreating(true);
-    try {
-      const colDeals = deals.filter((d) => d.column_id === newDeal.column_id);
-      const lastRank = colDeals.length > 0 ? colDeals[colDeals.length - 1].lexo_rank : null;
-      const rank = lastRank ? generateRankAfter(lastRank) : generateMidpointRank(null, null);
-
-      // Insert deal
-      const { data: inserted, error } = await supabase.from("crm_deals" as any).insert({
-        title: newDeal.title.trim(),
-        column_id: newDeal.column_id,
-        priority: "medium",
-        due_date: newDeal.due_date ? new Date(newDeal.due_date).toISOString() : null,
-        lexo_rank: rank,
-        reminder_active: true,
-        description: newDeal.description || null,
-        assigned_to: newDeal.assigned_to || null,
-        client_id: newDeal.client_id || null,
-      } as any).select("id").maybeSingle();
-      if (error) throw error;
-
-      // Attach labels if any
-      if (inserted && newDeal.selectedLabels.length > 0) {
-        const rows = newDeal.selectedLabels.map((label_id) => ({ deal_id: (inserted as any).id, label_id }));
-        await supabase.from("crm_deal_labels" as any).insert(rows as any);
-      }
-
-      qc.invalidateQueries({ queryKey: ["crm-deals"] });
-      qc.invalidateQueries({ queryKey: ["crm-all-deal-labels"] });
-      setCreateOpen(false);
-      setNewDeal(emptyDeal);
-      toast.success("Karta dodana");
-    } catch (err: any) {
-      toast.error("Błąd tworzenia: " + (err?.message || "Nieznany błąd"));
-    } finally {
-      setIsCreating(false);
-    }
+    createDealMutation.mutate(newDeal);
+  };
   };
   const handleCreateColumn = () => {
     if (!newColumnName.trim()) return;
@@ -504,8 +504,8 @@ export default function CrmBoard() {
                 {allLabels.length === 0 && <span className="text-xs text-muted-foreground">Brak etykiet — utwórz je przyciskiem "Etykiety"</span>}
               </div>
             </div>
-            <Button onClick={handleCreateDeal} className="w-full" disabled={isCreating || !newDeal.title.trim() || !newDeal.column_id}>
-              {isCreating ? "Tworzenie..." : "Dodaj kartę"}
+            <Button onClick={handleCreateDeal} className="w-full" disabled={createDealMutation.isPending || !newDeal.title.trim() || !newDeal.column_id}>
+              {createDealMutation.isPending ? "Tworzenie..." : "Dodaj kartę"}
             </Button>
           </div>
         </DialogContent>
