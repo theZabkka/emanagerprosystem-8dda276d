@@ -67,6 +67,7 @@ export default function TaskKanbanBoard({
   sortField = "manual",
   sortDirection = "asc",
   isClientMode = false,
+  truncatedColumns = [],
 }: TaskKanbanBoardProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
