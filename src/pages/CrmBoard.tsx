@@ -54,7 +54,7 @@ export default function CrmBoard() {
       const lastRank = colDeals.length > 0 ? colDeals[colDeals.length - 1].lexo_rank : null;
       const rank = lastRank ? generateRankAfter(lastRank) : generateMidpointRank(null, null);
 
-      const { data: inserted, error } = await supabase.from("crm_deals" as any).insert({
+      const { data: inserted, error } = await supabase.from("crm_deals").insert({
         title: deal.title.trim(),
         column_id: deal.column_id,
         priority: "medium",
@@ -64,12 +64,12 @@ export default function CrmBoard() {
         description: deal.description || null,
         assigned_to: deal.assigned_to || null,
         client_id: deal.client_id || null,
-      } as any).select("id").maybeSingle();
+      }).select("id").maybeSingle();
       if (error) throw error;
 
       if (inserted && deal.selectedLabels.length > 0) {
-        const rows = deal.selectedLabels.map((label_id) => ({ deal_id: (inserted as any).id, label_id }));
-        await supabase.from("crm_deal_labels" as any).insert(rows as any);
+        const rows = deal.selectedLabels.map((label_id) => ({ deal_id: inserted.id, label_id }));
+        await supabase.from("crm_deal_labels").insert(rows);
       }
     },
     onSuccess: () => {
