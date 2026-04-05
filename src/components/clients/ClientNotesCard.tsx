@@ -127,7 +127,7 @@ export function ClientNotesCard({ clientId, onShowAll }: ClientNotesCardProps) {
     try {
       // First unpin all notes for this client
       if (!currentlyPinned) {
-        await (supabase.from("client_notes" as any) as any)
+        await supabase.from("client_notes")
           .update({ is_pinned: false })
           .eq("client_id", clientId)
           .eq("is_pinned", true);
