@@ -229,47 +229,13 @@ export default function CrmBoard() {
     [columns, dealsByColumn, qc, mutations]
   );
 
-  const handleCreateDeal = async () => {
+  const handleCreateDeal = () => {
     if (!newDeal.title.trim() || !newDeal.column_id) {
       toast.error("Podaj tytuł i wybierz kolumnę");
       return;
     }
-    setIsCreating(true);
-    try {
-      const colDeals = deals.filter((d) => d.column_id === newDeal.column_id);
-      const lastRank = colDeals.length > 0 ? colDeals[colDeals.length - 1].lexo_rank : null;
-      const rank = lastRank ? generateRankAfter(lastRank) : generateMidpointRank(null, null);
-
-      // Insert deal
-      const { data: inserted, error } = await supabase.from("crm_deals" as any).insert({
-        title: newDeal.title.trim(),
-        column_id: newDeal.column_id,
-        priority: "medium",
-        due_date: newDeal.due_date ? new Date(newDeal.due_date).toISOString() : null,
-        lexo_rank: rank,
-        reminder_active: true,
-        description: newDeal.description || null,
-        assigned_to: newDeal.assigned_to || null,
-        client_id: newDeal.client_id || null,
-      } as any).select("id").maybeSingle();
-      if (error) throw error;
-
-      // Attach labels if any
-      if (inserted && newDeal.selectedLabels.length > 0) {
-        const rows = newDeal.selectedLabels.map((label_id) => ({ deal_id: (inserted as any).id, label_id }));
-        await supabase.from("crm_deal_labels" as any).insert(rows as any);
-      }
-
-      qc.invalidateQueries({ queryKey: ["crm-deals"] });
-      qc.invalidateQueries({ queryKey: ["crm-all-deal-labels"] });
-      setCreateOpen(false);
-      setNewDeal(emptyDeal);
-      toast.success("Karta dodana");
-    } catch (err: any) {
-      toast.error("Błąd tworzenia: " + (err?.message || "Nieznany błąd"));
-    } finally {
-      setIsCreating(false);
-    }
+    createDealMutation.mutate(newDeal);
+  };
   };
   const handleCreateColumn = () => {
     if (!newColumnName.trim()) return;
