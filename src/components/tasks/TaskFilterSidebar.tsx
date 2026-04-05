@@ -54,7 +54,7 @@ function Section({ title, defaultOpen = true, active = false, children }: { titl
   const [open, setOpen] = useState(defaultOpen);
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-2 group">
+      <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 group">
         <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/50 group-hover:text-muted-foreground/70 transition-colors">
           {title}
         </span>
