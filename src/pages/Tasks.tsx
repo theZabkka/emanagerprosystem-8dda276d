@@ -420,7 +420,13 @@ export default function Tasks() {
                 />
               )
             ) : (
-              <TaskListView tasks={filteredTasks} isLoading={isLoading} />
+              <TaskListView
+                tasks={filteredTasks}
+                isLoading={isLoading}
+                hasNextPage={!!hasNextPage}
+                isFetchingNextPage={isFetchingNextPage}
+                fetchNextPage={fetchNextPage}
+              />
             )}
           </div>
         </div>
