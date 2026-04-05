@@ -70,7 +70,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
 
   return (
     <RoleContext.Provider value={{
-      currentRole, roleLoading, isClient, clientId, permissions, setPermissions, canViewModule, refreshPermissions: fetchPermissions,
+      currentRole, roleLoading, isClient, clientId, permissions, canViewModule, refreshPermissions: fetchPermissions,
       isPrimaryContact, contactPermissions, hasContactPermission,
     }}>
       {children}
