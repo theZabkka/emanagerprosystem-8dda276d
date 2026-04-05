@@ -2,59 +2,30 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import { compareRanks, generateRankBefore, generateRankAfter, generateMidpointRank, getInitialRank } from "@/lib/lexoRank";
+import type {
+  CrmColumn,
+  CrmDeal,
+  CrmDealWithRelations,
+  CrmLabel,
+  CrmDealCommentWithProfile,
+  CrmDealInsert,
+  CrmDealUpdate,
+} from "@/types/models";
 
-export interface CrmColumn {
-  id: string;
-  name: string;
-  lexo_rank: string;
-  created_at: string | null;
-}
-
-export interface CrmDeal {
-  id: string;
-  title: string;
-  description: string | null;
-  column_id: string;
-  assigned_to: string | null;
-  client_id: string | null;
-  priority: string;
-  due_date: string | null;
-  is_archived: boolean;
-  reminder_active: boolean;
-  reminder_trigger_date: string | null;
-  lexo_rank: string;
-  created_at: string | null;
-  updated_at: string | null;
-  profiles?: { full_name: string | null } | null;
-  clients?: { id: string; name: string } | null;
-  labels?: CrmLabel[];
-}
-
-export interface CrmLabel {
-  id: string;
-  name: string;
-  color: string;
-}
-
-export interface CrmDealComment {
-  id: string;
-  deal_id: string;
-  user_id: string;
-  content: string;
-  created_at: string | null;
-  profiles?: { full_name: string | null } | null;
-}
+// Re-export for backward compatibility with existing imports
+export type { CrmColumn, CrmLabel, CrmDealCommentWithProfile as CrmDealComment } from "@/types/models";
+export type { CrmDealWithRelations as CrmDeal } from "@/types/models";
 
 export function useCrmColumns() {
   return useQuery({
     queryKey: ["crm-columns"],
-    queryFn: async () => {
+    queryFn: async (): Promise<CrmColumn[]> => {
       const { data, error } = await supabase
-        .from("crm_columns" as any)
+        .from("crm_columns")
         .select("*")
         .order("lexo_rank");
       if (error) throw error;
-      return (data as unknown as CrmColumn[]).sort((a, b) => compareRanks(a.lexo_rank, b.lexo_rank));
+      return (data ?? []).sort((a, b) => compareRanks(a.lexo_rank, b.lexo_rank));
     },
   });
 }
@@ -62,9 +33,9 @@ export function useCrmColumns() {
 export function useCrmDeals(archived = false) {
   return useQuery({
     queryKey: ["crm-deals", archived],
-    queryFn: async () => {
+    queryFn: async (): Promise<CrmDealWithRelations[]> => {
       const query = supabase
-        .from("crm_deals" as any)
+        .from("crm_deals")
         .select("*, profiles:assigned_to(full_name), clients:client_id(id, name)")
         .eq("is_archived", archived);
       if (archived) {
@@ -74,7 +45,8 @@ export function useCrmDeals(archived = false) {
       }
       const { data, error } = await query;
       if (error) throw error;
-      const deals = data as unknown as CrmDeal[];
+      // The joined shape matches CrmDealWithRelations
+      const deals = (data ?? []) as unknown as CrmDealWithRelations[];
       return archived ? deals : deals.sort((a, b) => compareRanks(a.lexo_rank, b.lexo_rank));
     },
   });
@@ -83,10 +55,10 @@ export function useCrmDeals(archived = false) {
 export function useCrmLabels() {
   return useQuery({
     queryKey: ["crm-labels"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("crm_labels" as any).select("*").order("name");
+    queryFn: async (): Promise<CrmLabel[]> => {
+      const { data, error } = await supabase.from("crm_labels").select("*").order("name");
       if (error) throw error;
-      return data as unknown as CrmLabel[];
+      return data ?? [];
     },
   });
 }
@@ -95,13 +67,13 @@ export function useCrmDealLabels(dealId: string | null) {
   return useQuery({
     queryKey: ["crm-deal-labels", dealId],
     enabled: !!dealId,
-    queryFn: async () => {
+    queryFn: async (): Promise<CrmLabel[]> => {
       const { data, error } = await supabase
-        .from("crm_deal_labels" as any)
+        .from("crm_deal_labels")
         .select("label_id, crm_labels(id, name, color)")
         .eq("deal_id", dealId!);
       if (error) throw error;
-      return (data as any[]).map((d: any) => d.crm_labels as CrmLabel);
+      return (data ?? []).map((d) => (d as any).crm_labels as CrmLabel);
     },
   });
 }
@@ -110,14 +82,14 @@ export function useCrmDealComments(dealId: string | null) {
   return useQuery({
     queryKey: ["crm-deal-comments", dealId],
     enabled: !!dealId,
-    queryFn: async () => {
+    queryFn: async (): Promise<CrmDealCommentWithProfile[]> => {
       const { data, error } = await supabase
-        .from("crm_deal_comments" as any)
+        .from("crm_deal_comments")
         .select("*, profiles:user_id(full_name)")
         .eq("deal_id", dealId!)
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return data as unknown as CrmDealComment[];
+      return (data ?? []) as unknown as CrmDealCommentWithProfile[];
     },
   });
 }
@@ -143,9 +115,9 @@ export function useCrmMutations() {
 
   const updateDealRank = useMutation({
     mutationFn: async ({ id, lexo_rank, column_id }: { id: string; lexo_rank: string; column_id?: string }) => {
-      const update: any = { lexo_rank, updated_at: new Date().toISOString() };
+      const update: CrmDealUpdate = { lexo_rank, updated_at: new Date().toISOString() };
       if (column_id) update.column_id = column_id;
-      const { error } = await supabase.from("crm_deals" as any).update(update).eq("id", id);
+      const { error } = await supabase.from("crm_deals").update(update).eq("id", id);
       if (error) throw error;
     },
     onError: () => qc.invalidateQueries({ queryKey: ["crm-deals"] }),
@@ -153,23 +125,26 @@ export function useCrmMutations() {
 
   const updateColumnRank = useMutation({
     mutationFn: async ({ id, lexo_rank }: { id: string; lexo_rank: string }) => {
-      const { error } = await supabase.from("crm_columns" as any).update({ lexo_rank }).eq("id", id);
+      const { error } = await supabase.from("crm_columns").update({ lexo_rank }).eq("id", id);
       if (error) throw error;
     },
     onError: () => qc.invalidateQueries({ queryKey: ["crm-columns"] }),
   });
 
   const createDeal = useMutation({
-    mutationFn: async (deal: { title: string; column_id: string; priority?: string; due_date?: string; assigned_to?: string; description?: string; lexo_rank: string; reminder_active?: boolean }) => {
-      const { error } = await supabase.from("crm_deals" as any).insert(deal as any);
+    mutationFn: async (deal: CrmDealInsert) => {
+      const { error } = await supabase.from("crm_deals").insert(deal);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-deals"] }),
   });
 
   const updateDeal = useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; [key: string]: any }) => {
-      const { error } = await supabase.from("crm_deals" as any).update({ ...data, updated_at: new Date().toISOString() } as any).eq("id", id);
+    mutationFn: async ({ id, ...data }: CrmDealUpdate & { id: string }) => {
+      const { error } = await supabase
+        .from("crm_deals")
+        .update({ ...data, updated_at: new Date().toISOString() })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-deals"] }),
@@ -177,7 +152,7 @@ export function useCrmMutations() {
 
   const createColumn = useMutation({
     mutationFn: async (col: { name: string; lexo_rank: string }) => {
-      const { error } = await supabase.from("crm_columns" as any).insert(col as any);
+      const { error } = await supabase.from("crm_columns").insert(col);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-columns"] }),
@@ -185,7 +160,7 @@ export function useCrmMutations() {
 
   const updateColumn = useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const { error } = await supabase.from("crm_columns" as any).update({ name } as any).eq("id", id);
+      const { error } = await supabase.from("crm_columns").update({ name }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-columns"] }),
@@ -193,7 +168,7 @@ export function useCrmMutations() {
 
   const deleteColumn = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("crm_columns" as any).delete().eq("id", id);
+      const { error } = await supabase.from("crm_columns").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-columns"] }),
@@ -201,7 +176,10 @@ export function useCrmMutations() {
 
   const archiveDeal = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("crm_deals" as any).update({ is_archived: true, updated_at: new Date().toISOString() } as any).eq("id", id);
+      const { error } = await supabase
+        .from("crm_deals")
+        .update({ is_archived: true, updated_at: new Date().toISOString() })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-deals"] }),
@@ -209,7 +187,10 @@ export function useCrmMutations() {
 
   const restoreDeal = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("crm_deals" as any).update({ is_archived: false, updated_at: new Date().toISOString() } as any).eq("id", id);
+      const { error } = await supabase
+        .from("crm_deals")
+        .update({ is_archived: false, updated_at: new Date().toISOString() })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-deals"] }),
@@ -217,12 +198,12 @@ export function useCrmMutations() {
 
   const toggleReminder = useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const update: any = {
+      const update: CrmDealUpdate = {
         reminder_active: active,
         reminder_trigger_date: active ? new Date(Date.now() + 10 * 60 * 1000).toISOString() : null,
         updated_at: new Date().toISOString(),
       };
-      const { error } = await supabase.from("crm_deals" as any).update(update).eq("id", id);
+      const { error } = await supabase.from("crm_deals").update(update).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-deals"] }),
@@ -230,7 +211,7 @@ export function useCrmMutations() {
 
   const addComment = useMutation({
     mutationFn: async ({ deal_id, user_id, content }: { deal_id: string; user_id: string; content: string }) => {
-      const { error } = await supabase.from("crm_deal_comments" as any).insert({ deal_id, user_id, content } as any);
+      const { error } = await supabase.from("crm_deal_comments").insert({ deal_id, user_id, content });
       if (error) throw error;
     },
     onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ["crm-deal-comments", vars.deal_id] }),
@@ -238,7 +219,7 @@ export function useCrmMutations() {
 
   const updateComment = useMutation({
     mutationFn: async ({ id, content }: { id: string; content: string }) => {
-      const { error } = await supabase.from("crm_deal_comments" as any).update({ content } as any).eq("id", id);
+      const { error } = await supabase.from("crm_deal_comments").update({ content }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-deal-comments"] }),
@@ -246,7 +227,7 @@ export function useCrmMutations() {
 
   const deleteComment = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("crm_deal_comments" as any).delete().eq("id", id);
+      const { error } = await supabase.from("crm_deal_comments").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-deal-comments"] }),
@@ -255,10 +236,10 @@ export function useCrmMutations() {
   const toggleLabel = useMutation({
     mutationFn: async ({ deal_id, label_id, attach }: { deal_id: string; label_id: string; attach: boolean }) => {
       if (attach) {
-        const { error } = await supabase.from("crm_deal_labels" as any).insert({ deal_id, label_id } as any);
+        const { error } = await supabase.from("crm_deal_labels").insert({ deal_id, label_id });
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("crm_deal_labels" as any).delete().eq("deal_id", deal_id).eq("label_id", label_id);
+        const { error } = await supabase.from("crm_deal_labels").delete().eq("deal_id", deal_id).eq("label_id", label_id);
         if (error) throw error;
       }
     },
@@ -270,7 +251,7 @@ export function useCrmMutations() {
 
   const createLabel = useMutation({
     mutationFn: async ({ name, color }: { name: string; color: string }) => {
-      const { error } = await supabase.from("crm_labels" as any).insert({ name, color } as any);
+      const { error } = await supabase.from("crm_labels").insert({ name, color });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-labels"] }),

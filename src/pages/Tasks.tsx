@@ -17,6 +17,7 @@ import type { SortField, SortDirection, KanbanMode } from "@/components/tasks/Ta
 import { KanbanSkeleton } from "@/components/skeletons/KanbanSkeleton";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { FileX2 } from "lucide-react";
+import type { TaskWithRelations, TaskStatus } from "@/types/models";
 
 export default function Tasks() {
   const { user } = useAuth();
@@ -45,9 +46,9 @@ export default function Tasks() {
   });
 
   const isTerminalStatus = (status?: string | null) => ["done", "cancelled", "closed"].includes(status || "");
-  const hasNonEmptyTitle = (task: any) => typeof task.title === "string" && task.title.trim().length > 0;
-  const isTaskUnassigned = (task: any) => (task.task_assignments || []).length === 0;
-  const isUnassignedAlertCandidate = (task: any) =>
+  const hasNonEmptyTitle = (task: TaskWithRelations) => typeof task.title === "string" && task.title.trim().length > 0;
+  const isTaskUnassigned = (task: TaskWithRelations) => (task.task_assignments || []).length === 0;
+  const isUnassignedAlertCandidate = (task: TaskWithRelations) =>
     !isTerminalStatus(task.status) && hasNonEmptyTitle(task) && isTaskUnassigned(task);
 
   // Read URL params on mount
@@ -86,7 +87,7 @@ export default function Tasks() {
     data: tasks,
     isLoading,
     refetch,
-  } = useQuery({
+  } = useQuery<TaskWithRelations[]>({
     queryKey: ["tasks", sidebarFilters.clientIds, sidebarFilters.projectIds, sidebarFilters.assigneeIds, sidebarFilters.priorities],
     queryFn: async () => {
       let q = supabase
@@ -98,7 +99,7 @@ export default function Tasks() {
             "clients(name, has_retainer), projects(name), task_assignments(user_id, role, profiles:user_id(full_name))",
         )
         .eq("is_archived", false)
-        .order("lexo_rank" as any, { ascending: true })
+        .order("lexo_rank", { ascending: true })
         .limit(500);
 
       // Server-side filters (AND logic)
@@ -109,12 +110,12 @@ export default function Tasks() {
         q = q.in("project_id", sidebarFilters.projectIds);
       }
       if (sidebarFilters.priorities.length > 0) {
-        q = q.in("priority", sidebarFilters.priorities as any);
+        q = q.in("priority", sidebarFilters.priorities as ("critical" | "high" | "medium" | "low")[]);
       }
 
       const { data, error } = await q;
       if (error) throw error;
-      return data || [];
+      return (data ?? []) as unknown as TaskWithRelations[];
     },
     staleTime: 2 * 60 * 1000,
   });
@@ -123,7 +124,7 @@ export default function Tasks() {
 
   // Client-side filters for things that can't easily be done server-side
   const filteredTasks = useMemo(() => {
-    return (tasks || []).filter((t: any) => {
+    return (tasks || []).filter((t) => {
       const title = typeof t.title === "string" ? t.title : "";
       const matchesSearch =
         title.toLowerCase().includes(search.toLowerCase()) || t.id.toLowerCase().includes(search.toLowerCase());
@@ -134,16 +135,16 @@ export default function Tasks() {
 
       // Assignee filter (needs client-side because it's through task_assignments join)
       if (sidebarFilters.assigneeIds.length > 0) {
-        const assigned = (t.task_assignments || []).some((a: any) => sidebarFilters.assigneeIds.includes(a.user_id));
+        const assigned = (t.task_assignments || []).some((a) => sidebarFilters.assigneeIds.includes(a.user_id));
         if (!assigned) return false;
       }
 
       // Type filter
       if (sidebarFilters.types.length > 0) {
         const allTasks = tasks || [];
-        const isParent = !(t as any).parent_task_id && allTasks.some((mt: any) => mt.parent_task_id === t.id);
-        const isSubtask = !!(t as any).parent_task_id;
-        const isStandalone = !(t as any).parent_task_id && !allTasks.some((mt: any) => mt.parent_task_id === t.id);
+        const isParent = !t.parent_task_id && allTasks.some((mt) => mt.parent_task_id === t.id);
+        const isSubtask = !!t.parent_task_id;
+        const isStandalone = !t.parent_task_id && !allTasks.some((mt) => mt.parent_task_id === t.id);
         const matchesType = sidebarFilters.types.some((type) => {
           if (type === "parent") return isParent;
           if (type === "subtask") return isSubtask;
@@ -160,7 +161,7 @@ export default function Tasks() {
   // Task counts by client for sidebar badges
   const taskCountsByClient = useMemo(() => {
     const counts: Record<string, number> = {};
-    (tasks || []).forEach((t: any) => {
+    (tasks || []).forEach((t) => {
       if (t.client_id) counts[t.client_id] = (counts[t.client_id] || 0) + 1;
     });
     return counts;
@@ -169,13 +170,13 @@ export default function Tasks() {
   const activeFilterCount = sidebarFilters.clientIds.length + sidebarFilters.projectIds.length + sidebarFilters.assigneeIds.length + sidebarFilters.priorities.length + sidebarFilters.types.length;
 
   const allTasks = tasks || [];
-  const unassignedCount = allTasks.filter((t: any) => isUnassignedAlertCandidate(t)).length;
-  const reviewCount = allTasks.filter((t: any) => t.status === "review").length;
-  const clientReviewCount = allTasks.filter((t: any) => t.status === "client_review").length;
-  const notUnderstoodCount = allTasks.filter((t: any) => t.not_understood).length;
+  const unassignedCount = allTasks.filter((t) => isUnassignedAlertCandidate(t)).length;
+  const reviewCount = allTasks.filter((t) => t.status === "review").length;
+  const clientReviewCount = allTasks.filter((t) => t.status === "client_review").length;
+  const notUnderstoodCount = allTasks.filter((t) => t.not_understood).length;
   const misunderstoodTasks = allTasks
-    .filter((t: any) => t.not_understood)
-    .map((t: any) => ({ id: t.id, not_understood_at: t.not_understood_at }));
+    .filter((t) => t.not_understood)
+    .map((t) => ({ id: t.id, not_understood_at: t.not_understood_at }));
 
   const handleFilterStatus = (status: string) => {
     setStatusFilter((prev) => (prev === status ? "all" : status));
@@ -205,19 +206,19 @@ export default function Tasks() {
   const handleStatusChange = useCallback(
     async (taskId: string, newStatus: string) => {
       const queryKey = ["tasks", sidebarFilters.clientIds, sidebarFilters.projectIds, sidebarFilters.assigneeIds, sidebarFilters.priorities];
-      const previousTasks = queryClient.getQueryData<any[]>(queryKey);
+      const previousTasks = queryClient.getQueryData<TaskWithRelations[]>(queryKey);
 
-      queryClient.setQueryData<any[]>(queryKey, (old) =>
+      queryClient.setQueryData<TaskWithRelations[]>(queryKey, (old) =>
         (old || []).map((t) =>
           t.id === taskId
-            ? { ...t, status: newStatus, status_updated_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+            ? { ...t, status: newStatus as TaskStatus, status_updated_at: new Date().toISOString(), updated_at: new Date().toISOString() }
             : t,
         ),
       );
 
       const { error } = await supabase.rpc("change_task_status", {
         _task_id: taskId,
-        _new_status: newStatus as any,
+        _new_status: newStatus as TaskStatus,
         _changed_by: user?.id!,
       });
 
@@ -237,15 +238,15 @@ export default function Tasks() {
   const handleLexoRankUpdate = useCallback(
     async (taskId: string, newRank: string) => {
       const queryKey = ["tasks", sidebarFilters.clientIds, sidebarFilters.projectIds, sidebarFilters.assigneeIds, sidebarFilters.priorities];
-      const previousTasks = queryClient.getQueryData<any[]>(queryKey);
+      const previousTasks = queryClient.getQueryData<TaskWithRelations[]>(queryKey);
 
-      queryClient.setQueryData<any[]>(queryKey, (old) =>
+      queryClient.setQueryData<TaskWithRelations[]>(queryKey, (old) =>
         (old || []).map((t) => (t.id === taskId ? { ...t, lexo_rank: newRank } : t)),
       );
 
       const { error } = await supabase
         .from("tasks")
-        .update({ lexo_rank: newRank } as any)
+        .update({ lexo_rank: newRank })
         .eq("id", taskId);
 
       if (error) {
@@ -260,7 +261,7 @@ export default function Tasks() {
     async (taskId: string) => {
       const { error } = await supabase
         .from("tasks")
-        .update({ is_archived: true, updated_at: new Date().toISOString() } as any)
+        .update({ is_archived: true, updated_at: new Date().toISOString() })
         .eq("id", taskId);
       if (error) {
         toast.error("Błąd archiwizacji");

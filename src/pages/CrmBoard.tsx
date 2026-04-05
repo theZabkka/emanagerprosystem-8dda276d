@@ -54,7 +54,7 @@ export default function CrmBoard() {
       const lastRank = colDeals.length > 0 ? colDeals[colDeals.length - 1].lexo_rank : null;
       const rank = lastRank ? generateRankAfter(lastRank) : generateMidpointRank(null, null);
 
-      const { data: inserted, error } = await supabase.from("crm_deals" as any).insert({
+      const { data: inserted, error } = await supabase.from("crm_deals").insert({
         title: deal.title.trim(),
         column_id: deal.column_id,
         priority: "medium",
@@ -64,12 +64,12 @@ export default function CrmBoard() {
         description: deal.description || null,
         assigned_to: deal.assigned_to || null,
         client_id: deal.client_id || null,
-      } as any).select("id").maybeSingle();
+      }).select("id").maybeSingle();
       if (error) throw error;
 
       if (inserted && deal.selectedLabels.length > 0) {
-        const rows = deal.selectedLabels.map((label_id) => ({ deal_id: (inserted as any).id, label_id }));
-        await supabase.from("crm_deal_labels" as any).insert(rows as any);
+        const rows = deal.selectedLabels.map((label_id) => ({ deal_id: inserted.id, label_id }));
+        await supabase.from("crm_deal_labels").insert(rows);
       }
     },
     onSuccess: () => {
@@ -197,16 +197,15 @@ export default function CrmBoard() {
       if (!isSameColumn) {
         // Close previous stage log
         supabase
-          .from("crm_stage_logs" as any)
-          .update({ exited_at: new Date().toISOString() } as any)
+          .from("crm_stage_logs")
+          .update({ exited_at: new Date().toISOString() })
           .eq("deal_id", draggableId)
           .eq("column_id", srcColumnId)
           .is("exited_at", null)
           .then(() => {
-            // Insert new stage log
             supabase
-              .from("crm_stage_logs" as any)
-              .insert({ deal_id: draggableId, column_id: destColumnId } as any)
+              .from("crm_stage_logs")
+              .insert({ deal_id: draggableId, column_id: destColumnId })
               .then();
           });
 
@@ -218,10 +217,9 @@ export default function CrmBoard() {
             colNameLower.includes("wygran") || colNameLower.includes("sukces") || colNameLower.includes("won") ||
             colNameLower.includes("przegran") || colNameLower.includes("lost") || colNameLower.includes("strat");
           if (isClosedStage) {
-            supabase.from("crm_deals" as any).update({ closed_at: new Date().toISOString() } as any).eq("id", draggableId).then();
+            supabase.from("crm_deals").update({ closed_at: new Date().toISOString() }).eq("id", draggableId).then();
           } else {
-            // Returning to active stage → clear closed_at
-            supabase.from("crm_deals" as any).update({ closed_at: null } as any).eq("id", draggableId).then();
+            supabase.from("crm_deals").update({ closed_at: null }).eq("id", draggableId).then();
           }
         }
       }
@@ -235,7 +233,6 @@ export default function CrmBoard() {
       return;
     }
     createDealMutation.mutate(newDeal);
-  };
   };
   const handleCreateColumn = () => {
     if (!newColumnName.trim()) return;
@@ -549,14 +546,15 @@ function useCrmLabelsForDeals(dealIds: string[]) {
     enabled: dealIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("crm_deal_labels" as any)
+        .from("crm_deal_labels")
         .select("deal_id, crm_labels(id, name, color)")
         .in("deal_id", dealIds);
       if (error) throw error;
       const map: Record<string, Array<{ id: string; name: string; color: string }>> = {};
-      (data as any[]).forEach((row: any) => {
-        if (!map[row.deal_id]) map[row.deal_id] = [];
-        if (row.crm_labels) map[row.deal_id].push(row.crm_labels);
+      (data ?? []).forEach((row) => {
+        const dealId = row.deal_id;
+        if (!map[dealId]) map[dealId] = [];
+        if ((row as any).crm_labels) map[dealId].push((row as any).crm_labels);
       });
       return map;
     },
