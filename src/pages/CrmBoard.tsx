@@ -504,8 +504,8 @@ export default function CrmBoard() {
                 {allLabels.length === 0 && <span className="text-xs text-muted-foreground">Brak etykiet — utwórz je przyciskiem "Etykiety"</span>}
               </div>
             </div>
-            <Button onClick={handleCreateDeal} className="w-full" disabled={isCreating || !newDeal.title.trim() || !newDeal.column_id}>
-              {isCreating ? "Tworzenie..." : "Dodaj kartę"}
+            <Button onClick={handleCreateDeal} className="w-full" disabled={createDealMutation.isPending || !newDeal.title.trim() || !newDeal.column_id}>
+              {createDealMutation.isPending ? "Tworzenie..." : "Dodaj kartę"}
             </Button>
           </div>
         </DialogContent>
