@@ -1,81 +1,77 @@
 
 
-# Plan: Rozbudowa Raportów Czasu
+# Plan: Przeprojektowanie widoku Transkrypcji — tabela z panelem bocznym
 
-## Obecny stan
+## Problem
 
-`TimeReports.tsx` — minimalna strona z 2 okresami (ten/poprzedni miesiąc), brak filtrów po pracowniku/kliencie, brak eksportu CSV, brak zakładek. Tabela `time_logs` ma: `id, task_id, user_id, duration, phase, description, created_at`. Joiny do `profiles` i `tasks→clients` już działają.
+Obecny widok to lista kart z rozwijaniem (accordion). Użytkownik musi klikać w każdą kartę osobno, traci kontekst listy, nie widzi wszystkich danych naraz. Brak szybkiego dostępu do odtwarzacza, AI podsumowania i tworzenia zadań.
 
 ## Rozwiązanie
 
-Przepisanie strony na system zakładkowy z zaawansowanymi filtrami i eksportem CSV.
+Zamiana na **tabelę** z wiecznym widokiem listy + **panel boczny (Sheet)** do szczegółów. Wszystko widoczne bez rozwijania.
 
 ```text
-┌──────────────────────────────────────────────────────────┐
-│  RAPORTY CZASU                                           │
-│  [Zakres dat ▾] [Pracownik ▾] [Klient ▾]  [Eksport CSV] │
-│  ┌─────────────┬──────────────┬──────────────┐           │
-│  │ Pracownicy  │  Klienci     │  Szczegóły   │           │
-│  └─────────────┴──────────────┴──────────────┘           │
-│  [4x KPI] + [Tabela aktywnej zakładki]                   │
-└──────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│  TRANSKRYPCJE                                                    │
+│  [Klient ▾] [Wszystkie|Przych.|Wych.] [🔍 Szukaj numeru]        │
+├──┬───────────┬──────────┬─────────────┬────┬──────┬──────┬──────┤
+│⬤│ Firma/Nr  │ Numer    │ Temat       │Data│ Czas │ ▶️   │ AI 💬│
+├──┼───────────┼──────────┼─────────────┼────┼──────┼──────┼──────┤
+│📞│ Acme Sp.  │+48 500.. │ Wycena proj │2.04│ 3:42 │[▶]   │[AI] [T]│
+│📞│ +48 600.. │+48 600.. │ Bez tytułu  │1.04│ 1:15 │[▶]   │[AI] [T]│
+└──┴───────────┴──────────┴─────────────┴────┴──────┴──────┴──────┘
+                                                          ↓ klik [AI]
+                                              ┌────────────────────┐
+                                              │ PANEL BOCZNY       │
+                                              │ Podsumowanie AI    │
+                                              │ Sugestie + [Zadanie]│
+                                              │ Transkrypcja       │
+                                              │ Odtwarzacz audio   │
+                                              └────────────────────┘
 ```
 
 ## Zmiany w plikach
 
-### 1. Przepisanie `src/pages/TimeReports.tsx`
+### 1. Przepisanie `src/pages/Transcriptions.tsx`
 
-**Filtry globalne**:
-- **Zakres dat**: Select z presetami — Ten tydzień, Ten miesiąc, Poprzedni miesiąc, Ostatnie 90 dni, Własny zakres (2x input date)
-- **Pracownik**: Select z `useStaffMembers()`, opcja "Wszyscy"
-- **Klient**: Select z query `clients`, opcja "Wszyscy"
+**Usunięcie**: accordion/Collapsible logika, expandedId state.
 
-**KPI Cards** (4 karty, reagują na filtry):
-- Łącznie godzin, Wpisów czasu, Aktywnych osób, Śr. dzienna
+**Dodanie**: stan `selectedCall` + `panelTab` ("ai" | "transcript").
 
-**Tabs (3 zakładki)**:
+**Wiersz tabeli** — każdy call wyświetla w jednym rzędzie:
+- Ikona kierunku (kolorowa: zielona/niebieska/czerwona)
+- **Firma** (z joina `clients.name`) lub sformatowany numer jeśli brak klienta
+- **Numer telefonu** (font-mono, zawsze widoczny)
+- **Temat** (`call.title` lub "Bez tytułu", truncate)
+- **Data i godzina** (format: `DD.MM.YYYY, HH:mm`)
+- **Czas trwania** (font-mono)
+- **Przycisk ▶** — mini play/pause bezpośrednio w wierszu (inline `<audio>` ukryty, sterowany ref). Klik odtwarza/pauzuje nagranie bez otwierania panelu
+- **Przycisk AI** (ikona Zap) — otwiera Sheet z podsumowaniem, sugestiami i akcjami
+- **Przycisk Transkrypcja** (ikona FileText) — otwiera Sheet na zakładce transkrypcji
 
-**"Pracownicy"** — tabela per pracownik:
-- Kolumny: Avatar+Imię, Dni aktywne, Wpisy, Łączny czas, Śr./dzień, Udział %
-- Sortowanie po czasie malejąco
+**Panel boczny** — `CallDetailsSheet.tsx` (istniejący, rozbudowany):
+- Dodanie props `defaultTab?: "ai" | "transcript"`
+- Tabs: "Analiza AI" | "Transkrypcja"
+- W zakładce AI: podsumowanie + sugestie z przyciskami "Utwórz zadanie" (placeholder toast)
+- W zakładce Transkrypcja: pełny tekst
+- Odtwarzacz audio na górze (zawsze widoczny w panelu)
 
-**"Klienci"** — tabela per klient:
-- Kolumny: Firma, Zadań, Wpisy, Łączny czas, Udział %
-- Grupowanie po `tasks.client_id → clients.name`
+### 2. Edycja `src/components/calls/CallDetailsSheet.tsx`
 
-**"Szczegóły"** — pełna lista logów:
-- Kolumny: Data, Pracownik, Zadanie, Klient, Opis, Czas
-- Paginacja kliencka (50/strona)
+- Dodanie prop `defaultTab`
+- Wewnętrzne Tabs (Analiza AI / Transkrypcja)
+- Przyciski akcji przy sugestiach (już istniejące, zachować)
 
-**Przycisk "Eksportuj CSV"** — generuje plik z przefiltrowanych danych via `Blob` + `URL.createObjectURL`
+### 3. Inline audio w wierszu
 
-### 2. Zapytanie do bazy
-
-Jedno query (bez zmian w schemacie DB):
-```ts
-supabase.from("time_logs")
-  .select("id, created_at, duration, description, phase, user_id, task_id,
-    profiles:user_id(full_name, avatar_url),
-    tasks:task_id(title, client_id, clients:client_id(name))")
-  .gte("created_at", rangeStart)
-  .lte("created_at", rangeEnd)
-  .order("created_at", { ascending: false })
-  .limit(5000)
-```
-Filtrowanie po `userId` i `clientId` w `useMemo` na kliencie.
-
-### 3. Agregacje (useMemo)
-
-- `byUser`: grupuj po `user_id` → suma minut, count wpisów, count unikalnych dni (`Set` z dat)
-- `byClient`: grupuj po `tasks.client_id` → suma minut, count unikalnych zadań, count wpisów
-- `filteredLogs`: zastosuj filtry userId/clientId
-- KPI wyliczane z `filteredLogs`
+Mały `useRef<HTMLAudioElement>` per wiersz z ukrytym `<audio>`. Przycisk ▶/⏸ toggle play/pause. Tylko jeden wiersz gra naraz (state `playingId`).
 
 ## Pliki
 
 | Plik | Akcja |
 |------|-------|
-| `src/pages/TimeReports.tsx` | Przepisanie — Tabs + filtry + 3 widoki + eksport CSV |
+| `src/pages/Transcriptions.tsx` | Przepisanie — tabela + inline play + otwieranie panelu |
+| `src/components/calls/CallDetailsSheet.tsx` | Rozbudowa — dodanie tabs AI/Transkrypcja, prop defaultTab |
 
-Brak zmian w bazie danych, routingu ani sidebarze.
+Zero zmian w bazie danych, routingu ani sidebarze.
 
