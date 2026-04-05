@@ -90,41 +90,26 @@ export default function TaskKanbanBoard({
     setOptimisticTasks(tasks);
   }, [tasks]);
 
-  const { data: allChecklists } = useQuery({
-    queryKey: [
-      "kanban-checklists",
-      tasks
-        .map((t) => t.id)
-        .sort()
-        .join(","),
-    ],
-    queryFn: async () => {
-      if (tasks.length === 0) return [];
-      const taskIds = tasks.map((t) => t.id);
-      const { data } = await supabase
-        .from("checklists")
-        .select("task_id, checklist_items(is_completed, is_na)")
-        .in("task_id", taskIds);
-      return data || [];
-    },
-    enabled: tasks.length > 0,
-    staleTime: 2 * 60 * 1000,
-  });
-
   const isChecklistComplete = useCallback(
-    (taskId: string) => {
-      if (!allChecklists) return true;
-      const taskChecklists = allChecklists.filter((cl: any) => cl.task_id === taskId);
-      if (taskChecklists.length === 0) return true;
-      for (const cl of taskChecklists) {
+    async (taskId: string): Promise<boolean> => {
+      const data = await queryClient.fetchQuery({
+        queryKey: ["checklists", taskId],
+        queryFn: async () => {
+          const { data } = await supabase
+            .from("checklists")
+            .select("task_id, checklist_items(is_completed, is_na)")
+            .eq("task_id", taskId);
+          return data || [];
+        },
+        staleTime: 60_000,
+      });
+      if (data.length === 0) return true;
+      return data.every((cl: any) => {
         const items = (cl as any).checklist_items || [];
-        if (items.length === 0) continue;
-        const allDone = items.every((i: any) => i.is_completed || i.is_na);
-        if (!allDone) return false;
-      }
-      return true;
+        return items.length === 0 || items.every((i: any) => i.is_completed || i.is_na);
+      });
     },
-    [allChecklists],
+    [queryClient],
   );
 
   const getAssignee = useCallback(
