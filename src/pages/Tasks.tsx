@@ -261,7 +261,7 @@ export default function Tasks() {
     async (taskId: string) => {
       const { error } = await supabase
         .from("tasks")
-        .update({ is_archived: true, updated_at: new Date().toISOString() } as any)
+        .update({ is_archived: true, updated_at: new Date().toISOString() })
         .eq("id", taskId);
       if (error) {
         toast.error("Błąd archiwizacji");
