@@ -1,8 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
@@ -15,10 +14,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Phone,
   PhoneIncoming,
@@ -27,13 +29,13 @@ import {
   Clock,
   Search,
   Zap,
-  ChevronDown,
-  ListTodo,
   FileText,
+  Play,
+  Pause,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
-import { toast } from "sonner";
+import CallDetailsSheet from "@/components/calls/CallDetailsSheet";
 
 /* ── helpers ─────────────────────────────────────────── */
 
@@ -57,41 +59,56 @@ function getCallIcon(direction: string, duration: number | null, status: string)
 }
 
 function formatPhoneNumber(raw: string | null | undefined): string {
-  if (!raw) return "Nieznany numer";
+  if (!raw) return "—";
   const digits = raw.replace(/\D/g, "");
-  // Handle Polish numbers with +48 prefix
   const core = digits.startsWith("48") && digits.length > 9 ? digits.slice(2) : digits;
   if (core.length === 9) {
     return `+48 ${core.slice(0, 3)} ${core.slice(3, 6)} ${core.slice(6)}`;
   }
-  // Generic formatting for other lengths
-  if (core.length > 6) {
-    return `+${digits.slice(0, digits.length - 9)} ${core.slice(0, 3)} ${core.slice(3, 6)} ${core.slice(6)}`;
-  }
   return raw;
-}
-
-function parseSuggestions(raw: string | null): string[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed;
-  } catch {
-    // not JSON
-  }
-  return raw
-    .split(/\n|;/)
-    .map((s) => s.replace(/^[-•*\d.)\s]+/, "").trim())
-    .filter(Boolean);
 }
 
 /* ── component ───────────────────────────────────────── */
 
 export default function Transcriptions() {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [clientFilter, setClientFilter] = useState<string>("all");
   const [directionFilter, setDirectionFilter] = useState<string>("all");
   const [phoneSearch, setPhoneSearch] = useState("");
+
+  // Sheet state
+  const [selectedCall, setSelectedCall] = useState<any | null>(null);
+  const [sheetTab, setSheetTab] = useState<"ai" | "transcript">("ai");
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Inline audio
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
+
+  const togglePlay = useCallback((callId: string) => {
+    // Pause any currently playing
+    if (playingId && playingId !== callId) {
+      audioRefs.current[playingId]?.pause();
+    }
+    const el = audioRefs.current[callId];
+    if (!el) return;
+    if (playingId === callId) {
+      el.pause();
+      setPlayingId(null);
+    } else {
+      el.play();
+      setPlayingId(callId);
+    }
+  }, [playingId]);
+
+  const handleAudioEnded = useCallback((callId: string) => {
+    if (playingId === callId) setPlayingId(null);
+  }, [playingId]);
+
+  const openSheet = (call: any, tab: "ai" | "transcript") => {
+    setSelectedCall(call);
+    setSheetTab(tab);
+    setSheetOpen(true);
+  };
 
   /* Fetch calls with client join */
   const { data: calls, isLoading } = useQuery({
@@ -120,7 +137,7 @@ export default function Transcriptions() {
       .sort((a, b) => a.name.localeCompare(b.name, "pl"));
   }, [calls]);
 
-  /* Filtered & sorted list */
+  /* Filtered list */
   const filtered = useMemo(() => {
     if (!calls?.length) return [];
     let list = [...calls];
@@ -148,18 +165,13 @@ export default function Transcriptions() {
     return list;
   }, [calls, clientFilter, directionFilter, phoneSearch]);
 
-  const toggleExpanded = (id: string) => {
-    setExpandedId((prev) => (prev === id ? null : id));
-  };
-
   return (
     <AppLayout title="Transkrypcje">
       <div className="space-y-4">
         {/* ── Filter Bar ─────────────────────────────────── */}
         <div className="flex flex-wrap items-center gap-3 p-3 rounded-lg border bg-card">
-          {/* Client filter */}
           <Select value={clientFilter} onValueChange={setClientFilter}>
-            <SelectTrigger className="w-[220px]">
+            <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Wszyscy klienci" />
             </SelectTrigger>
             <SelectContent>
@@ -173,7 +185,6 @@ export default function Transcriptions() {
             </SelectContent>
           </Select>
 
-          {/* Direction filter */}
           <div className="flex rounded-md border overflow-hidden">
             {[
               { value: "all", label: "Wszystkie" },
@@ -194,11 +205,10 @@ export default function Transcriptions() {
             ))}
           </div>
 
-          {/* Phone search */}
           <div className="relative flex-1 min-w-[180px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Szukaj po numerze telefonu..."
+              placeholder="Szukaj po numerze..."
               value={phoneSearch}
               onChange={(e) => setPhoneSearch(e.target.value)}
               className="pl-9 font-mono"
@@ -208,9 +218,9 @@ export default function Transcriptions() {
 
         {/* ── Loading ─────────────────────────────────── */}
         {isLoading && (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {[1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="h-[72px] w-full rounded-lg" />
+              <Skeleton key={i} className="h-12 w-full rounded-lg" />
             ))}
           </div>
         )}
@@ -228,211 +238,148 @@ export default function Transcriptions() {
           </div>
         )}
 
-        {/* ── Calls List ─────────────────────────────── */}
+        {/* ── Table ──────────────────────────────────── */}
         {!isLoading && filtered.length > 0 && (
-          <div className="space-y-2">
-            {filtered.map((call: any) => {
-              const isExpanded = expandedId === call.id;
-              const { Icon: DirIcon, color } = getCallIcon(call.direction, call.duration, call.status);
-              const clientName = (call.client as any)?.name;
-              const displayName = clientName || null;
-              const displayNumber = call.client_number ? formatPhoneNumber(call.client_number) : null;
-              const suggestions = isExpanded ? parseSuggestions(call.suggestions) : [];
+          <div className="rounded-lg border bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10"></TableHead>
+                  <TableHead>Firma / Numer</TableHead>
+                  <TableHead className="hidden md:table-cell">Numer</TableHead>
+                  <TableHead>Temat</TableHead>
+                  <TableHead className="hidden sm:table-cell">Data</TableHead>
+                  <TableHead className="w-16">Czas</TableHead>
+                  <TableHead className="w-28 text-right">Akcje</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((call: any) => {
+                  const { Icon: DirIcon, color } = getCallIcon(call.direction, call.duration, call.status);
+                  const clientName = (call.client as any)?.name;
+                  const phoneDisplay = formatPhoneNumber(call.client_number);
+                  const isPlaying = playingId === call.id;
 
-              return (
-                <div key={call.id}>
-                  {/* ── Row Card ──────────────────────── */}
-                  <Card
-                    className={`cursor-pointer transition-colors hover:bg-accent/50 ${
-                      isExpanded ? "border-primary/40 bg-accent/30" : ""
-                    }`}
-                    onClick={() => toggleExpanded(call.id)}
-                  >
-                    <CardContent className="p-3">
-                      {/* Mobile: flex layout */}
-                      <div className="flex items-center gap-3 md:hidden">
-                        <div className={`shrink-0 ${color}`}>
-                          <DirIcon className="h-5 w-5" />
-                        </div>
-                        <div className="flex-1 min-w-0 space-y-0.5">
-                          <span className={`block text-sm truncate ${displayName ? "font-semibold text-foreground" : "font-bold font-mono text-foreground"}`}>
-                            {displayName || displayNumber || "Nieznany numer"}
-                          </span>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {call.title || "Rozmowa bez tytułu"}
-                          </p>
-                        </div>
-                        <div className="shrink-0 text-right space-y-0.5">
-                          <p className="text-xs text-muted-foreground">
-                            {call.called_at ? format(new Date(call.called_at), "d MMM yyyy, HH:mm", { locale: pl }) : "—"}
-                          </p>
-                          <p className="text-xs font-medium font-mono flex items-center justify-end gap-1">
-                            <Clock className="h-3 w-3" />
-                            {formatDuration(call.duration)}
-                          </p>
-                        </div>
-                        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
-                      </div>
+                  return (
+                    <TableRow
+                      key={call.id}
+                      className="group cursor-pointer"
+                      onClick={() => openSheet(call, "ai")}
+                    >
+                      {/* Direction icon */}
+                      <TableCell className="pr-0">
+                        <DirIcon className={`h-4 w-4 ${color}`} />
+                      </TableCell>
 
-                      {/* Desktop: 3-column grid */}
-                      <div className="hidden md:grid items-center" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
-                        {/* Col 1: Icon + Name + Title */}
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className={`shrink-0 ${color}`}>
-                            <DirIcon className="h-5 w-5" />
-                          </div>
-                          <div className="min-w-0 space-y-0.5">
-                            <span className={`block text-sm truncate ${displayName ? "font-semibold text-foreground" : "font-bold font-mono text-foreground"}`}>
-                              {displayName || displayNumber || "Nieznany numer"}
-                            </span>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {call.title || "Rozmowa bez tytułu"}
-                            </p>
-                          </div>
-                        </div>
+                      {/* Company / number */}
+                      <TableCell>
+                        <span className={`text-sm truncate block max-w-[180px] ${clientName ? "font-medium" : "font-mono text-muted-foreground"}`}>
+                          {clientName || phoneDisplay}
+                        </span>
+                      </TableCell>
 
-                        {/* Col 2: Phone number – centered */}
-                        <div className="justify-self-center">
-                          {displayNumber ? (
-                            <span className="text-sm font-mono text-muted-foreground">{displayNumber}</span>
-                          ) : (
-                            <span />
+                      {/* Phone number (desktop) */}
+                      <TableCell className="hidden md:table-cell">
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {phoneDisplay}
+                        </span>
+                      </TableCell>
+
+                      {/* Subject */}
+                      <TableCell>
+                        <span className="text-sm text-muted-foreground truncate block max-w-[200px]">
+                          {call.title || "Bez tytułu"}
+                        </span>
+                      </TableCell>
+
+                      {/* Date */}
+                      <TableCell className="hidden sm:table-cell">
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {call.called_at
+                            ? format(new Date(call.called_at), "dd.MM.yyyy, HH:mm", { locale: pl })
+                            : "—"}
+                        </span>
+                      </TableCell>
+
+                      {/* Duration */}
+                      <TableCell>
+                        <span className="text-xs font-mono flex items-center gap-1">
+                          <Clock className="h-3 w-3 text-muted-foreground" />
+                          {formatDuration(call.duration)}
+                        </span>
+                      </TableCell>
+
+                      {/* Actions */}
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                          {/* Play button */}
+                          {call.recording_url && (
+                            <>
+                              <audio
+                                ref={(el) => { audioRefs.current[call.id] = el; }}
+                                src={call.recording_url}
+                                preload="none"
+                                onEnded={() => handleAudioEnded(call.id)}
+                              />
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7"
+                                onClick={() => togglePlay(call.id)}
+                                title={isPlaying ? "Pauza" : "Odtwórz"}
+                              >
+                                {isPlaying ? (
+                                  <Pause className="h-3.5 w-3.5" />
+                                ) : (
+                                  <Play className="h-3.5 w-3.5" />
+                                )}
+                              </Button>
+                            </>
+                          )}
+
+                          {/* AI button */}
+                          {(call.ai_summary || call.suggestions) && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-purple-500 hover:text-purple-600"
+                              onClick={() => openSheet(call, "ai")}
+                              title="Analiza AI"
+                            >
+                              <Zap className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+
+                          {/* Transcription button */}
+                          {call.transcription && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              onClick={() => openSheet(call, "transcript")}
+                              title="Transkrypcja"
+                            >
+                              <FileText className="h-3.5 w-3.5" />
+                            </Button>
                           )}
                         </div>
-
-                        {/* Col 3: Metadata + chevron – right aligned */}
-                        <div className="flex items-center justify-end gap-3">
-                          <div className="text-right space-y-0.5">
-                            <p className="text-xs text-muted-foreground">
-                              {call.called_at ? format(new Date(call.called_at), "d MMM yyyy, HH:mm", { locale: pl }) : "—"}
-                            </p>
-                            <p className="text-xs font-medium font-mono flex items-center justify-end gap-1">
-                              <Clock className="h-3 w-3" />
-                              {formatDuration(call.duration)}
-                            </p>
-                          </div>
-                          <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* ── Expanded Details ──────────────── */}
-                  {isExpanded && (
-                    <div className="border border-t-0 rounded-b-lg bg-card/80 backdrop-blur-sm p-5 space-y-5 animate-in slide-in-from-top-2 duration-200">
-                      {/* Detail Header */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="space-y-1">
-                          <h3 className="text-base font-semibold">
-                            {call.client_id
-                              ? call.title || "Rozmowa bez tytułu"
-                              : `Połączenie z numerem: ${displayNumber || "Nieznany"}`}
-                          </h3>
-                          <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
-                            <Badge variant="outline" className="text-xs">
-                              {normalizeDirection(call.direction) === "out" ? "Wychodzące" : "Przychodzące"}
-                            </Badge>
-                            <Badge
-                              variant={call.status === "missed" || call.status === "no-answer" ? "destructive" : "secondary"}
-                              className="text-xs"
-                            >
-                              {call.status === "missed" || call.status === "no-answer"
-                                ? "Nieodebrane"
-                                : "Zakończone"}
-                            </Badge>
-                            <span>
-                              {call.called_at
-                                ? format(new Date(call.called_at), "d MMMM yyyy, HH:mm:ss", { locale: pl })
-                                : "—"}
-                            </span>
-                            <span className="flex items-center gap-1 font-mono">
-                              <Clock className="h-3 w-3" />
-                              {formatDuration(call.duration)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Audio Player */}
-                      {call.recording_url && (
-                        <div className="space-y-1.5">
-                          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                            Nagranie
-                          </h4>
-                          <div className="rounded-lg bg-muted/60 p-3">
-                            <audio
-                              controls
-                              src={call.recording_url}
-                              className="w-full [&::-webkit-media-controls-panel]:bg-transparent"
-                              preload="none"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* AI Section – 2 columns */}
-                      {(call.ai_summary || call.suggestions) && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {/* AI Summary */}
-                          <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-4 space-y-2">
-                            <div className="flex items-center gap-2">
-                              <Zap className="h-4 w-4 text-purple-500" />
-                              <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
-                                Podsumowanie AI
-                              </span>
-                            </div>
-                            <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                              {call.ai_summary || "Brak podsumowania."}
-                            </p>
-                          </div>
-
-                          {/* Suggestions */}
-                          <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4 space-y-2">
-                            <div className="flex items-center gap-2">
-                              <ListTodo className="h-4 w-4 text-blue-500" />
-                              <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                                Sugestie i Działania
-                              </span>
-                            </div>
-                            {suggestions.length > 0 ? (
-                              <ul className="space-y-1.5">
-                                {suggestions.map((s, i) => (
-                                  <li key={i} className="flex items-start gap-2 text-sm">
-                                    <span className="text-blue-500 mt-1 shrink-0">•</span>
-                                    <span className="flex-1">{s}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <p className="text-sm text-muted-foreground">Brak sugestii.</p>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Transcription – collapsible */}
-                      {call.transcription && (
-                        <Collapsible>
-                          <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full group">
-                            <FileText className="h-4 w-4" />
-                            <span className="font-medium">Pokaż pełną transkrypcję</span>
-                            <ChevronDown className="h-4 w-4 ml-auto transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                          </CollapsibleTrigger>
-                          <CollapsibleContent className="mt-3">
-                            <div className="rounded-lg bg-muted/50 border p-4 text-sm whitespace-pre-wrap leading-relaxed max-h-80 overflow-y-auto font-mono text-xs">
-                              {call.transcription}
-                            </div>
-                          </CollapsibleContent>
-                        </Collapsible>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>
+
+      {/* ── Side panel ───────────────────────────────── */}
+      <CallDetailsSheet
+        call={selectedCall}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        defaultTab={sheetTab}
+      />
     </AppLayout>
   );
 }

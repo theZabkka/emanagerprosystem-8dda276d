@@ -6,6 +6,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   PhoneIncoming,
   PhoneOutgoing,
@@ -13,10 +14,12 @@ import {
   Zap,
   Clock,
   ListTodo,
+  FileText,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
 
 export function formatDuration(seconds: number | null) {
   if (!seconds) return "0:00";
@@ -28,7 +31,8 @@ export function formatDuration(seconds: number | null) {
 export function getCallIcon(direction: string, duration: number | null, status: string) {
   const isMissed = status === "missed" || status === "no-answer" || duration === 0;
   if (isMissed) return { Icon: PhoneMissed, color: "text-destructive" };
-  if (direction === "outbound") return { Icon: PhoneOutgoing, color: "text-blue-500" };
+  if (direction === "outbound" || direction === "out" || direction === "outgoing")
+    return { Icon: PhoneOutgoing, color: "text-blue-500" };
   return { Icon: PhoneIncoming, color: "text-green-500" };
 }
 
@@ -47,9 +51,17 @@ interface CallDetailsSheetProps {
   call: any | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultTab?: "ai" | "transcript";
 }
 
-export default function CallDetailsSheet({ call, open, onOpenChange }: CallDetailsSheetProps) {
+export default function CallDetailsSheet({ call, open, onOpenChange, defaultTab = "ai" }: CallDetailsSheetProps) {
+  const [tab, setTab] = useState(defaultTab);
+
+  // Sync tab when defaultTab or call changes
+  useEffect(() => {
+    setTab(defaultTab);
+  }, [defaultTab, call?.id]);
+
   if (!call) return null;
 
   const { Icon: DirIcon, color } = getCallIcon(call.direction, call.duration, call.status);
@@ -66,7 +78,7 @@ export default function CallDetailsSheet({ call, open, onOpenChange }: CallDetai
           <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
             <DirIcon className={`h-4 w-4 ${color}`} />
             <Badge variant="outline" className="text-xs">
-              {call.direction === "outbound" ? "Wychodzące" : "Przychodzące"}
+              {call.direction === "outbound" || call.direction === "out" ? "Wychodzące" : "Przychodzące"}
             </Badge>
             <span>
               {call.called_at
@@ -80,42 +92,54 @@ export default function CallDetailsSheet({ call, open, onOpenChange }: CallDetai
           </div>
         </div>
 
-        {/* Scrollable body */}
-        <ScrollArea className="flex-1">
-          <div className="p-6 space-y-6">
-            {/* Audio */}
-            {call.recording_url && (
-              <div>
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                  Nagranie
-                </h4>
-                <audio controls src={call.recording_url} className="w-full" preload="none" />
-              </div>
-            )}
+        {/* Audio – always visible */}
+        {call.recording_url && (
+          <div className="px-6 pt-4">
+            <audio controls src={call.recording_url} className="w-full" preload="none" />
+          </div>
+        )}
 
-            {/* AI section */}
-            {(call.ai_summary || suggestions.length > 0) && (
-              <div className="rounded-lg bg-purple-500/5 border border-purple-500/15 p-4 space-y-4">
-                <div className="flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-purple-500" />
-                  <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
-                    Analiza AI
-                  </span>
-                </div>
+        {/* Tabs */}
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "ai" | "transcript")} className="flex-1 flex flex-col min-h-0">
+          <div className="px-6 pt-3">
+            <TabsList className="w-full">
+              <TabsTrigger value="ai" className="flex-1 gap-1.5">
+                <Zap className="h-3.5 w-3.5" />
+                Analiza AI
+              </TabsTrigger>
+              <TabsTrigger value="transcript" className="flex-1 gap-1.5">
+                <FileText className="h-3.5 w-3.5" />
+                Transkrypcja
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-                {call.ai_summary && (
-                  <div>
-                    <h5 className="text-xs font-semibold text-muted-foreground mb-1">Podsumowanie</h5>
+          <ScrollArea className="flex-1">
+            {/* AI Tab */}
+            <TabsContent value="ai" className="m-0">
+              <div className="p-6 space-y-5">
+                {call.ai_summary ? (
+                  <div className="rounded-lg bg-purple-500/5 border border-purple-500/15 p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-purple-500" />
+                      <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
+                        Podsumowanie
+                      </span>
+                    </div>
                     <p className="text-sm leading-relaxed whitespace-pre-wrap">{call.ai_summary}</p>
                   </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Brak podsumowania AI dla tej rozmowy.</p>
                 )}
 
                 {suggestions.length > 0 && (
-                  <div>
-                    <h5 className="text-xs font-semibold text-muted-foreground mb-2">Sugestie</h5>
+                  <div className="space-y-2">
+                    <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      Sugestie i działania
+                    </h5>
                     <ul className="space-y-2">
                       {suggestions.map((s, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm">
+                        <li key={i} className="flex items-start gap-2 text-sm rounded-md border p-2.5 bg-muted/30">
                           <span className="flex-1">{s}</span>
                           <Button
                             size="sm"
@@ -134,21 +158,22 @@ export default function CallDetailsSheet({ call, open, onOpenChange }: CallDetai
                   </div>
                 )}
               </div>
-            )}
+            </TabsContent>
 
-            {/* Transcription */}
-            {call.transcription && (
-              <div>
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                  Transkrypcja
-                </h4>
-                <div className="rounded-lg bg-muted/50 p-4 text-sm whitespace-pre-wrap leading-relaxed max-h-72 overflow-y-auto">
-                  {call.transcription}
-                </div>
+            {/* Transcript Tab */}
+            <TabsContent value="transcript" className="m-0">
+              <div className="p-6">
+                {call.transcription ? (
+                  <div className="rounded-lg bg-muted/50 p-4 text-sm whitespace-pre-wrap leading-relaxed font-mono text-xs">
+                    {call.transcription}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Brak transkrypcji dla tej rozmowy.</p>
+                )}
               </div>
-            )}
-          </div>
-        </ScrollArea>
+            </TabsContent>
+          </ScrollArea>
+        </Tabs>
       </SheetContent>
     </Sheet>
   );
