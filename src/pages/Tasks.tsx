@@ -206,7 +206,7 @@ export default function Tasks() {
   const handleStatusChange = useCallback(
     async (taskId: string, newStatus: string) => {
       const queryKey = ["tasks", sidebarFilters.clientIds, sidebarFilters.projectIds, sidebarFilters.assigneeIds, sidebarFilters.priorities];
-      const previousTasks = queryClient.getQueryData<any[]>(queryKey);
+      const previousTasks = queryClient.getQueryData<TaskWithRelations[]>(queryKey);
 
       queryClient.setQueryData<any[]>(queryKey, (old) =>
         (old || []).map((t) =>
