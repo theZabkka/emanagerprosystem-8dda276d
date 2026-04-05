@@ -110,7 +110,7 @@ export default function Tasks() {
         q = q.in("project_id", sidebarFilters.projectIds);
       }
       if (sidebarFilters.priorities.length > 0) {
-        q = q.in("priority", sidebarFilters.priorities);
+        q = q.in("priority", sidebarFilters.priorities as unknown as TaskStatus[]);
       }
 
       const { data, error } = await q;
