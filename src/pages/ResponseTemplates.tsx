@@ -52,8 +52,8 @@ export default function ResponseTemplates() {
     mutationFn: async () => {
       if (editing) {
         const { error } = await supabase
-          .from("response_templates" as any)
-          .update({ title, content } as any)
+          .from("response_templates")
+          .update({ title, content })
           .eq("id", editing.id);
         if (error) throw error;
       } else {
