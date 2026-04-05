@@ -287,12 +287,13 @@ export default function Tasks() {
 
   const handleLexoRankUpdate = useCallback(
     async (taskId: string, newRank: string) => {
-      const queryKey = ["tasks", sidebarFilters.clientIds, sidebarFilters.projectIds, sidebarFilters.assigneeIds, sidebarFilters.priorities];
-      const previousTasks = queryClient.getQueryData<TaskWithRelations[]>(queryKey);
+      const queryKey = ["tasks-kanban", sidebarFilters.clientIds, sidebarFilters.projectIds, sidebarFilters.assigneeIds, sidebarFilters.priorities];
+      const previousData = queryClient.getQueryData(queryKey);
 
-      queryClient.setQueryData<TaskWithRelations[]>(queryKey, (old) =>
-        (old || []).map((t) => (t.id === taskId ? { ...t, lexo_rank: newRank } : t)),
-      );
+      queryClient.setQueryData(queryKey, (old: any) => {
+        if (!old) return old;
+        return { ...old, tasks: (old.tasks || []).map((t: TaskWithRelations) => (t.id === taskId ? { ...t, lexo_rank: newRank } : t)) };
+      });
 
       const { error } = await supabase
         .from("tasks")
