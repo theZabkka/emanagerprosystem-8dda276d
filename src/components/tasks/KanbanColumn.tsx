@@ -21,6 +21,7 @@ export function KanbanColumn({
   isClientMode,
   onQuickAdd,
   cardHelpers,
+  isTruncated = false,
 }: KanbanColumnProps) {
   const isEmpty = tasks.length === 0;
 
