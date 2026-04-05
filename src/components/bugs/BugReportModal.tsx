@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Paperclip, X, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface BugReportModalProps {
   open: boolean;
