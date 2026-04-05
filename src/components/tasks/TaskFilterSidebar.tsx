@@ -168,7 +168,7 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
         {/* Klient */}
         <Section title="Klient" defaultOpen={false} active={filters.clientIds.length > 0}>
           {clients.length > 6 && <MiniSearch value={clientSearch} onChange={setClientSearch} placeholder="Szukaj klienta..." />}
-          <div className="max-h-[180px] overflow-y-auto space-y-px">
+          <div className="max-h-[160px] overflow-y-auto space-y-px">
             {filteredClients.map((c) => (
               <label key={c.id} className={optionCls}>
                 <Checkbox checked={filters.clientIds.includes(c.id)} onCheckedChange={() => toggleArrayFilter("clientIds", c.id)} className={checkboxCls} />
