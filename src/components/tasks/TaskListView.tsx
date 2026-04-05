@@ -25,7 +25,7 @@ interface TaskListViewProps {
   fetchNextPage?: () => void;
 }
 
-export default function TaskListView({ tasks, isLoading }: TaskListViewProps) {
+export default function TaskListView({ tasks, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage }: TaskListViewProps) {
   return (
     <div className="bg-card rounded-lg border">
       <Table>
