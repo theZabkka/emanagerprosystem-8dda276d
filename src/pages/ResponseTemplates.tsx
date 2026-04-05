@@ -58,8 +58,8 @@ export default function ResponseTemplates() {
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("response_templates" as any)
-          .insert({ title, content } as any);
+          .from("response_templates")
+          .insert({ title, content });
         if (error) throw error;
       }
     },
