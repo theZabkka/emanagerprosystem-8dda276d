@@ -69,8 +69,8 @@ export function CrmLabelManager({ onFilterByLabel, activeLabelFilter }: CrmLabel
 
     if (editingLabel) {
       const { error } = await supabase
-        .from("crm_labels" as any)
-        .update({ name: name.trim(), color } as any)
+        .from("crm_labels")
+        .update({ name: name.trim(), color })
         .eq("id", editingLabel.id);
       if (error) {
         toast.error("Błąd zapisu");
