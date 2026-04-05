@@ -142,7 +142,7 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
 
   const checkboxCls = "h-3.5 w-3.5 rounded-sm border-[hsl(var(--foreground)/0.12)] data-[state=checked]:bg-destructive data-[state=checked]:border-destructive";
   const optionCls = "flex items-center gap-2.5 px-2 py-1 rounded-md hover:bg-[hsl(var(--foreground)/0.04)] cursor-pointer transition-colors group";
-  const labelCls = "truncate flex-1 text-sm text-foreground/60 group-hover:text-foreground/80 transition-colors";
+  const labelCls = "truncate flex-1 text-xs text-foreground/60 group-hover:text-foreground/80 transition-colors";
 
   const content = (
     <div className="flex flex-col h-full">
