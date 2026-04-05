@@ -93,7 +93,7 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
 
       if (editingId) {
         if (isPrimary) {
-          await (supabase.from("customer_contacts" as any) as any)
+          await supabase.from("customer_contacts")
             .update({ is_primary: false })
             .eq("customer_id", clientId)
             .eq("is_primary", true);
