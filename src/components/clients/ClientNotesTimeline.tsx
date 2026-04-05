@@ -57,7 +57,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
     queryKey,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("client_notes" as any)
+        .from("client_notes")
         .select("*")
         .eq("client_id", clientId)
         .order("created_at", { ascending: false });
@@ -75,7 +75,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
   const { data: profiles = [] } = useStaffMembers();
 
   const profileMap = new Map(profiles.map((p) => [p.id, p]));
-  const isStaff = profile?.role && ["superadmin", "boss", "koordynator", "admin"].includes(profile.role);
+  const isStaff = profile?.role && ["superadmin", "boss", "koordynator"].includes(profile.role);
 
   const canManageNote = (authorId: string | null) => {
     if (!user) return false;
@@ -102,7 +102,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
     setNewNote("");
 
     try {
-      const { error } = await (supabase.from("client_notes" as any) as any).insert({
+      const { error } = await supabase.from("client_notes").insert({
         client_id: clientId,
         author_id: user.id,
         content: optimisticNote.content,
@@ -130,7 +130,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
     setEditingId(null);
 
     try {
-      const { error } = await (supabase.from("client_notes" as any) as any)
+      const { error } = await supabase.from("client_notes")
         .update({ content: editContent.trim(), updated_at: new Date().toISOString() })
         .eq("id", noteId);
       if (error) throw error;
@@ -148,7 +148,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
     queryClient.setQueryData<ClientNote[]>(queryKey, (old) => (old || []).filter((n) => n.id !== noteId));
 
     try {
-      const { error } = await (supabase.from("client_notes" as any) as any).delete().eq("id", noteId);
+      const { error } = await supabase.from("client_notes").delete().eq("id", noteId);
       if (error) throw error;
       toast.success("Notatka usunięta");
     } catch {
@@ -168,12 +168,12 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
     );
     try {
       if (!currentlyPinned) {
-        await (supabase.from("client_notes" as any) as any)
+        await supabase.from("client_notes")
           .update({ is_pinned: false })
           .eq("client_id", clientId)
           .eq("is_pinned", true);
       }
-      await (supabase.from("client_notes" as any) as any).update({ is_pinned: !currentlyPinned }).eq("id", noteId);
+      await supabase.from("client_notes").update({ is_pinned: !currentlyPinned }).eq("id", noteId);
       queryClient.invalidateQueries({ queryKey });
     } catch {
       queryClient.setQueryData(queryKey, prev);

@@ -27,7 +27,6 @@ interface RoleContextType {
   isClient: boolean;
   clientId: string | null;
   permissions: Permission[];
-  setPermissions: React.Dispatch<React.SetStateAction<Permission[]>>;
   canViewModule: (moduleName: string) => boolean;
   refreshPermissions: () => void;
   isPrimaryContact: boolean;
@@ -45,7 +44,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const roleLoading = authLoading || (!!session && !profile);
   const currentRole: AppRoleName = (profile?.role as AppRoleName) || "specjalista";
   const isClient = currentRole === "klient";
-  const clientId = (profile as any)?.client_id || null;
+  const clientId = profile?.client_id || null;
   const isPrimaryContact = profile?.is_primary_contact ?? false;
   const contactPermissions: ContactPermissions = profile?.contact_permissions ?? {};
 
@@ -71,7 +70,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
 
   return (
     <RoleContext.Provider value={{
-      currentRole, roleLoading, isClient, clientId, permissions, setPermissions, canViewModule, refreshPermissions: fetchPermissions,
+      currentRole, roleLoading, isClient, clientId, permissions, canViewModule, refreshPermissions: fetchPermissions,
       isPrimaryContact, contactPermissions, hasContactPermission,
     }}>
       {children}

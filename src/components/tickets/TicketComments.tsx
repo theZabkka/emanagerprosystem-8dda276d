@@ -22,7 +22,7 @@ export default function TicketComments({ ticketId }: TicketCommentsProps) {
     queryKey: ["ticket-comments", ticketId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("ticket_comments" as any)
+        .from("ticket_comments")
         .select("id, content, created_at, user_id, profiles:user_id(full_name, avatar_url, role)")
         .eq("ticket_id", ticketId)
         .order("created_at", { ascending: true });
@@ -34,7 +34,7 @@ export default function TicketComments({ ticketId }: TicketCommentsProps) {
   const addComment = useMutation({
     mutationFn: async () => {
       if (!content.trim() || !user) return;
-      const { error } = await supabase.from("ticket_comments" as any).insert({
+      const { error } = await supabase.from("ticket_comments").insert({
         ticket_id: ticketId,
         user_id: user.id,
         content: content.trim(),

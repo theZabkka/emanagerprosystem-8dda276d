@@ -401,7 +401,7 @@ export default function ClientDetail() {
     queryKey: ["customer-contacts-count", id],
     queryFn: async () => {
       const { count } = await supabase
-        .from("customer_contacts" as any)
+        .from("customer_contacts")
         .select("id", { count: "exact", head: true })
         .eq("customer_id", id!);
       return count || 0;

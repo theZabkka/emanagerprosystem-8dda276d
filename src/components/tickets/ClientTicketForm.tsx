@@ -79,7 +79,7 @@ export default function ClientTicketForm() {
           created_by: profile?.id || null,
           contact_id: contactId,
           priority: "Średni",
-        } as any)
+        })
         .select("id")
         .single();
 
@@ -103,7 +103,7 @@ export default function ClientTicketForm() {
             ticket_id: ticket.id,
             file_url: urlData.publicUrl,
             file_name: file.name,
-          } as any);
+          });
         }
       }
 

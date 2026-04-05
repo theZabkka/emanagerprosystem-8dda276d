@@ -35,7 +35,7 @@ export function CrmLabelManager({ onFilterByLabel, activeLabelFilter }: CrmLabel
     queryKey: ["crm-label-counts"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("crm_deal_labels" as any)
+        .from("crm_deal_labels")
         .select("label_id");
       if (error) throw error;
       const counts: Record<string, number> = {};
@@ -69,8 +69,8 @@ export function CrmLabelManager({ onFilterByLabel, activeLabelFilter }: CrmLabel
 
     if (editingLabel) {
       const { error } = await supabase
-        .from("crm_labels" as any)
-        .update({ name: name.trim(), color } as any)
+        .from("crm_labels")
+        .update({ name: name.trim(), color })
         .eq("id", editingLabel.id);
       if (error) {
         toast.error("Błąd zapisu");
@@ -88,8 +88,8 @@ export function CrmLabelManager({ onFilterByLabel, activeLabelFilter }: CrmLabel
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from("crm_deal_labels" as any).delete().eq("label_id", id);
-    const { error } = await supabase.from("crm_labels" as any).delete().eq("id", id);
+    await supabase.from("crm_deal_labels").delete().eq("label_id", id);
+    const { error } = await supabase.from("crm_labels").delete().eq("id", id);
     if (error) {
       toast.error("Błąd usuwania");
       return;

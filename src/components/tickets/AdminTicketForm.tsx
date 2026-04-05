@@ -80,7 +80,7 @@ export default function AdminTicketForm() {
           created_by: profile?.id || null,
           priority,
           assigned_to: assignedTo,
-        } as any)
+        })
         .select("id")
         .single();
 
@@ -104,7 +104,7 @@ export default function AdminTicketForm() {
             ticket_id: ticket.id,
             file_url: urlData.publicUrl,
             file_name: file.name,
-          } as any);
+          });
         }
       }
 

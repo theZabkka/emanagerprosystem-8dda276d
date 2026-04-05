@@ -51,7 +51,7 @@ export function ClientNotesCard({ clientId, onShowAll }: ClientNotesCardProps) {
     queryKey,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("client_notes" as any)
+        .from("client_notes")
         .select("*")
         .eq("client_id", clientId)
         .order("created_at", { ascending: false });
@@ -97,7 +97,7 @@ export function ClientNotesCard({ clientId, onShowAll }: ClientNotesCardProps) {
     setShowAddDialog(false);
 
     try {
-      const { error } = await (supabase.from("client_notes" as any) as any).insert({
+      const { error } = await supabase.from("client_notes").insert({
         client_id: clientId,
         author_id: user.id,
         content: optimisticNote.content,
@@ -127,13 +127,13 @@ export function ClientNotesCard({ clientId, onShowAll }: ClientNotesCardProps) {
     try {
       // First unpin all notes for this client
       if (!currentlyPinned) {
-        await (supabase.from("client_notes" as any) as any)
+        await supabase.from("client_notes")
           .update({ is_pinned: false })
           .eq("client_id", clientId)
           .eq("is_pinned", true);
       }
       // Then set the target note
-      await (supabase.from("client_notes" as any) as any).update({ is_pinned: !currentlyPinned }).eq("id", noteId);
+      await supabase.from("client_notes").update({ is_pinned: !currentlyPinned }).eq("id", noteId);
 
       queryClient.invalidateQueries({ queryKey });
       toast.success(currentlyPinned ? "Notatka odpięta" : "Notatka przypięta");

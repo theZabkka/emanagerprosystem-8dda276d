@@ -46,7 +46,7 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
     queryKey: ["customer-contacts", clientId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("customer_contacts" as any)
+        .from("customer_contacts")
         .select("*")
         .eq("customer_id", clientId)
         .order("is_primary", { ascending: false })
@@ -93,7 +93,7 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
 
       if (editingId) {
         if (isPrimary) {
-          await (supabase.from("customer_contacts" as any) as any)
+          await supabase.from("customer_contacts")
             .update({ is_primary: false })
             .eq("customer_id", clientId)
             .eq("is_primary", true);
@@ -109,7 +109,7 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
           can_view_all_tickets: canViewAll,
         };
 
-        const { error } = await (supabase.from("customer_contacts" as any) as any)
+        const { error } = await supabase.from("customer_contacts")
           .update(payload)
           .eq("id", editingId);
         if (error) { toast.error(error.message); return; }
@@ -159,7 +159,7 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
   };
 
   const handleDelete = async (contactId: string) => {
-    const { error } = await (supabase.from("customer_contacts" as any) as any)
+    const { error } = await supabase.from("customer_contacts")
       .delete()
       .eq("id", contactId);
     if (error) { toast.error(error.message); return; }

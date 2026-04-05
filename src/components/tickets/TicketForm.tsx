@@ -80,7 +80,7 @@ export default function TicketForm({ isAdmin }: TicketFormProps) {
           description,
           client_id: resolvedClientId,
           created_by: profile?.id || null,
-        } as any)
+        })
         .select("id")
         .single();
 
@@ -107,7 +107,7 @@ export default function TicketForm({ isAdmin }: TicketFormProps) {
             ticket_id: ticket.id,
             file_url: urlData.publicUrl,
             file_name: file.name,
-          } as any);
+          });
         }
       }
 

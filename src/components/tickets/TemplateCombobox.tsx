@@ -17,7 +17,7 @@ export default function TemplateCombobox({ onSelect }: TemplateComboboxProps) {
     queryKey: ["response-templates"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("response_templates" as any)
+        .from("response_templates")
         .select("id, title, content")
         .order("title", { ascending: true });
       if (error) throw error;

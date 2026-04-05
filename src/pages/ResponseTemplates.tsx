@@ -40,7 +40,7 @@ export default function ResponseTemplates() {
     queryKey: ["response-templates"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("response_templates" as any)
+        .from("response_templates")
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -52,14 +52,14 @@ export default function ResponseTemplates() {
     mutationFn: async () => {
       if (editing) {
         const { error } = await supabase
-          .from("response_templates" as any)
-          .update({ title, content } as any)
+          .from("response_templates")
+          .update({ title, content })
           .eq("id", editing.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("response_templates" as any)
-          .insert({ title, content } as any);
+          .from("response_templates")
+          .insert({ title, content });
         if (error) throw error;
       }
     },
@@ -74,7 +74,7 @@ export default function ResponseTemplates() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("response_templates" as any)
+        .from("response_templates")
         .delete()
         .eq("id", id);
       if (error) throw error;
