@@ -22,7 +22,7 @@ export default function TicketComments({ ticketId }: TicketCommentsProps) {
     queryKey: ["ticket-comments", ticketId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("ticket_comments" as any)
+        .from("ticket_comments")
         .select("id, content, created_at, user_id, profiles:user_id(full_name, avatar_url, role)")
         .eq("ticket_id", ticketId)
         .order("created_at", { ascending: true });
