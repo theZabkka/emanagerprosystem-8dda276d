@@ -408,8 +408,9 @@ export default function Tasks() {
                     .filter(Boolean)}
                   onStatusChange={handleStatusChange}
                   onArchive={handleArchive}
-                  onRefresh={() => queryClient.invalidateQueries({ queryKey: ["tasks"] })}
+                  onRefresh={() => queryClient.invalidateQueries({ queryKey: ["tasks-kanban"] })}
                   onLexoRankUpdate={handleLexoRankUpdate}
+                  truncatedColumns={truncatedColumns}
                   onQuickAdd={(status) => {
                     setQuickAddStatus(status);
                     setIsCreateOpen(true);
