@@ -211,7 +211,7 @@ export default function Tasks() {
       queryClient.setQueryData<TaskWithRelations[]>(queryKey, (old) =>
         (old || []).map((t) =>
           t.id === taskId
-            ? { ...t, status: newStatus, status_updated_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+            ? { ...t, status: newStatus as TaskStatus, status_updated_at: new Date().toISOString(), updated_at: new Date().toISOString() }
             : t,
         ),
       );
