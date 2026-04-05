@@ -4,6 +4,7 @@ import { AppSidebar } from "./AppSidebar";
 import { ClientSidebar } from "./ClientSidebar";
 import { Topbar } from "./Topbar";
 import { AIAssistantButton } from "./AIAssistantButton";
+import { GlobalAlertStrip } from "./GlobalAlertStrip";
 import { useRole } from "@/hooks/useRole";
 import { useRoutePrefetch } from "@/hooks/useRoutePrefetch";
 import { CoordinatorFreezeOverlay } from "@/components/tasks/CoordinatorFreezeOverlay";
@@ -117,6 +118,8 @@ export function AppLayout({ children, title }: AppLayoutProps) {
             <div className={navLockClasses}>
               <Topbar title={title} />
             </div>
+
+            <GlobalAlertStrip />
 
             <main className="flex-1 overflow-auto p-6 bg-background">
               {children}
