@@ -4,6 +4,7 @@ import { AppSidebar } from "./AppSidebar";
 import { ClientSidebar } from "./ClientSidebar";
 import { Topbar } from "./Topbar";
 import { AIAssistantButton } from "./AIAssistantButton";
+import { GlobalAlertStrip } from "./GlobalAlertStrip";
 import { useRole } from "@/hooks/useRole";
 import { useRoutePrefetch } from "@/hooks/useRoutePrefetch";
 import { CoordinatorFreezeOverlay } from "@/components/tasks/CoordinatorFreezeOverlay";
