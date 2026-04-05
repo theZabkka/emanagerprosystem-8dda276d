@@ -51,6 +51,7 @@ interface TaskKanbanBoardProps {
   sortField?: SortField;
   sortDirection?: SortDirection;
   isClientMode?: boolean;
+  truncatedColumns?: string[];
 }
 
 export default function TaskKanbanBoard({
