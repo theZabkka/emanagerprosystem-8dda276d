@@ -1,6 +1,6 @@
 import { useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import {
-  Sun, LayoutDashboard, Target,
+  LayoutDashboard,
   CheckSquare, FolderKanban, Columns3, Users2, RotateCcw, Archive,
   Building2, FileText, Briefcase, TrendingUp, Lightbulb, MessageCircle, Zap,
   MessagesSquare, Inbox, TicketCheck,
@@ -37,9 +37,7 @@ const sections = [
   {
     label: "GŁÓWNE",
     items: [
-      { title: "Mój dzień", url: "/my-day", icon: Sun },
       { title: "Pulpit", url: "/dashboard", icon: LayoutDashboard },
-      { title: "Cele i OKR", url: "/okr", icon: Target },
     ],
   },
   {

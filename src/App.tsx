@@ -23,12 +23,10 @@ const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
 const Pipeline = lazy(() => import("./pages/Pipeline"));
 const CrmBoard = lazy(() => import("./pages/CrmBoard"));
 const Messenger = lazy(() => import("./pages/Messenger"));
-const OKR = lazy(() => import("./pages/OKR"));
 const OperationalBoard = lazy(() => import("./pages/OperationalBoard"));
 // TeamBoard merged into Tasks page as "team" kanban mode
 const TeamCalendar = lazy(() => import("./pages/TeamCalendar"));
 const TimeReports = lazy(() => import("./pages/TimeReports"));
-const MyDay = lazy(() => import("./pages/MyDay"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Automations = lazy(() => import("./pages/Automations"));
 const AutomationCenter = lazy(() => import("./pages/AutomationCenter"));
@@ -141,14 +139,7 @@ const App = () => (
                         </ProtectedRoute>
                       }
                     />
-                    <Route
-                      path="/my-day"
-                      element={
-                        <ProtectedRoute>
-                          <MyDay />
-                        </ProtectedRoute>
-                      }
-                    />
+                    <Route path="/my-day" element={<Navigate to="/dashboard" replace />} />
                     <Route
                       path="/tasks"
                       element={
@@ -230,14 +221,7 @@ const App = () => (
                         </ProtectedRoute>
                       }
                     />
-                    <Route
-                      path="/okr"
-                      element={
-                        <ProtectedRoute>
-                          <OKR />
-                        </ProtectedRoute>
-                      }
-                    />
+                    <Route path="/okr" element={<Navigate to="/dashboard" replace />} />
                     <Route
                       path="/operational"
                       element={
