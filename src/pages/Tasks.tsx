@@ -251,8 +251,8 @@ export default function Tasks() {
 
   const handleStatusChange = useCallback(
     async (taskId: string, newStatus: string) => {
-      const queryKey = ["tasks", sidebarFilters.clientIds, sidebarFilters.projectIds, sidebarFilters.assigneeIds, sidebarFilters.priorities];
-      const previousTasks = queryClient.getQueryData<TaskWithRelations[]>(queryKey);
+      const queryKey = ["tasks-kanban", sidebarFilters.clientIds, sidebarFilters.projectIds, sidebarFilters.assigneeIds, sidebarFilters.priorities];
+      const previousData = queryClient.getQueryData<{ tasks: TaskWithRelations[]; truncatedColumns: string[] }>(queryKey);
 
       queryClient.setQueryData<TaskWithRelations[]>(queryKey, (old) =>
         (old || []).map((t) =>
