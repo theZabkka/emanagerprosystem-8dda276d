@@ -35,7 +35,7 @@ export function CrmLabelManager({ onFilterByLabel, activeLabelFilter }: CrmLabel
     queryKey: ["crm-label-counts"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("crm_deal_labels" as any)
+        .from("crm_deal_labels")
         .select("label_id");
       if (error) throw error;
       const counts: Record<string, number> = {};
