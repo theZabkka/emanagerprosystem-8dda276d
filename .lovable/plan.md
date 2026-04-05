@@ -1,81 +1,73 @@
 
 
-# Plan: Scalenie 3 zakładek (Mój dzień + Pulpit + OKR) w jedno "Centrum"
+# Plan: Globalne alerty krytyczne z animacją i dźwiękiem
 
 ## Problem
 
-Trzy osobne strony — "Mój dzień" (`/my-day`), "Pulpit" (`/dashboard`), "Cele i OKR" (`/okr`) — pokrywają się funkcjonalnie. Każda ma statystyki, zadania i alerty. Użytkownik musi skakać między nimi bez jasnej wartości.
+Alerty o nieprzypisanych zadaniach, weryfikacji i akceptacji klienta są widoczne **tylko na stronie `/tasks`** (komponent `TaskAlertBanners`) i częściowo na dashboardzie (`OverviewTab`). Koordynator na innej stronie nie widzi tych informacji.
 
 ## Rozwiązanie
 
-Jedna strona **"Pulpit"** (`/dashboard`) z systemem zakładek (Tabs) dostosowanych do roli:
+Nowy komponent `GlobalAlertStrip` osadzony w `AppLayout.tsx` (nad `<main>`), widoczny **na każdej stronie** dla ról zarządczych. Banner "Do weryfikacji" pulsuje na żółto. Przy pojawieniu się nowego zadania do weryfikacji odtwarzany jest krótki dźwięk.
 
 ```text
-┌──────────────────────────────────────────────────────┐
-│  PULPIT                                              │
-│  ┌──────────┬─────────────┬──────────┐               │
-│  │ Mój dzień│  Przegląd   │ Cele OKR │               │
-│  └──────────┴─────────────┴──────────┘               │
-│                                                      │
-│  [Zawartość aktywnej zakładki]                        │
-└──────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│  [Snooze Banner - istniejący]                   │
+├─────────────────────────────────────────────────┤
+│  Sidebar  │  Topbar                             │
+│           ├─────────────────────────────────────┤
+│           │  ██ 3 nieprzypisane ██ MIGAJĄCY ██  │  ← GlobalAlertStrip
+│           ├─────────────────────────────────────┤
+│           │  <main> children                    │
+│           │                                     │
+└───────────┴─────────────────────────────────────┘
 ```
-
-### Widoczność zakładek per rola
-
-| Zakładka | superadmin/boss/koordynator | specjalista/praktykant |
-|----------|---------------------------|----------------------|
-| **Mój dzień** | tak (domyślna) | tak (domyślna) |
-| **Przegląd** | tak (pełne statystyki firmy) | tak (uproszczone — tylko moje metryki) |
-| **Cele OKR** | tak | ukryta |
-
-### Co zawiera każda zakładka
-
-**Mój dzień** (obecne `MyDay.tsx`):
-- Podsumowanie dnia (data, 4 statystyki osobiste)
-- Zaległe zadania, w trakcie, lista moich zadań
-- Czas zalogowany dziś
-
-**Przegląd** (obecne `StaffDashboard.tsx`):
-- Alerty (bugi, nieprzypisane, zaległe, poprawki)
-- 6 kart statystyk firmowych
-- Listy: akceptacja klienta, poprawki
-- Activity feed, pipeline, obciążenie zespołu
-
-**Cele OKR** (obecne `OKR.tsx`):
-- Selektor kwartału, progress ogólny
-- Lista celów z key results
 
 ## Zmiany w plikach
 
-### 1. Nowy `StaffDashboard.tsx` — kontener z Tabs
-- Import `Tabs, TabsList, TabsTrigger, TabsContent`
-- 3 zakładki, domyślna = "my-day"
-- Dla `praktykant`/`specjalista` ukryj tab "Cele OKR"
-- Każda `TabsContent` renderuje odpowiedni komponent
+### 1. Nowy `src/components/layout/GlobalAlertStrip.tsx`
 
-### 2. Wydzielenie treści do komponentów
-- `src/components/dashboard/MyDayTab.tsx` — przeniesiona logika z `MyDay.tsx` (bez `AppLayout`)
-- `src/components/dashboard/OverviewTab.tsx` — przeniesiona treść z obecnego `StaffDashboard` (alerty, statystyki, feed, pipeline, team load)
-- `src/components/dashboard/OkrTab.tsx` — przeniesiona logika z `OKR.tsx` (bez `AppLayout`)
+- Hook `useQuery` z kluczem `["global-alert-counts"]` pobiera:
+  - Nieprzypisane aktywne zadania (count)
+  - Zadania w statusie `review` (count)
+  - Zadania w statusie `client_review` (count)
+- `refetchInterval: 15000`, subskrypcja Realtime na tabelę `tasks` invaliduje cache
+- Widoczny tylko dla ról: `superadmin`, `boss`, `koordynator`
+- Trzy paski (renderowane warunkowo):
+  - **Nieprzypisane** (czerwony `bg-destructive`): "X zadań nieprzypisanych" + przycisk → `/tasks?unassigned=true`
+  - **Do weryfikacji** (żółty z animacją pulse): "X czeka na weryfikację" + przycisk → `/tasks?status=review`. Klasa CSS: `animate-pulse bg-yellow-500`
+  - **Akceptacja klienta** (pomarańczowy `bg-warning`): "X czeka na akceptację klienta" + przycisk → `/tasks?status=client_review`
+- **Dźwięk**: `useRef` przechowuje poprzednią wartość `reviewCount`. Gdy nowa wartość > poprzednia → `new Audio("/sounds/review-alert.mp3").play()`. Plik audio: krótki "ding" (~0.5s), wygenerowany jako mały MP3 w `/public/sounds/`.
 
-### 3. Routing (`App.tsx`)
-- Usunąć trasy `/my-day` i `/okr`
-- Usunąć lazy importy `MyDay` i `OKR`
-- `/dashboard` zostaje (renderuje `Dashboard.tsx` → `StaffDashboard`)
+### 2. Edycja `src/components/layout/AppLayout.tsx`
 
-### 4. Sidebar (`AppSidebar.tsx`)
-- Sekcja "GŁÓWNE": usunąć "Mój dzień" i "Cele i OKR"
-- Zostaje tylko "Pulpit" (`/dashboard`)
+- Import `GlobalAlertStrip`
+- Umieszczenie `<GlobalAlertStrip />` między `<Topbar />` a `<main>` (wewnątrz `flex-col`, poza `navLockClasses`)
 
-### 5. Pliki do usunięcia (opcjonalnie, mogą zostać puste)
-- `src/pages/MyDay.tsx` — pusty re-export lub redirect
-- `src/pages/OKR.tsx` — pusty re-export lub redirect
+### 3. Nowy plik dźwięku `public/sounds/review-alert.mp3`
 
-## Szczegóły techniczne
+- Krótki dźwięk powiadomienia (wygenerowany programowo jako base64 data URI lub mały plik)
 
-- `MyDayTab` i `OverviewTab` zachowują swoje istniejące hooki (`useQuery`, `useDashboardData`) — zero zmian w logice danych
-- `OkrTab` zachowuje `useState` z MOCK_OBJECTIVES
-- Jedyna zmiana UI: owijka `AppLayout` jest usunięta z komponentów wewnętrznych (bo `StaffDashboard` ma jedną wspólną `AppLayout`)
-- Redirecty: `/my-day` i `/okr` → `Navigate to="/dashboard"` aby nie łamać zakładek/bookmarków
+### 4. Animacja CSS w `tailwind.config.ts`
+
+- Dodanie keyframe `alert-pulse` (żółte miganie tła) — bardziej widoczne niż domyślny `animate-pulse`:
+```
+"alert-pulse": {
+  "0%, 100%": { opacity: "1" },
+  "50%": { opacity: "0.7", transform: "scale(1.01)" }
+}
+```
+
+### 5. Bez zmian w istniejących komponentach
+
+`TaskAlertBanners` na stronie `/tasks` pozostaje — daje dodatkowe akcje filtrowania specyficzne dla tej strony. `GlobalAlertStrip` to warstwa informacyjna, nie zastępuje lokalnych bannerów.
+
+## Pliki
+
+| Plik | Akcja |
+|------|-------|
+| `src/components/layout/GlobalAlertStrip.tsx` | Nowy |
+| `src/components/layout/AppLayout.tsx` | Edycja — dodanie GlobalAlertStrip |
+| `tailwind.config.ts` | Edycja — nowy keyframe animacji |
+| `public/sounds/review-alert.mp3` | Nowy — plik dźwiękowy |
 
