@@ -1,6 +1,6 @@
 import { useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import {
-  Sun, LayoutDashboard, Target,
+  LayoutDashboard,
   CheckSquare, FolderKanban, Columns3, Users2, RotateCcw, Archive,
   Building2, FileText, Briefcase, TrendingUp, Lightbulb, MessageCircle, Zap,
   MessagesSquare, Inbox, TicketCheck,
