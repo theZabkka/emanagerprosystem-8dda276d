@@ -85,8 +85,8 @@ export default function CrmBoard() {
     },
   });
 
-  const emptyDeal = { title: "", column_id: "", due_date: "", client_id: "", description: "", assigned_to: "", selectedLabels: [] as string[] };
-  const [newDeal, setNewDeal] = useState(emptyDeal);
+  const emptyDeal: NewDealFormData = { title: "", column_id: "", due_date: "", client_id: "", description: "", assigned_to: "", selectedLabels: [] };
+  const [newDeal, setNewDeal] = useState<NewDealFormData>(emptyDeal);
 
   // Quick-add: open create modal with pre-filled column
   const openCreateForColumn = (columnId: string) => {
