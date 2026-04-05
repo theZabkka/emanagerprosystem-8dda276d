@@ -87,7 +87,7 @@ export default function Tasks() {
     data: tasks,
     isLoading,
     refetch,
-  } = useQuery({
+  } = useQuery<TaskWithRelations[]>({
     queryKey: ["tasks", sidebarFilters.clientIds, sidebarFilters.projectIds, sidebarFilters.assigneeIds, sidebarFilters.priorities],
     queryFn: async () => {
       let q = supabase
@@ -99,7 +99,7 @@ export default function Tasks() {
             "clients(name, has_retainer), projects(name), task_assignments(user_id, role, profiles:user_id(full_name))",
         )
         .eq("is_archived", false)
-        .order("lexo_rank" as any, { ascending: true })
+        .order("lexo_rank", { ascending: true })
         .limit(500);
 
       // Server-side filters (AND logic)
@@ -110,12 +110,12 @@ export default function Tasks() {
         q = q.in("project_id", sidebarFilters.projectIds);
       }
       if (sidebarFilters.priorities.length > 0) {
-        q = q.in("priority", sidebarFilters.priorities as any);
+        q = q.in("priority", sidebarFilters.priorities as TaskPriority[]);
       }
 
       const { data, error } = await q;
       if (error) throw error;
-      return data || [];
+      return (data ?? []) as unknown as TaskWithRelations[];
     },
     staleTime: 2 * 60 * 1000,
   });
