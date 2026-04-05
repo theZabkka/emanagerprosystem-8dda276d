@@ -84,7 +84,7 @@ export function BugReportModal({ open, onOpenChange }: BugReportModalProps) {
         });
       }
 
-      toast({ title: "Zgłoszenie zostało wysłane", description: "Dziękujemy za raport błędu." });
+      toast.success("Zgłoszenie zostało wysłane", { description: "Dziękujemy za raport błędu." });
       reset();
       onOpenChange(false);
     } catch (err: any) {
