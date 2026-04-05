@@ -246,7 +246,7 @@ export default function Tasks() {
 
       const { error } = await supabase
         .from("tasks")
-        .update({ lexo_rank: newRank } as any)
+        .update({ lexo_rank: newRank })
         .eq("id", taskId);
 
       if (error) {
