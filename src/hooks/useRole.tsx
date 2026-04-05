@@ -27,7 +27,6 @@ interface RoleContextType {
   isClient: boolean;
   clientId: string | null;
   permissions: Permission[];
-  setPermissions: React.Dispatch<React.SetStateAction<Permission[]>>;
   canViewModule: (moduleName: string) => boolean;
   refreshPermissions: () => void;
   isPrimaryContact: boolean;
