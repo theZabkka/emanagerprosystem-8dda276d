@@ -26,6 +26,13 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { ThemeLogo } from "@/components/ThemeLogo";
 
+const STUB_URLS = new Set([
+  "/routines", "/contracts", "/orders", "/micro-interventions", "/client-inbox",
+  "/meetings", "/absences", "/equipment", "/retention", "/reports",
+  "/team-results", "/team-notes", "/team-analytics", "/recurring-tasks",
+  "/suggestions", "/project-guide",
+]);
+
 const sections = [
   {
     label: "GŁÓWNE",
