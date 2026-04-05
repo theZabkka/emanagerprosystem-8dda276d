@@ -197,16 +197,15 @@ export default function CrmBoard() {
       if (!isSameColumn) {
         // Close previous stage log
         supabase
-          .from("crm_stage_logs" as any)
-          .update({ exited_at: new Date().toISOString() } as any)
+          .from("crm_stage_logs")
+          .update({ exited_at: new Date().toISOString() })
           .eq("deal_id", draggableId)
           .eq("column_id", srcColumnId)
           .is("exited_at", null)
           .then(() => {
-            // Insert new stage log
             supabase
-              .from("crm_stage_logs" as any)
-              .insert({ deal_id: draggableId, column_id: destColumnId } as any)
+              .from("crm_stage_logs")
+              .insert({ deal_id: draggableId, column_id: destColumnId })
               .then();
           });
 
@@ -218,10 +217,9 @@ export default function CrmBoard() {
             colNameLower.includes("wygran") || colNameLower.includes("sukces") || colNameLower.includes("won") ||
             colNameLower.includes("przegran") || colNameLower.includes("lost") || colNameLower.includes("strat");
           if (isClosedStage) {
-            supabase.from("crm_deals" as any).update({ closed_at: new Date().toISOString() } as any).eq("id", draggableId).then();
+            supabase.from("crm_deals").update({ closed_at: new Date().toISOString() }).eq("id", draggableId).then();
           } else {
-            // Returning to active stage → clear closed_at
-            supabase.from("crm_deals" as any).update({ closed_at: null } as any).eq("id", draggableId).then();
+            supabase.from("crm_deals").update({ closed_at: null }).eq("id", draggableId).then();
           }
         }
       }
