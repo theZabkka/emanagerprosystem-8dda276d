@@ -208,7 +208,7 @@ export default function Tasks() {
       const queryKey = ["tasks", sidebarFilters.clientIds, sidebarFilters.projectIds, sidebarFilters.assigneeIds, sidebarFilters.priorities];
       const previousTasks = queryClient.getQueryData<TaskWithRelations[]>(queryKey);
 
-      queryClient.setQueryData<any[]>(queryKey, (old) =>
+      queryClient.setQueryData<TaskWithRelations[]>(queryKey, (old) =>
         (old || []).map((t) =>
           t.id === taskId
             ? { ...t, status: newStatus, status_updated_at: new Date().toISOString(), updated_at: new Date().toISOString() }
