@@ -221,14 +221,7 @@ const App = () => (
                         </ProtectedRoute>
                       }
                     />
-                    <Route
-                      path="/okr"
-                      element={
-                        <ProtectedRoute>
-                          <OKR />
-                        </ProtectedRoute>
-                      }
-                    />
+                    <Route path="/okr" element={<Navigate to="/dashboard" replace />} />
                     <Route
                       path="/operational"
                       element={

@@ -37,9 +37,7 @@ const sections = [
   {
     label: "GŁÓWNE",
     items: [
-      { title: "Mój dzień", url: "/my-day", icon: Sun },
       { title: "Pulpit", url: "/dashboard", icon: LayoutDashboard },
-      { title: "Cele i OKR", url: "/okr", icon: Target },
     ],
   },
   {
