@@ -88,8 +88,8 @@ export function CrmLabelManager({ onFilterByLabel, activeLabelFilter }: CrmLabel
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from("crm_deal_labels" as any).delete().eq("label_id", id);
-    const { error } = await supabase.from("crm_labels" as any).delete().eq("id", id);
+    await supabase.from("crm_deal_labels").delete().eq("label_id", id);
+    const { error } = await supabase.from("crm_labels").delete().eq("id", id);
     if (error) {
       toast.error("Błąd usuwania");
       return;

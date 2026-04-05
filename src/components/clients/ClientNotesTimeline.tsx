@@ -173,7 +173,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
           .eq("client_id", clientId)
           .eq("is_pinned", true);
       }
-      await (supabase.from("client_notes" as any) as any).update({ is_pinned: !currentlyPinned }).eq("id", noteId);
+      await supabase.from("client_notes").update({ is_pinned: !currentlyPinned }).eq("id", noteId);
       queryClient.invalidateQueries({ queryKey });
     } catch {
       queryClient.setQueryData(queryKey, prev);

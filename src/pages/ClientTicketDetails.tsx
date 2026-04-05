@@ -43,7 +43,7 @@ export default function ClientTicketDetails() {
     queryKey: ["ticket-attachments", id],
     queryFn: async () => {
       const { data } = await supabase
-        .from("ticket_attachments" as any)
+        .from("ticket_attachments")
         .select("*")
         .eq("ticket_id", id!);
       return (data || []) as any[];

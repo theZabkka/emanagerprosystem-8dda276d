@@ -34,7 +34,7 @@ export default function TicketComments({ ticketId }: TicketCommentsProps) {
   const addComment = useMutation({
     mutationFn: async () => {
       if (!content.trim() || !user) return;
-      const { error } = await supabase.from("ticket_comments" as any).insert({
+      const { error } = await supabase.from("ticket_comments").insert({
         ticket_id: ticketId,
         user_id: user.id,
         content: content.trim(),

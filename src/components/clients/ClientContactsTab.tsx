@@ -159,7 +159,7 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
   };
 
   const handleDelete = async (contactId: string) => {
-    const { error } = await (supabase.from("customer_contacts" as any) as any)
+    const { error } = await supabase.from("customer_contacts")
       .delete()
       .eq("id", contactId);
     if (error) { toast.error(error.message); return; }

@@ -42,6 +42,7 @@ export default function Permissions() {
       refreshPermissions();
       return;
     }
+    refreshPermissions();
     toast.success(`${ROLE_LABELS[role]}: ${module} → ${newVal ? "widoczny" : "ukryty"}`);
   };
 

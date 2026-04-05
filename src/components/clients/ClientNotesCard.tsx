@@ -133,7 +133,7 @@ export function ClientNotesCard({ clientId, onShowAll }: ClientNotesCardProps) {
           .eq("is_pinned", true);
       }
       // Then set the target note
-      await (supabase.from("client_notes" as any) as any).update({ is_pinned: !currentlyPinned }).eq("id", noteId);
+      await supabase.from("client_notes").update({ is_pinned: !currentlyPinned }).eq("id", noteId);
 
       queryClient.invalidateQueries({ queryKey });
       toast.success(currentlyPinned ? "Notatka odpięta" : "Notatka przypięta");
