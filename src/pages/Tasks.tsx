@@ -17,6 +17,7 @@ import type { SortField, SortDirection, KanbanMode } from "@/components/tasks/Ta
 import { KanbanSkeleton } from "@/components/skeletons/KanbanSkeleton";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { FileX2 } from "lucide-react";
+import type { TaskWithRelations, TaskStatus } from "@/types/models";
 
 export default function Tasks() {
   const { user } = useAuth();
