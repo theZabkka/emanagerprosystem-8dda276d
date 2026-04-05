@@ -393,7 +393,7 @@ export default function Tasks() {
               kanbanMode === "team" ? (
                 <TaskTeamBoard
                   tasks={filteredTasks}
-                  onRefresh={() => queryClient.invalidateQueries({ queryKey: ["tasks"] })}
+                  onRefresh={() => queryClient.invalidateQueries({ queryKey: ["tasks-kanban"] })}
                   priorityFilter={sidebarFilters.priorities.length === 1 ? sidebarFilters.priorities[0] : "all"}
                   onPersonClick={handlePersonDrillDown}
                 />

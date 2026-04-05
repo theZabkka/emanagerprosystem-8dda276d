@@ -470,6 +470,7 @@ export default function TaskKanbanBoard({
               isClientMode={isClientMode}
               onQuickAdd={onQuickAdd}
               cardHelpers={cardHelpers}
+              isTruncated={truncatedColumns.includes(col.key)}
             />
           ))}
         </div>

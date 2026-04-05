@@ -111,6 +111,17 @@ export default function TaskListView({ tasks, isLoading, hasNextPage, isFetching
           )}
         </TableBody>
       </Table>
+      {hasNextPage && (
+        <div className="flex justify-center py-4 border-t">
+          <button
+            onClick={fetchNextPage}
+            disabled={isFetchingNextPage}
+            className="text-sm text-primary hover:underline disabled:opacity-50"
+          >
+            {isFetchingNextPage ? "Ładowanie..." : "Załaduj więcej"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -37,6 +37,9 @@ export function KanbanColumn({
               {tasks.length}{" "}
               {tasks.length === 1 ? "zadanie" : tasks.length < 5 ? "zadania" : "zadań"}
             </span>
+            {isTruncated && (
+              <span className="text-[10px] text-amber-500">Wyświetlono maks. 300 zadań</span>
+            )}
           </div>
           {!isClientMode && onQuickAdd && (
             <Button
