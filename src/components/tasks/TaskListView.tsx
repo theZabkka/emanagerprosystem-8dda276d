@@ -20,6 +20,9 @@ function timeSince(dateStr: string, status?: string) {
 interface TaskListViewProps {
   tasks: any[];
   isLoading: boolean;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
+  fetchNextPage?: () => void;
 }
 
 export default function TaskListView({ tasks, isLoading }: TaskListViewProps) {
