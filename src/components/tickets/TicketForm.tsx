@@ -80,7 +80,7 @@ export default function TicketForm({ isAdmin }: TicketFormProps) {
           description,
           client_id: resolvedClientId,
           created_by: profile?.id || null,
-        } as any)
+        })
         .select("id")
         .single();
 
