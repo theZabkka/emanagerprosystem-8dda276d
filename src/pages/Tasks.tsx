@@ -363,7 +363,10 @@ export default function Tasks() {
             setIsCreateOpen(v);
             if (!v) setQuickAddStatus(undefined);
           }}
-          onCreated={() => queryClient.invalidateQueries({ queryKey: ["tasks"] })}
+          onCreated={() => {
+            queryClient.invalidateQueries({ queryKey: ["tasks-kanban"] });
+            queryClient.invalidateQueries({ queryKey: ["tasks-list"] });
+          }}
           defaultStatus={quickAddStatus}
         />
 
