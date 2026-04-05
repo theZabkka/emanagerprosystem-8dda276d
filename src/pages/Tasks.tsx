@@ -254,13 +254,17 @@ export default function Tasks() {
       const queryKey = ["tasks-kanban", sidebarFilters.clientIds, sidebarFilters.projectIds, sidebarFilters.assigneeIds, sidebarFilters.priorities];
       const previousData = queryClient.getQueryData<{ tasks: TaskWithRelations[]; truncatedColumns: string[] }>(queryKey);
 
-      queryClient.setQueryData<TaskWithRelations[]>(queryKey, (old) =>
-        (old || []).map((t) =>
-          t.id === taskId
-            ? { ...t, status: newStatus as TaskStatus, status_updated_at: new Date().toISOString(), updated_at: new Date().toISOString() }
-            : t,
-        ),
-      );
+      queryClient.setQueryData(queryKey, (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          tasks: (old.tasks || []).map((t: TaskWithRelations) =>
+            t.id === taskId
+              ? { ...t, status: newStatus as TaskStatus, status_updated_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+              : t,
+          ),
+        };
+      });
 
       const { error } = await supabase.rpc("change_task_status", {
         _task_id: taskId,
