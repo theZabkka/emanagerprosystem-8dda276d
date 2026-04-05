@@ -130,7 +130,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
     setEditingId(null);
 
     try {
-      const { error } = await (supabase.from("client_notes" as any) as any)
+      const { error } = await supabase.from("client_notes")
         .update({ content: editContent.trim(), updated_at: new Date().toISOString() })
         .eq("id", noteId);
       if (error) throw error;
