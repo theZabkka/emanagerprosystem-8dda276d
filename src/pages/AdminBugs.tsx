@@ -96,7 +96,7 @@ export default function AdminBugs() {
       toast.success("Status zaktualizowany");
     },
     onError: (err: any) => {
-      toast({ title: "Błąd", description: err.message, variant: "destructive" });
+      toast.error("Błąd", { description: err.message });
     },
   });
 

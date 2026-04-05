@@ -89,7 +89,7 @@ export function BugReportModal({ open, onOpenChange }: BugReportModalProps) {
       onOpenChange(false);
     } catch (err: any) {
       console.error(err);
-      toast({ title: "Błąd", description: err.message || "Nie udało się wysłać zgłoszenia.", variant: "destructive" });
+      toast.error("Błąd", { description: err.message || "Nie udało się wysłać zgłoszenia." });
     } finally {
       setSubmitting(false);
     }
