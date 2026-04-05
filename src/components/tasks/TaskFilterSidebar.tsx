@@ -61,7 +61,7 @@ function Section({ title, defaultOpen = true, active = false, children }: { titl
         <ChevronRight className={`h-3 w-3 text-muted-foreground/25 transition-transform duration-200 ${open ? "rotate-90" : ""}`} />
       </CollapsibleTrigger>
       <CollapsibleContent className="transition-all data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0">
-        <div className={`px-4 pb-3 pt-0.5 ${active ? "border-l-2 border-destructive/40 ml-3 pl-3" : ""}`}>
+        <div className={`px-3 pb-3 pt-0.5 ${active ? "border-l-2 border-destructive/40 ml-3 pl-3" : ""}`}>
           {children}
         </div>
       </CollapsibleContent>
