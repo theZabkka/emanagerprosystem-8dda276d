@@ -11,6 +11,7 @@ export interface KanbanColumnProps {
   onQuickAdd?: (status: string) => void;
   /** Shared helpers passed down to KanbanCard */
   cardHelpers: Omit<KanbanCardProps, "task" | "provided" | "isDragging" | "columnKey">;
+  isTruncated?: boolean;
 }
 
 export function KanbanColumn({
@@ -20,6 +21,7 @@ export function KanbanColumn({
   isClientMode,
   onQuickAdd,
   cardHelpers,
+  isTruncated = false,
 }: KanbanColumnProps) {
   const isEmpty = tasks.length === 0;
 
@@ -35,6 +37,9 @@ export function KanbanColumn({
               {tasks.length}{" "}
               {tasks.length === 1 ? "zadanie" : tasks.length < 5 ? "zadania" : "zadań"}
             </span>
+            {isTruncated && (
+              <span className="text-[10px] text-amber-500">Wyświetlono maks. 300 zadań</span>
+            )}
           </div>
           {!isClientMode && onQuickAdd && (
             <Button

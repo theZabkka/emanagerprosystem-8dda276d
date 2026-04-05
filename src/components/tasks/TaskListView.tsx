@@ -20,9 +20,12 @@ function timeSince(dateStr: string, status?: string) {
 interface TaskListViewProps {
   tasks: any[];
   isLoading: boolean;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
+  fetchNextPage?: () => void;
 }
 
-export default function TaskListView({ tasks, isLoading }: TaskListViewProps) {
+export default function TaskListView({ tasks, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage }: TaskListViewProps) {
   return (
     <div className="bg-card rounded-lg border">
       <Table>
@@ -108,6 +111,17 @@ export default function TaskListView({ tasks, isLoading }: TaskListViewProps) {
           )}
         </TableBody>
       </Table>
+      {hasNextPage && (
+        <div className="flex justify-center py-4 border-t">
+          <button
+            onClick={fetchNextPage}
+            disabled={isFetchingNextPage}
+            className="text-sm text-primary hover:underline disabled:opacity-50"
+          >
+            {isFetchingNextPage ? "Ładowanie..." : "Załaduj więcej"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

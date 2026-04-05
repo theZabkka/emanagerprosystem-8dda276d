@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { DragDropContext, type DropResult } from "@hello-pangea/dnd";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ChecklistBlockModal, ResponsibilityModal } from "./WorkflowModals";
@@ -51,6 +51,7 @@ interface TaskKanbanBoardProps {
   sortField?: SortField;
   sortDirection?: SortDirection;
   isClientMode?: boolean;
+  truncatedColumns?: string[];
 }
 
 export default function TaskKanbanBoard({
@@ -66,6 +67,7 @@ export default function TaskKanbanBoard({
   sortField = "manual",
   sortDirection = "asc",
   isClientMode = false,
+  truncatedColumns = [],
 }: TaskKanbanBoardProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -88,41 +90,26 @@ export default function TaskKanbanBoard({
     setOptimisticTasks(tasks);
   }, [tasks]);
 
-  const { data: allChecklists } = useQuery({
-    queryKey: [
-      "kanban-checklists",
-      tasks
-        .map((t) => t.id)
-        .sort()
-        .join(","),
-    ],
-    queryFn: async () => {
-      if (tasks.length === 0) return [];
-      const taskIds = tasks.map((t) => t.id);
-      const { data } = await supabase
-        .from("checklists")
-        .select("task_id, checklist_items(is_completed, is_na)")
-        .in("task_id", taskIds);
-      return data || [];
-    },
-    enabled: tasks.length > 0,
-    staleTime: 2 * 60 * 1000,
-  });
-
   const isChecklistComplete = useCallback(
-    (taskId: string) => {
-      if (!allChecklists) return true;
-      const taskChecklists = allChecklists.filter((cl: any) => cl.task_id === taskId);
-      if (taskChecklists.length === 0) return true;
-      for (const cl of taskChecklists) {
+    async (taskId: string): Promise<boolean> => {
+      const data = await queryClient.fetchQuery({
+        queryKey: ["checklists", taskId],
+        queryFn: async () => {
+          const { data } = await supabase
+            .from("checklists")
+            .select("task_id, checklist_items(is_completed, is_na)")
+            .eq("task_id", taskId);
+          return data || [];
+        },
+        staleTime: 60_000,
+      });
+      if (data.length === 0) return true;
+      return data.every((cl: any) => {
         const items = (cl as any).checklist_items || [];
-        if (items.length === 0) continue;
-        const allDone = items.every((i: any) => i.is_completed || i.is_na);
-        if (!allDone) return false;
-      }
-      return true;
+        return items.length === 0 || items.every((i: any) => i.is_completed || i.is_na);
+      });
     },
-    [allChecklists],
+    [queryClient],
   );
 
   const getAssignee = useCallback(
@@ -210,7 +197,7 @@ export default function TaskKanbanBoard({
     setPendingRejectionTaskId(null);
   };
 
-  const validateAndMove = (taskId: string, newStatus: string) => {
+  const validateAndMove = useCallback(async (taskId: string, newStatus: string) => {
     const task = optimisticTasks.find((t: any) => t.id === taskId);
     if (!task) return;
 
@@ -221,7 +208,8 @@ export default function TaskKanbanBoard({
     }
 
     if (task.status === "in_progress" && newStatus === "review") {
-      if (!isChecklistComplete(taskId)) {
+      const complete = await isChecklistComplete(taskId);
+      if (!complete) {
         setChecklistBlockOpen(true);
         return;
       }
@@ -245,7 +233,7 @@ export default function TaskKanbanBoard({
     }
 
     onStatusChange(taskId, newStatus);
-  };
+  }, [optimisticTasks, getTaskAssignments, isChecklistComplete, onStatusChange]);
 
   const activeColumns = isClientMode ? CLIENT_KANBAN_COLUMNS : KANBAN_COLUMNS;
   const activeColumnKeys = useMemo(() => new Set(activeColumns.map((c) => c.key)), [isClientMode]);
@@ -482,6 +470,7 @@ export default function TaskKanbanBoard({
               isClientMode={isClientMode}
               onQuickAdd={onQuickAdd}
               cardHelpers={cardHelpers}
+              isTruncated={truncatedColumns.includes(col.key)}
             />
           ))}
         </div>
