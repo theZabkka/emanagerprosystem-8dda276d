@@ -102,7 +102,7 @@ export function ClientNotesTimeline({ clientId }: ClientNotesTimelineProps) {
     setNewNote("");
 
     try {
-      const { error } = await (supabase.from("client_notes" as any) as any).insert({
+      const { error } = await supabase.from("client_notes").insert({
         client_id: clientId,
         author_id: user.id,
         content: optimisticNote.content,
