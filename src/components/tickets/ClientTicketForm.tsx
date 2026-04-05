@@ -79,7 +79,7 @@ export default function ClientTicketForm() {
           created_by: profile?.id || null,
           contact_id: contactId,
           priority: "Średni",
-        } as any)
+        })
         .select("id")
         .single();
 
