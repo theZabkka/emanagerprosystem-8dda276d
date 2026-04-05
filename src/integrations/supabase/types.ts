@@ -2439,6 +2439,7 @@ export type Database = {
             }
             Returns: Json
           }
+      get_own_role: { Args: { _user_id: string }; Returns: string }
       get_pipeline_advanced_metrics: { Args: never; Returns: Json }
       get_pipeline_stats: { Args: never; Returns: Json }
       get_project_health_score: {
