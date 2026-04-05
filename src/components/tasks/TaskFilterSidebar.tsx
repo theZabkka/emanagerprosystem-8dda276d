@@ -274,7 +274,7 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
   return (
     <>
       {/* Desktop */}
-      <aside className="hidden md:flex flex-col w-[300px] shrink-0 border-r border-[hsl(var(--foreground)/0.06)] overflow-hidden bg-background">
+      <aside className="hidden md:flex flex-col w-[240px] shrink-0 border-r border-[hsl(var(--foreground)/0.06)] overflow-hidden bg-background">
         {content}
       </aside>
 
