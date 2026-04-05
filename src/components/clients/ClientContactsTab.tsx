@@ -109,7 +109,7 @@ export function ClientContactsTab({ clientId }: { clientId: string }) {
           can_view_all_tickets: canViewAll,
         };
 
-        const { error } = await (supabase.from("customer_contacts" as any) as any)
+        const { error } = await supabase.from("customer_contacts")
           .update(payload)
           .eq("id", editingId);
         if (error) { toast.error(error.message); return; }
