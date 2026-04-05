@@ -197,7 +197,7 @@ export default function TaskKanbanBoard({
     setPendingRejectionTaskId(null);
   };
 
-  const validateAndMove = (taskId: string, newStatus: string) => {
+  const validateAndMove = useCallback(async (taskId: string, newStatus: string) => {
     const task = optimisticTasks.find((t: any) => t.id === taskId);
     if (!task) return;
 
@@ -208,7 +208,8 @@ export default function TaskKanbanBoard({
     }
 
     if (task.status === "in_progress" && newStatus === "review") {
-      if (!isChecklistComplete(taskId)) {
+      const complete = await isChecklistComplete(taskId);
+      if (!complete) {
         setChecklistBlockOpen(true);
         return;
       }
@@ -232,7 +233,7 @@ export default function TaskKanbanBoard({
     }
 
     onStatusChange(taskId, newStatus);
-  };
+  }, [optimisticTasks, getTaskAssignments, isChecklistComplete, onStatusChange]);
 
   const activeColumns = isClientMode ? CLIENT_KANBAN_COLUMNS : KANBAN_COLUMNS;
   const activeColumnKeys = useMemo(() => new Set(activeColumns.map((c) => c.key)), [isClientMode]);
