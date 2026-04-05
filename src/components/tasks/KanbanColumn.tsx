@@ -11,6 +11,7 @@ export interface KanbanColumnProps {
   onQuickAdd?: (status: string) => void;
   /** Shared helpers passed down to KanbanCard */
   cardHelpers: Omit<KanbanCardProps, "task" | "provided" | "isDragging" | "columnKey">;
+  isTruncated?: boolean;
 }
 
 export function KanbanColumn({
