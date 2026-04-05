@@ -54,14 +54,14 @@ function Section({ title, defaultOpen = true, active = false, children }: { titl
   const [open, setOpen] = useState(defaultOpen);
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-2 group">
+      <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 group">
         <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/50 group-hover:text-muted-foreground/70 transition-colors">
           {title}
         </span>
         <ChevronRight className={`h-3 w-3 text-muted-foreground/25 transition-transform duration-200 ${open ? "rotate-90" : ""}`} />
       </CollapsibleTrigger>
       <CollapsibleContent className="transition-all data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0">
-        <div className={`px-4 pb-3 pt-0.5 ${active ? "border-l-2 border-destructive/40 ml-3 pl-3" : ""}`}>
+        <div className={`px-3 pb-3 pt-0.5 ${active ? "border-l-2 border-destructive/40 ml-3 pl-3" : ""}`}>
           {children}
         </div>
       </CollapsibleContent>
@@ -142,12 +142,12 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
 
   const checkboxCls = "h-3.5 w-3.5 rounded-sm border-[hsl(var(--foreground)/0.12)] data-[state=checked]:bg-destructive data-[state=checked]:border-destructive";
   const optionCls = "flex items-center gap-2.5 px-2 py-1 rounded-md hover:bg-[hsl(var(--foreground)/0.04)] cursor-pointer transition-colors group";
-  const labelCls = "truncate flex-1 text-sm text-foreground/60 group-hover:text-foreground/80 transition-colors";
+  const labelCls = "truncate flex-1 text-xs text-foreground/60 group-hover:text-foreground/80 transition-colors";
 
   const content = (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 shrink-0">
+      <div className="flex items-center justify-between px-3 py-3 shrink-0">
         <span className="text-sm font-medium text-foreground/80">Filtry</span>
         <div className="flex items-center gap-1">
           {hasAnyFilter && (
@@ -168,7 +168,7 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
         {/* Klient */}
         <Section title="Klient" defaultOpen={false} active={filters.clientIds.length > 0}>
           {clients.length > 6 && <MiniSearch value={clientSearch} onChange={setClientSearch} placeholder="Szukaj klienta..." />}
-          <div className="max-h-[180px] overflow-y-auto space-y-px">
+          <div className="max-h-[160px] overflow-y-auto space-y-px">
             {filteredClients.map((c) => (
               <label key={c.id} className={optionCls}>
                 <Checkbox checked={filters.clientIds.includes(c.id)} onCheckedChange={() => toggleArrayFilter("clientIds", c.id)} className={checkboxCls} />
@@ -185,7 +185,7 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
         {/* Projekt */}
         <Section title="Projekt" defaultOpen={false} active={filters.projectIds.length > 0}>
           {projects.length > 6 && <MiniSearch value={projectSearch} onChange={setProjectSearch} placeholder="Szukaj projektu..." />}
-          <div className="max-h-[180px] overflow-y-auto space-y-px">
+          <div className="max-h-[160px] overflow-y-auto space-y-px">
             {filteredProjects.map((p) => (
               <label key={p.id} className={optionCls}>
                 <Checkbox checked={filters.projectIds.includes(p.id)} onCheckedChange={() => toggleArrayFilter("projectIds", p.id)} className={checkboxCls} />
@@ -274,7 +274,7 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
   return (
     <>
       {/* Desktop */}
-      <aside className="hidden md:flex flex-col w-[300px] shrink-0 border-r border-[hsl(var(--foreground)/0.06)] overflow-hidden bg-background">
+      <aside className="hidden md:flex flex-col w-[240px] shrink-0 border-r border-[hsl(var(--foreground)/0.06)] overflow-hidden bg-background">
         {content}
       </aside>
 
@@ -282,7 +282,7 @@ export function TaskFilterSidebar({ filters, onFiltersChange, taskCountsByClient
       {open && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => onOpenChange(false)} />
-          <div className="relative w-[300px] bg-background border-r border-[hsl(var(--foreground)/0.06)] flex flex-col z-10 shadow-2xl">
+          <div className="relative w-[240px] bg-background border-r border-[hsl(var(--foreground)/0.06)] flex flex-col z-10 shadow-2xl">
             {content}
           </div>
         </div>
