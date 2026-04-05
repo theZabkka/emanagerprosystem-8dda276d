@@ -236,7 +236,6 @@ export default function CrmBoard() {
     }
     createDealMutation.mutate(newDeal);
   };
-  };
   const handleCreateColumn = () => {
     if (!newColumnName.trim()) return;
     const lastRank = columns.length > 0 ? columns[columns.length - 1].lexo_rank : null;
