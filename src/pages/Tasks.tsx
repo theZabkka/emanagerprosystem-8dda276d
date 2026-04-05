@@ -46,9 +46,9 @@ export default function Tasks() {
   });
 
   const isTerminalStatus = (status?: string | null) => ["done", "cancelled", "closed"].includes(status || "");
-  const hasNonEmptyTitle = (task: any) => typeof task.title === "string" && task.title.trim().length > 0;
-  const isTaskUnassigned = (task: any) => (task.task_assignments || []).length === 0;
-  const isUnassignedAlertCandidate = (task: any) =>
+  const hasNonEmptyTitle = (task: TaskWithRelations) => typeof task.title === "string" && task.title.trim().length > 0;
+  const isTaskUnassigned = (task: TaskWithRelations) => (task.task_assignments || []).length === 0;
+  const isUnassignedAlertCandidate = (task: TaskWithRelations) =>
     !isTerminalStatus(task.status) && hasNonEmptyTitle(task) && isTaskUnassigned(task);
 
   // Read URL params on mount
