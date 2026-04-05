@@ -93,7 +93,7 @@ export default function AdminBugs() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bug-reports"] });
-      toast({ title: "Status zaktualizowany" });
+      toast.success("Status zaktualizowany");
     },
     onError: (err: any) => {
       toast({ title: "Błąd", description: err.message, variant: "destructive" });
