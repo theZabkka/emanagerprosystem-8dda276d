@@ -238,7 +238,7 @@ export default function Tasks() {
   const handleLexoRankUpdate = useCallback(
     async (taskId: string, newRank: string) => {
       const queryKey = ["tasks", sidebarFilters.clientIds, sidebarFilters.projectIds, sidebarFilters.assigneeIds, sidebarFilters.priorities];
-      const previousTasks = queryClient.getQueryData<any[]>(queryKey);
+      const previousTasks = queryClient.getQueryData<TaskWithRelations[]>(queryKey);
 
       queryClient.setQueryData<any[]>(queryKey, (old) =>
         (old || []).map((t) => (t.id === taskId ? { ...t, lexo_rank: newRank } : t)),
