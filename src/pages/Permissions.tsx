@@ -19,7 +19,7 @@ const MODULE_NAMES = [
 ];
 
 export default function Permissions() {
-  const { permissions, setPermissions, refreshPermissions } = useRole();
+  const { permissions, refreshPermissions } = useRole();
 
   const getPermValue = (role: string, module: string) => {
     const p = permissions.find(p => p.role_name === role && p.module_name === module);
@@ -30,16 +30,6 @@ export default function Permissions() {
     if (role === "superadmin" || role === "boss") return;
     const current = getPermValue(role, module);
     const newVal = !current;
-
-    setPermissions(prev => {
-      const idx = prev.findIndex(p => p.role_name === role && p.module_name === module);
-      if (idx >= 0) {
-        const updated = [...prev];
-        updated[idx] = { ...updated[idx], can_view: newVal };
-        return updated;
-      }
-      return [...prev, { role_name: role, module_name: module, can_view: newVal }];
-    });
 
     const { error } = await supabase
       .from("role_permissions")
